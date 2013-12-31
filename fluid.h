@@ -25,15 +25,6 @@ struct UINT2 {
     uint64_t y;
 };
 
-struct BOUNDARY_PARTICLE {
-    double x;
-    double y;
-    double z;
-    double n_x;
-    double n_y;
-    double n_z;
-};
-
 struct FLUID_PARTICLE {
     double density;
     double pressure;
