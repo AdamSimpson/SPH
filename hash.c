@@ -78,7 +78,6 @@ void hash_fluid(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *flu
 
         // Zero out neighbor values
         neighbors[i].number_fluid_neighbors = 0;
-        neighbors[i].number_boundary_neighbors = 0;
     }
 
     // sort hash by hash value in asscending order
@@ -115,7 +114,7 @@ void hash_fluid(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *flu
                             q = &fluid_particles[fluid_hash[n].y];
                             double distance = sqrt((p->x-q->x)*(p->x-q->x)+(p->y-q->y)*(p->y-q->y)+(p->z-q->z)*(p->z-q->z));
                             // Make sure the distance is less than 2h
-                            if (distance < 2.0*spacing) {
+                            if (distance < 2.0*spacing && ne->number_fluid_neighbors < 30) {
                                 ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
                                 ne->number_fluid_neighbors++;
                             }

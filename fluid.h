@@ -55,9 +55,7 @@ struct FLUID_PARTICLE {
 
 struct NEIGHBOR{
     fluid_particle* fluid_neighbors[65];
-    boundary_particle* boundary_neighbors[35];
     int number_fluid_neighbors;
-    int number_boundary_neighbors;
 };
 
 struct PARAM {

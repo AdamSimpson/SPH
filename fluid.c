@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
@@ -23,11 +22,11 @@ int main(int argc, char *argv[])
     
     // water volume
     water_volume.min_x = 0.05;
-    water_volume.max_x = 0.4;
+    water_volume.max_x = 0.45;
     water_volume.min_y = 0.05;
-    water_volume.max_y = 0.4;
+    water_volume.max_y = 0.45;
     water_volume.min_z = 0.05;
-    water_volume.max_z = 0.3;
+    water_volume.max_z = 0.45;
     
     // Simulation parameters
     params.number_fluid_particles = 1000;
@@ -114,11 +113,6 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Smooting kernels
-// http://www.fas.org/sgp/othergov/doe/lanl/lib-www/la-pubs/00538238.pdf
-////////////////////////////////////////////////////////////////////////////
-
 // B spline smoothing kernel
 double W(fluid_particle* p, fluid_particle *q, double h)
 {
@@ -160,12 +154,16 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
 {
     double dt = params->time_step;
     double restitution = 0.0; // No slip condition, applicable to viscious fluids
-    
+
+//    printf("before: %f, %f, %f\n", p->x, p->y, p->z);
+
     // project particle back onto surface
-    p->x = p->x + pen_depth * norm[0];
-    p->y = p->y + pen_depth * norm[1];
-    p->z = p->z + pen_depth * norm[2];
-    
+    p->x = p->x + (pen_depth * norm[0]);
+    p->y = p->y + (pen_depth * norm[1]);
+    p->z = p->z + (pen_depth * norm[2]);
+
+//    printf("after: %f, %f, %f\n", p->x, p->y, p->z);
+
     double v_mag = sqrt(p->v_x*p->v_x + p->v_y*p->v_y + p->v_z*p->v_z);
     double vDotn = p->v_x*norm[0] + p->v_y*norm[1] + p->v_z*norm[2];
     
@@ -221,11 +219,16 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         // Penetration depth
         double depth = sqrt((cp_x-p->x)*(cp_x-p->x) + (cp_y-p->y)*(cp_y-p->y) + (cp_z-p->z)*(cp_z-p->z));
      
-        // Surface normal
+        // Surface normal scaled
         // Use local coordinates otherwise small round off errors from world->local frame throw off sgn calculation
-        double n_x = (double)sgn(local_cp_x - local_x);
-        double n_y = (double)sgn(local_cp_y - local_y);
-        double n_z = (double)sgn(local_cp_z - local_z);
+//        double n_x = (double)sgn(local_cp_x - local_x);
+//        double n_y = (double)sgn(local_cp_y - local_y);
+//        double n_z = (double)sgn(local_cp_z - local_z);
+        double n_x = (double)(local_cp_x - local_x);
+        double n_y = (double)(local_cp_y - local_y);
+        double n_z = (double)(local_cp_z - local_z);
+
+
         double norm = sqrt(n_x*n_x + n_y*n_y + n_z*n_z);
         n_x = n_x/norm;
         n_y = n_y/norm;
@@ -233,44 +236,26 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 
         double normal[3] = {n_x,n_y,n_z};
         reflectParticle(p, params, depth, normal);
+/*
+    if(p->x < 0.0 || p->x > 0.5)
+        printf("x %f\n", p->x);
+    if(p->y < 0.0 || p->y > 0.5)
+        printf("y %f\n",p->y);
+    if(p->z < 0.0 || p->z > 0.5)
+        printf("z %f\n", p->z);
+*/
+
     }
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Particle attribute computations
-// http://www.control.auc.dk/~hempel/projects/pdf/sph1.pdf
-// This makes initialization much more stable
-////////////////////////////////////////////////////////////////////////////
-
 double computeDensity(fluid_particle *p, fluid_particle *q, param *params)
 {
-
-    double v_x = (p->v_x - q->v_x);
-    double v_y = (p->v_y - q->v_y);
-    double v_z = (p->v_z - q->v_z);
-    
-    double density = params->mass_particle * del_W(p,q,params->smoothing_radius);
-    double density_x = density * v_x * (p->x - q->x);
-    double density_y = density * v_y * (p->y - q->y);
-    double density_z = density * v_z * (p->z - q->z);
-    
-    density = (density_x + density_y + density_z)*params->time_step;
-
-
-//    double density = params->mass_particle * W(p,q,params->smoothing_radius);   
+    double density = params->mass_particle * W(p,q,params->smoothing_radius);   
     return density;
 }
 
 double computePressure(fluid_particle *p, param *params)
 {
-/*
-    double gam = 7.0;
-    double B = params->rest_density * params->speed_sound*params->speed_sound / gam;
-    double pressure =  B * (pow((p->density/params->rest_density),gam) - 1.0);
-        
-    return pressure;
-*/
-
     double pressure = 3.0 * (p->density - params->rest_density);
     return pressure;
 }
@@ -284,7 +269,7 @@ void updatePressures(fluid_particle *fluid_particles, neighbor *neighbors, param
     for(i=0; i<params->number_fluid_particles; i++) {
         p = &fluid_particles[i];
         n = &neighbors[i];
-//        p->density = 0;       
+        p->density = 0;       
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             p->density += computeDensity(p,q,params);
@@ -292,7 +277,16 @@ void updatePressures(fluid_particle *fluid_particles, neighbor *neighbors, param
         p->pressure = computePressure(p,params);
     }
 }
+/*
+double del_W_pressure(fluid_particle *p, fluid_particle *q, double h)
+{
+    double r_mag = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
+    double C = -45.0/(M_PI * h*h*h*h*h*h * r_mag);
+    double val = C*(h-r_mag)*(h-r_mag);
 
+    return val;
+}
+*/
 // Compute force(accleration) on fluid particle p by fluid particle q
 void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
 {
@@ -300,10 +294,13 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     double h = params->smoothing_radius;
     
         // Pressure force
+//	accel = (p->pressure + q->pressure)/(2.0 * q->density)  * del_W_pressure(p,q,h);
         accel = (p->pressure/(p->density*p->density) + q->pressure/(q->density*q->density)) * params->mass_particle * del_W(p,q,h);
         p->a_x -= accel * (p->x - q->x);
         p->a_y -= accel * (p->y - q->y);
         p->a_z -= accel * (p->z - q->z);
+
+//        printf("accel %f, accel_test %f\n",del_W_pressure(p,q,h),del_W(p,q,h));
         
         // Viscosity force
         double VdotR = (p->v_x-q->v_x)*(p->x-q->x) + (p->v_y-q->v_y)*(p->y-q->y) + (p->v_z-q->v_z)*(p->z-q->z);
