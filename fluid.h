@@ -1,6 +1,7 @@
 #ifndef fluid_fluid_h
 #define fluid_fluid_h
 
+typedef struct AABB__ AABB;
 typedef struct BOUNDARY_PARTICLE boundary_particle;
 typedef struct FLUID_PARTICLE fluid_particle;
 typedef struct NEIGHBOR neighbor;
@@ -14,11 +15,21 @@ typedef struct UINT2 uint2;
 #include <stdint.h>
 #include "hash.h"
 #include "fileio.h"
-#include "geometry.h"
 
 ////////////////////////////////////////////////
 // Structures
 ////////////////////////////////////////////////
+
+struct AABB__ {
+    double min_x;
+    double max_x;
+    double min_y;
+    double max_y;
+    double min_z;
+    double max_z;
+}; //Axis aligned bounding box
+
+
 
 struct UINT2 {
     uint64_t x;
@@ -70,10 +81,13 @@ struct PARAM {
     int grid_size_z;
 }; // Simulation paramaters
 
+
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-
+double min(double a, double b);
+double max(double a, double b);
+int sgn(double x);
 double W(fluid_particle *p, fluid_particle *q, double h);
 double del_W(fluid_particle *p, fluid_particle *q, double h);
 double computeDensity(fluid_particle *p, fluid_particle *q, param *params);
@@ -83,7 +97,7 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params);
 void computeBoundaryAcceleration(fluid_particle *p, boundary_particle *q, param *params);
 void updateAccelerations(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
 void updateParticle(fluid_particle *p, param *params);
-void updatePositions(fluid_particle *fluid_particles, param *params);
-void eulerStart(fluid_particle* fluid_particles, boundary_particle *boundary_particles, neighbor *neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, uint2 *boundary_hash, uint2 *boundary_hash_positions, param *params);
-void initParticles(fluid_particle* fluid_particles, boundary_particle* boundary_particles, neighbor *neighbors, uint2 *hash, uint2 *fluid_hash_positions, uint2 *boundary_hash, uint2 *boundary_hash_positions, AABB* water, AABB* boundary, param* params);
+void updatePositions(fluid_particle *fluid_particles, AABB *boundary,  param *params);
+void eulerStart(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, param *params);
+void initParticles(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *hash, uint2 *fluid_hash_positions, AABB* water, param* params);
 #endif

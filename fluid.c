@@ -5,7 +5,6 @@
 
 #include "fluid.h"
 #include "hash.h"
-#include "geometry.h"
 #include "fileio.h"
 
 int main(int argc, char *argv[])
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
         
         updateAccelerations(fluid_particles, neighbors, &params);
         
-        updatePositions(fluid_particles, boundary, &params);
+        updatePositions(fluid_particles, &boundary, &params);
         
         if (n % steps_per_frame == 0)
 	    printf("Step: %d\n", n);
@@ -154,6 +153,87 @@ double del_W(fluid_particle* p, fluid_particle *q, double h)
     
     val *= C;
     return val;
+}
+
+// Project particle to AABB surface and reflect velocity
+void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm)
+{
+    double dt = params->time_step;
+    double restitution = 0.0; // No slip condition, applicable to viscious fluids
+    
+    // project particle back onto surface
+    p->x = p->x + pen_depth * norm[0];
+    p->y = p->y + pen_depth * norm[1];
+    p->z = p->z + pen_depth * norm[2];
+    
+    double v_mag = sqrt(p->v_x*p->v_x + p->v_y*p->v_y + p->v_z*p->v_z);
+    double vDotn = p->v_x*norm[0] + p->v_y*norm[1] + p->v_z*norm[2];
+    
+    // Calculate new reflected velocity
+    p->v_x = p->v_x - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[0]);
+    p->v_y = p->v_y - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[1]);
+    p->v_z = p->v_z - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[2]);
+    
+    p-> v_half_x = p-> v_half_x - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[0]);
+    p-> v_half_y = p-> v_half_y - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[1]);
+    p-> v_half_z = p-> v_half_z - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[2]);
+}
+
+// Assume AABB with min point being axis origin 
+void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
+{
+    // AABB center
+    double c_x = boundary->min_x + (boundary->max_x - boundary->min_x)/2.0;
+    double c_y = boundary->min_y + (boundary->max_y - boundary->min_y)/2.0;
+    double c_z = boundary->min_z + (boundary->max_z - boundary->min_z)/2.0;
+    
+    // AABB extent from center of frame, aka half size
+    double e_x = boundary->max_x - c_x;
+    double e_y = boundary->max_y - c_y;
+    double e_z = boundary->max_z - c_z;
+    
+    // local position of particle from center of AABB
+    double local_x = p->x - c_x;
+    double local_y = p->y - c_y;
+    double local_z = p->z - c_z;
+    
+    // Relative distance between particle and boundary
+    double f_x = fabs(local_x) - e_x;
+    double f_y = fabs(local_y) - e_y;
+    double f_z = fabs(local_z) - e_z;
+    
+    // F = max(f_x,f_y,f_z): F > 0 outside, F < 0 inside, F=0 on a face
+    double f = max(max(f_x,f_y),f_z);
+    
+    // Particle outside of bounding volume and should be inside
+    if(f > 0.0)
+    {
+        // Calculate local contact point
+        double local_cp_x = min(e_x, max(-e_x, local_x));
+        double local_cp_y = min(e_y, max(-e_y, local_y));
+        double local_cp_z = min(e_z, max(-e_z, local_z));
+        
+        // world position of contact point // Must modify for OBB
+        double cp_x = c_x + local_cp_x;
+        double cp_y = c_y + local_cp_y;
+        double cp_z = c_z + local_cp_z;
+        
+        // Penetration depth
+        double depth = sqrt((cp_x-p->x)*(cp_x-p->x) + (cp_y-p->y)*(cp_y-p->y) + (cp_z-p->z)*(cp_z-p->z));
+     
+        // Surface normal
+        // Use local coordinates otherwise small round off errors from world->local frame throw off sgn calculation
+        double n_x = (double)sgn(local_cp_x - local_x);
+        double n_y = (double)sgn(local_cp_y - local_y);
+        double n_z = (double)sgn(local_cp_z - local_z);
+        double norm = sqrt(n_x*n_x + n_y*n_y + n_z*n_z);
+        n_x = n_x/norm;
+        n_y = n_y/norm;
+        n_z = n_z/norm;
+
+        double normal[3] = {n_x,n_y,n_z};
+        reflectParticle(p, params, depth, normal);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -296,7 +376,7 @@ void updateParticle(fluid_particle *p, param *params)
 }
 
 // Update particle position and check boundary
-void updatePositions(fluid_particle *fluid_particles, param *params)
+void updatePositions(fluid_particle *fluid_particles, AABB *boundary, param *params)
 {
     int i;
     fluid_particle *p;
@@ -369,4 +449,29 @@ void initParticles(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *
     
     // Set initial velocity half step
     eulerStart(fluid_particles, neighbors, fluid_hash, fluid_hash_positions, params);
+}
+
+////////////////////////////////////////////////
+// Utility Functions
+////////////////////////////////////////////////
+double min(double a, double b){
+    double min = a;
+    min = b < min ? b : min;
+    return min;
+}
+
+double max(double a, double b){
+    double max = a;
+    max = b > max ? b : max;
+    return max;
+}
+
+int sgn(double x) {
+    int val = 0;
+    if (x < 0.0)
+	val = -1;
+    else if (x > 0.0)
+	val = 1;
+
+    return val;
 }

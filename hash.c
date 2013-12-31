@@ -53,39 +53,8 @@ void fill_hash_positions(uint2 *hash, uint2 *hash_positions, int hash_length)
     }
 }
 
-// Place boundary particles into hash
-void hash_boundary(boundary_particle *boundary_particles, uint2 *hash, uint2 *boundary_hash_positions ,param *params)
-{
-    int i;
-    uint64_t val;
-    int n_b = params->number_boundary_particles;
-    boundary_particle *k;
-
-    uint64_t grid_size = (uint64_t)params->grid_size_x * params->grid_size_y * params->grid_size_z;    
-
-    // First pass - insert boundart particles into hash
-    for (i=0; i<n_b; i++) {
-        k = &boundary_particles[i];
-        val = hash_val(k->x,k->y,k->z,params);
-
-        // Fill hash: (hash_value, particle ID)
-        hash[i].x = val;
-        hash[i].y = i;           
-    }
-
-    // sort hash by hash value in asscending order
-    qsort(hash, n_b, sizeof(uint2), compare_hash);
-
-    // Invalidate old fluid_hash starting positions
-    for (i=0; i<grid_size; i++) 
-        boundary_hash_positions[i].x = UINT64_MAX;
-
-    // fill hash start/end positions
-    fill_hash_positions(hash, boundary_hash_positions, n_b);
-}
-
-// Hash amd fill fluid particles and place fluid/boundary particles into neighbors array
-void hash_fluid(fluid_particle* fluid_particles, boundary_particle *boundary_particles, neighbor *neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, uint2 *boundary_hash, uint2 *boundary_hash_positions, param *params)
+// Hash and fill fluid particles and place fluid particles into neighbors array
+void hash_fluid(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, param *params)
 {
     uint64_t index, n, hash_start, hash_end, val;
     double x,y,z;
@@ -116,7 +85,7 @@ void hash_fluid(fluid_particle* fluid_particles, boundary_particle *boundary_par
     qsort(fluid_hash, n_f, sizeof(uint2), compare_hash);
 
     // Invalidate old fluid_hash starting positions
-    // Using max is probably not good but should work
+    // Using max is probably not great but should work
     for (i=0; i<grid_size; i++) 
         fluid_hash_positions[i].x = UINT64_MAX;
 
@@ -152,20 +121,6 @@ void hash_fluid(fluid_particle* fluid_particles, boundary_particle *boundary_par
                             }
                         }
 		    }
-                    hash_start = boundary_hash_positions[index].x;
-                    hash_end = boundary_hash_positions[index].y;
-                    if(hash_start != UINT64_MAX) {
-                        // Go through each boundary particle in neighbor point bucket
-                        for (n=hash_start;n<=hash_end;n++) {
-                            k = &boundary_particles[boundary_hash[n].y];
-                            double distance = sqrt((p->x-k->x)*(p->x-k->x)+(p->y-k->y)*(p->y-k->y)+(p->z-k->z)*(p->z-k->z));
-                            // Make sure the distance is less than 2h
-                            if (distance < 2.0*spacing) {
-                                ne->boundary_neighbors[ne->number_boundary_neighbors] = k;
-                                ne->number_boundary_neighbors++;
-                            }
-                        }
-                    }
                         
                 } // dz loop
             } // dy loop

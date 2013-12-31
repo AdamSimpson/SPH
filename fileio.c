@@ -27,22 +27,3 @@ void writeFile(fluid_particle *particles, int fileNum, param *params)
     printf("wrote file: %s\n", name);
 }
 
-// Write boundary particle data to file
-void writeBoundaryFile(boundary_particle *boundary, param *params)
-{
-    boundary_particle *k;
-    FILE *fp ;
-    int i;
-    char name[] = "/tmp/work/atj/boundary.csv";
-    fp = fopen ( name,"w" );
-    if (!fp) {
-        printf("ERROR: error opening file\n");
-        exit(1);
-    }
-    for(i=0; i<params->number_boundary_particles; i++) {
-        k = &boundary[i];
-        fprintf(fp,"%f,%f,%f\n",k->x,k->y,k->z);
-    }
-    fclose(fp);
-    printf("wrote file: %s\n", name);
-}
