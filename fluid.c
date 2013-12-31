@@ -271,7 +271,7 @@ double computePressure(fluid_particle *p, param *params)
     return pressure;
 */
 
-    double pressure = 3* (p->density - params->rest_density);
+    double pressure = 3.0 * (p->density - params->rest_density);
     return pressure;
 }
 
