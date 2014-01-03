@@ -1,0 +1,6 @@
+CC=cc
+CFLAGS= -L/opt/sw/xk6/ddt/4.1.1/sles11.1_binary/lib/64 -lmap-sampler-pmpi -Wl,--undefined,allinea_init_sampler_now -lmap-sampler -lstdc++ -lgcc_eh -Wl,--eh-frame-hdr -omp
+
+all:
+	$(CC) $(CFLAGS) geometry.c hash.c fileio.c communication.c fluid.c -o sph.out
+	cp sph.out /tmp/work/${USER}

@@ -1,10 +1,18 @@
 #ifndef fluid_hash_h
 #define fluid_hash_h
 
+typedef struct N_BUCKET n_bucket;
+
 #include "fluid.h"
 
-//unsigned int hash_val(double x, double y, double z, double h, int hash_size);
-uint64_t hash_val(double x, double y, double z, param *params);
-void hash_fluid(fluid_particle* fluid_particles, neighbor* neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, param *params);
+struct N_BUCKET {
+    fluid_particle *fluid_particles[201];
+    unsigned int number_fluid;
+}; // neighbor 'bucket' for hash value
+
+unsigned int hash_val(double x, double y, double z, double h, int hash_size);
+void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params);
+void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params);
 
 #endif
+

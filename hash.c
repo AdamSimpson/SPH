@@ -1,128 +1,155 @@
 #include "hash.h"
 #include "fluid.h"
 #include <math.h>
-#include <stdint.h>
-#include <time.h>
 
-// Uniform grid hash, this prevents having to check duplicates when inserting
-uint64_t hash_val(double x, double y, double z, param *params)
+////////////////////////////////////////////////////////////////////////////
+// Spatial Hash
+// http://graphics.ethz.ch/Downloads/Publications/Papers/2003/Tes03/Tes03.pdf
+////////////////////////////////////////////////////////////////////////////
+unsigned int hash_val(double x, double y, double z, double spacing, int hash_size)
 {
-    double spacing = params->smoothing_radius;
-    // Calculate grid coordinates
-    uint64_t grid_x,grid_y,grid_z;
-    grid_x = floor(fabs(x)/spacing);
-    grid_y = floor(fabs(y)/spacing);
-    grid_z = floor(fabs(z)/spacing);
-
-    int num_x = params->grid_size_x;
-    int num_y = params->grid_size_y;
-    int num_z = params->grid_size_z;
-
-    uint64_t grid_position = (num_x * num_y * grid_z) + (grid_y * num_x + grid_x);
-    return grid_position;
+    unsigned int x_d = (int)floor(fabs(x/spacing));
+    unsigned int y_d = (int)floor(fabs(y/spacing));
+    unsigned int z_d = (int)floor(fabs(z/spacing));
+    unsigned int p1 = 73856093;
+    unsigned int p2 = 19349663;
+    unsigned int p3 = 83492791;
+    
+    unsigned int val = (x_d*p1 ^ y_d*p2 ^ z_d*p3) % hash_size;
+    
+    return val;
 }
 
-// Asscending hash value comparison for qsort
-int compare_hash(const void *a, const void *b)
+// Add halo particles to neighbors array
+// Halo particles are not added to hash, only neighbors list
+void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
 {
-    return ((uint2*)a)->x - ((uint2*)b)->x;
-}
 
-void fill_hash_positions(uint2 *hash, uint2 *hash_positions, int hash_length)
-{
-    uint64_t i;
-    uint64_t val,prev_val;
-
-    // create start/end array
-    for (i=0; i<hash_length; i++) {
-        val = hash[i].x;
-
-        // If the value is not the first and it's different from the previous val it is the start
-        if (i == 0 || val != hash[i-1].x) {
-            hash_positions[val].x = i;
-
-            // If this is the start of a new hash value the previous one has ended
-            if(i > 0) {
-                prev_val = hash[i-1].x;
-                hash_positions[prev_val].y = i-1;
-            }
-        }
-        // Set end value of last hash value
-        if (i == hash_length - 1)
-            hash_positions[val].y = i;
-    }
-}
-
-// Hash and fill fluid particles and place fluid particles into neighbors array
-void hash_fluid(fluid_particle* fluid_particles, neighbor *neighbors, uint2 *fluid_hash, uint2 *fluid_hash_positions, param *params)
-{
-    uint64_t index, n, hash_start, hash_end, val;
+    int index,i,dx,dy,dz,dupes,n;
     double x,y,z;
-    int i,dx,dy,dz;
-    int n_f = params->number_fluid_particles;
-    fluid_particle *p, *q;
-    boundary_particle *k;
-    double spacing = params->smoothing_radius;
+    bool duped;
+    fluid_particle *h_p, *q;
+    int n_s = params->number_fluid_particles_local;
+    int n_f = n_s + params->number_halo_particles;
+    double h = params->smoothing_radius;
+    double spacing = h;//params->spacing_particle;
     neighbor *ne;
 
-    uint64_t grid_size = (uint64_t)params->grid_size_x * params->grid_size_y * params->grid_size_z;
+    for(i=n_s; i<n_f; i++)
+    {
+        h_p = fluid_particle_pointers[i];
+        index = hash_val(h_p->x,h_p->y,h_p->z,spacing,params->length_hash);
 
-    // First pass - insert fluid particles into hash
-    for (i=0; i<n_f; i++) {
-        p = &fluid_particles[i];
-        val = hash_val(p->x,p->y,p->z,params);
+        for (dx=-1; dx<=1; dx++) {
+            x = h_p->x + dx*h;
+            for (dy=-1; dy<=1; dy++) {
+                y = h_p->y + dy*h;
+                for (dz=-1; dz<=1; dz++) {
+                    z = h_p->z + dz*h;
+                    // Calculate hash index at neighbor point
+                    index = hash_val(x,y,z,spacing,params->length_hash);
+                      // Go through each fluid particle in neighbor point bucket
+                      for (n=0;n<hash[index].number_fluid;n++) {
+                          q = hash[index].fluid_particles[n];
+                          double distance = sqrt((h_p->x-q->x)*(h_p->x-q->x)+(h_p->y-q->y)*(h_p->y-q->y)+(h_p->z-q->z)*(h_p->z-q->z));
+                          // Make sure the distance is less than 2h
+                          if (distance <= h) {
+                              // Get neighbor ne for particle q
+                              ne = &neighbors[q->id];
+                              // Make sure not to add duplicate neighbors
+                              duped = false;
+                              for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
+                                    if (ne->fluid_neighbors[dupes] == h_p) {
+                                        duped = true;
+                                        break;
+                                    }
+                                }
+                                if (!duped && ne->number_fluid_neighbors < 200) {
+                                    ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
+                                    ne->number_fluid_neighbors++;
+                                }
 
-        // Fill hash: (hash_value, particle ID)
-        fluid_hash[i].x = val;
-        fluid_hash[i].y = i;
-
-        // Zero out neighbor values
-        neighbors[i].number_fluid_neighbors = 0;
+                          }
+                      }
+                }
+            }
+        }
     }
 
-    // sort hash by hash value in asscending order
-    qsort(fluid_hash, n_f, sizeof(uint2), compare_hash);
+} 
 
-    // Invalidate old fluid_hash starting positions
-    // Using max is probably not great but should work
-    for (i=0; i<grid_size; i++) 
-        fluid_hash_positions[i].x = UINT64_MAX;
-
-    // fill fluid hash start/end positions
-    fill_hash_positions(fluid_hash, fluid_hash_positions, n_f);
-
-    // Second pass - fill particle neighbors
-    for (i=0; i<n_f; i++) {
-        p = &fluid_particles[i];
-        ne = &neighbors[i];
-        // Check in grid around currently particle position for neighbors
-        for (dx=-2; dx<=2; dx++) {
-            x = p->x + dx*spacing;
-            for (dy=-2; dy<=2; dy++) {
-                y = p->y + dy*spacing;
-                for (dz=-2; dz<=2; dz++) {
-                    z = p->z + dz*spacing;
-                    // Calculate hash index at neighbor point
-                    index = hash_val(x,y,z,params);
-
-                    hash_start = fluid_hash_positions[index].x;
-		    hash_end = fluid_hash_positions[index].y;
-
-		    if(hash_start != UINT64_MAX) {
+// Fill fluid particles into hash
+void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params)
+{
+    
+        int i,dx,dy,dz,n,index,dupes;
+        bool duped;
+        double x,y,z;
+        double h = params->smoothing_radius;
+        double spacing = h;//params->spacing_particle;
+        int n_f = params->number_fluid_particles_local;
+        fluid_particle *p, *q;
+        neighbor *ne;
+        
+        // zero out number of particles in bucket
+        for (index=0; index<params->length_hash; index++)
+            hash[index].number_fluid = 0;
+        
+        // First pass - insert fluid particles into hash
+        for (i=0; i<n_f; i++) {
+            p = fluid_particle_pointers[i];
+            
+            neighbors[i].number_fluid_neighbors = 0;
+            
+            index = hash_val(p->x,p->y,p->z,spacing,params->length_hash);
+            
+                if (hash[index].number_fluid < 200) {
+                    hash[index].fluid_particles[hash[index].number_fluid] = p;
+                    hash[index].number_fluid++;
+                }
+        }
+        
+        // Second pass - fill particle neighbors
+        for (i=0; i<n_f; i++) {
+            p = fluid_particle_pointers[i];
+            ne = &neighbors[i];
+            // Check in grid around currently particle position for neighbors
+            for (dx=-1; dx<=1; dx++) {
+                x = p->x + dx*h;
+                for (dy=-1; dy<=1; dy++) {
+                    y = p->y + dy*h;
+                    for (dz=-1; dz<=1; dz++) {
+                        z = p->z + dz*h;
+                        // Calculate hash index at neighbor point
+                        index = hash_val(x,y,z,spacing,params->length_hash);
+                        
                         // Go through each fluid particle in neighbor point bucket
-                        for (n=hash_start;n<=hash_end;n++) {
-                            q = &fluid_particles[fluid_hash[n].y];
+                        for (n=0;n<hash[index].number_fluid;n++) {
+                            q = hash[index].fluid_particles[n];
                             double distance = sqrt((p->x-q->x)*(p->x-q->x)+(p->y-q->y)*(p->y-q->y)+(p->z-q->z)*(p->z-q->z));
-                            // Make sure the distance is less than 2h
-                            if (distance < 2.0*spacing && ne->number_fluid_neighbors < 30) {
-                                ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
-                                ne->number_fluid_neighbors++;
+                            // Make sure the distance is less than h
+                            if (distance <= h) {
+                                // Make sure not to add duplicate neighbors
+                                duped = false;
+                                for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
+                                    if (ne->fluid_neighbors[dupes] == q) {
+                                        duped = true;
+                                        break;
+                                    }
+                                }
+                                if (!duped) {
+                                    ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
+                                    ne->number_fluid_neighbors++;
+                                    if(ne->number_fluid_neighbors >= 200)
+                                        printf("Too many neighbors!\n");
+                                }
+                                
                             }
                         }
-		    }
                         
-                } // dz loop
-            } // dy loop
-        } // dx loop
-    } // particle loop
+                    }
+                }
+            }
+        }
+        
 }

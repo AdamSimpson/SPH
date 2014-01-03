@@ -1,5 +1,6 @@
 CC=cc
-CFLAGS=-g -lm
+CFLAGS= -O3 -lm
 
 all:
-	$(CC) $(CFLAGS) hash.c fileio.c fluid.c -o sph.out
+	$(CC) $(CFLAGS) geometry.c hash.c fileio.c communication.c fluid.c -o sph.out
+	cp sph.out /tmp/work/${USER}
