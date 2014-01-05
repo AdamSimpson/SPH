@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
     
     params.g = 9.8;
-    params.number_steps = 100;
-    params.time_step = 0.01;
-    params.number_fluid_particles_global = 1000;
+    params.number_steps = 1000;
+    params.time_step = 1/60.0;
+    params.number_fluid_particles_global = 1800;
     params.rest_density = 1000.0; // water: kg/m^3
     
     // Boundary box
@@ -43,12 +43,12 @@ int main(int argc, char *argv[])
     boundary_global.max_z = 0.5;
     
     // water volume
-    water_volume_global.min_x = 0.15;
-    water_volume_global.max_x = 0.4;
-    water_volume_global.min_y = 0.15;
-    water_volume_global.max_y = 0.4;
-    water_volume_global.min_z = 0.15;
-    water_volume_global.max_z = 0.3;
+    water_volume_global.min_x = 0.005;
+    water_volume_global.max_x = 0.495;
+    water_volume_global.min_y = 0.005;
+    water_volume_global.max_y = 0.495;
+    water_volume_global.min_z = 0.005;
+    water_volume_global.max_z = 0.4;
     
     // Mass of each particle
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-//        if (n % steps_per_frame == 0)
-//          writeMPI(fluid_particle_pointers, fileNum++, &params);
+        if (n % steps_per_frame == 0)
+          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -189,13 +189,15 @@ int main(int argc, char *argv[])
 ///////////////////////////////////////////////////////////////////////////
 double lap_W_visc(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    double lap = (45.0 / (3.14 * h*h*h*h*h*h)) * (h-r);
+    static const coef = 45.0/M_PI;
+    double lap = coef/(h*h*h*h*h*h) * (h-r);
     return lap;
 }
 
 double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    double C = 315.0/(64.0 * 3.14 * h*h*h*h*h*h*h*h*h);
+    const static coef = 315.0/(64.0 * 3.14);
+    double C = coef/(h*h*h*h*h*h*h*h*h);
     double W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
     return W;
 
@@ -203,7 +205,8 @@ double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 
 double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    double C = -45.0/(3.14 * h*h*h*h*h*h * r);
+    const static coef = -45.0/M_PI;
+    double C = coef/(h*h*h*h*h*h * r);
     double del_W = C*(h-r)*(h-r);
     return  del_W;
 }
@@ -229,6 +232,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     fluid_particle *p, *q;
     neighbor* n;
     double r;
+    const double h = params->smoothing_radius;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -237,7 +241,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-	    if(r <= params->smoothing_radius){
+	    if(r <= h){
                 q = n->fluid_neighbors[j];
                 p->density += computeDensity(p,q,r,params);
 	    }
@@ -247,30 +251,37 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
 }
 
 // Compute force(accleration) on fluid particle p by fluid particle q
-void computeAcceleration(fluid_particle *p, fluid_particle *q, double r, param *params)
+void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
 {
     double accel;
-    double h = params->smoothing_radius;
+    const double h = params->smoothing_radius;
+    const double x_diff = (p->x - q->x);
+    const double y_diff = (p->y - q->y);
+    const double z_diff = (p->z - q->z);
+    const double r = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
     
-        // Pressure force
-        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
-        p->a_x -= accel * (p->x - q->x);
-        p->a_y -= accel * (p->y - q->y);
-        p->a_z -= accel * (p->z - q->z);
-        
-        // Viscosity force
-        double mu = 3.5;
-        accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, r, h);
-        p->a_x += accel  * (q->v_x - p->v_x);
-        p->a_y += accel  * (q->v_y - p->v_y);
-        p->a_z += accel  * (q->v_z - p->v_z);
+    if(p == q || r > h)
+	return;
 
-        // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
-        //Surface tension
-        accel = params->surface_tension * W_dens(p,q,r,h);
-        p->a_x -= accel * (p->x - q->x);
-        p->a_y -= accel * (p->y - q->y);
-        p->a_z -= accel * (p->z - q->z);
+    // Pressure force
+    accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
+    p->a_x -= accel * x_diff;
+    p->a_y -= accel * y_diff;
+    p->a_z -= accel * z_diff;
+        
+    // Viscosity force
+    double mu = 3.5;
+    accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, r, h);
+    p->a_x += accel  * (q->v_x - p->v_x);
+    p->a_y += accel  * (q->v_y - p->v_y);
+    p->a_z += accel  * (q->v_z - p->v_z);
+
+    // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
+    //Surface tension
+    accel = params->surface_tension * W_dens(p,q,r,h);
+    p->a_x -= accel * x_diff;
+    p->a_y -= accel * y_diff;
+    p->a_z -= accel * z_diff;
 
 }
 
@@ -280,8 +291,6 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
     int i,j;
     fluid_particle *p, *q;
     neighbor *n;
-    double r;
-    double h = params->smoothing_radius;
     
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -295,9 +304,7 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
         // Acceleration on p due to neighbor fluid particles
         for(j=0; j<n->number_fluid_neighbors; j++) {
                 q = n->fluid_neighbors[j];
-                r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-                if (r <= h && p!=q)
-                    computeAcceleration(p,q,r,params);
+                computeAcceleration(p,q,params);
         }
         
     }
@@ -377,7 +384,7 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
 {
     double dt = params->time_step;
     double dt_half = dt/2.0;
-    double restitution = 0.6; // 0 = No slip condition, applicable to viscious fluids
+    double restitution = 0.0; // 0 = No slip condition, applicable to viscious fluids
 
     // project particle back onto surface
     p->x = p->x + (pen_depth * norm[0]);
