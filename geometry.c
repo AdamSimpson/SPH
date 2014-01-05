@@ -41,7 +41,7 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
         }
     }
 
-    printf("rank %d max fluid x: %f\n", params->rank,fluid->min_x + (start_x + nx)*spacing);
+    printf("rank %d max fluid x: %f\n", params->rank,fluid->min_x + (start_x + nx-1)*spacing);
 
     params->number_fluid_particles_local = i;
     params->max_fluid_particle_index = i - 1;
@@ -191,7 +191,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
             params->node_end_x += h;
     }
 
-    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
+//    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
 
     // Reset out of bound numbers
     out_of_bounds->number_oob_particles_left = 0;

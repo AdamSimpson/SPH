@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     start_time = MPI_Wtime();
     for(n=0; n<params.number_steps; n++) {
 
-        printf("Rank %d Entering fluid step %d with %d particles\n",rank, n, params.number_fluid_particles_local);
+//        printf("Rank %d Entering fluid step %d with %d particles\n",rank, n, params.number_fluid_particles_local);
 
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
@@ -149,6 +149,9 @@ int main(int argc, char *argv[])
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         hash_halo(fluid_particle_pointers, neighbors, hash, &params);
+
+        // This part is incorrect as halo particles do not have correct pressure/density 
+        // Need to do a little more mpi work for this to be correct.
 
         updatePressures(fluid_particle_pointers, neighbors, &params);
         
@@ -161,8 +164,8 @@ int main(int argc, char *argv[])
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-        if (n % steps_per_frame == 0)
-          writeMPI(fluid_particle_pointers, fileNum++, &params);
+//        if (n % steps_per_frame == 0)
+//          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -184,45 +187,33 @@ int main(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////
 // Smoothing Kernels
 ///////////////////////////////////////////////////////////////////////////
-double lap_W_visc(fluid_particle *p, fluid_particle *q, double h)
+double lap_W_visc(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-  double r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
     double lap = (45.0 / (3.14 * h*h*h*h*h*h)) * (h-r);
     return lap;
 }
 
-double W_dens(fluid_particle *p, fluid_particle *q, double h)
+double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-   double r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-   double C = 315.0/(64.0 * 3.14 * h*h*h*h*h*h*h*h*h);
-
-    if (r > h || r < 0.0)
-        return 0;
-    else
-        return C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
+    double C = 315.0/(64.0 * 3.14 * h*h*h*h*h*h*h*h*h);
+    double W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
+    return W;
 
 }
 
-double del_W_pressure(fluid_particle *p, fluid_particle *q, double h)
+double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    double r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-    if(r >= 0.0 && r <= h)
-    {
-        double C = -45.0/(3.14 * h*h*h*h*h*h * r);
-        double val = C*(h-r)*(h-r);
-
-        return val;
-    }
-    else
-        return 0.0;
+    double C = -45.0/(3.14 * h*h*h*h*h*h * r);
+    double del_W = C*(h-r)*(h-r);
+    return  del_W;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Particle attribute computations
 ////////////////////////////////////////////////////////////////////////////
-double computeDensity(fluid_particle *p, fluid_particle *q, param *params)
+double computeDensity(fluid_particle *p, fluid_particle *q, double r, param *params)
 {
-    double density = params->mass_particle * W_dens(p,q,params->smoothing_radius);
+    double density = params->mass_particle * W_dens(p,q,r,params->smoothing_radius);
     return density;
 }
 
@@ -237,41 +228,46 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
-    
+    double r;
+
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
  	p->density = 0.0;       
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-            p->density += computeDensity(p,q,params);
+            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
+	    if(r <= params->smoothing_radius){
+                q = n->fluid_neighbors[j];
+                p->density += computeDensity(p,q,r,params);
+	    }
         }
         p->pressure = computePressure(p,params);
     }
 }
 
 // Compute force(accleration) on fluid particle p by fluid particle q
-void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
+void computeAcceleration(fluid_particle *p, fluid_particle *q, double r, param *params)
 {
     double accel;
     double h = params->smoothing_radius;
     
         // Pressure force
-        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h);
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
         p->a_x -= accel * (p->x - q->x);
         p->a_y -= accel * (p->y - q->y);
         p->a_z -= accel * (p->z - q->z);
         
         // Viscosity force
         double mu = 3.5;
-        accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, h);
+        accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, r, h);
         p->a_x += accel  * (q->v_x - p->v_x);
         p->a_y += accel  * (q->v_y - p->v_y);
         p->a_z += accel  * (q->v_z - p->v_z);
 
         // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
         //Surface tension
-        accel = params->surface_tension * W_dens(p,q,h);
+        accel = params->surface_tension * W_dens(p,q,r,h);
         p->a_x -= accel * (p->x - q->x);
         p->a_y -= accel * (p->y - q->y);
         p->a_z -= accel * (p->z - q->z);
@@ -284,6 +280,8 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
     int i,j;
     fluid_particle *p, *q;
     neighbor *n;
+    double r;
+    double h = params->smoothing_radius;
     
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -297,8 +295,9 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
         // Acceleration on p due to neighbor fluid particles
         for(j=0; j<n->number_fluid_neighbors; j++) {
                 q = n->fluid_neighbors[j];
-                if (p!=q)
-                    computeAcceleration(p,q,params);
+                r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
+                if (r <= h && p!=q)
+                    computeAcceleration(p,q,r,params);
         }
         
     }

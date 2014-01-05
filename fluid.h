@@ -68,12 +68,12 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-
-double W(fluid_particle *p, fluid_particle *q, double h);
-double del_W(fluid_particle *p, fluid_particle *q, double h);
-double computeDensity(fluid_particle *p, fluid_particle *q, param *params);
+double lap_W_visc(fluid_particle *p, fluid_particle *q, double r, double h);
+double W_dens(fluid_particle *p, fluid_particle *q, double r, double h);
+double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h);
+double computeDensity(fluid_particle *p, fluid_particle *q, double r, param *params);
 double computePressure(fluid_particle *p, param *params);
-void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params);
+void computeAcceleration(fluid_particle *p, fluid_particle *q, double r, param *params);
 void updateParticle(fluid_particle *p, int particle_index, param *params);
 void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm);
 
