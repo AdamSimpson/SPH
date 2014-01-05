@@ -11,9 +11,9 @@ unsigned int hash_val(double x, double y, double z, double spacing, int hash_siz
     unsigned int x_d = (int)(x/spacing);
     unsigned int y_d = (int)(y/spacing);
     unsigned int z_d = (int)(z/spacing);
-    unsigned const static int p1 = 73856093;
-    unsigned const static int p2 = 19349663;
-    unsigned const static int p3 = 83492791;
+    const static unsigned int p1 = 73856093;
+    const static unsigned int p2 = 19349663;
+    const static unsigned int p3 = 83492791;
     
     unsigned int val = (x_d*p1 ^ y_d*p2 ^ z_d*p3) % hash_size;
     
@@ -41,11 +41,13 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
         h_p = fluid_particle_pointers[i];
         index = hash_val(h_p->x,h_p->y,h_p->z,spacing,params->length_hash);
 
-        for (dx=-1; dx<=1; dx++) {
+        // This is an ugly mess of for loops...
+        // This will only find the "lower left" neighbors as forces are symetric
+        for (dx=-1; dx<=0; dx++) {
             x = h_p->x + dx*spacing;
-            for (dy=-1; dy<=1; dy++) {
+            for (dy=-1; dy<=(dx?1:0); dy++) {
                 y = h_p->y + dy*spacing;
-                for (dz=-1; dz<=1; dz++) {
+                for (dz=-1; dz<=((dx|dy)?1:0); dz++) {
                     z = h_p->z + dz*spacing;
                     // Calculate hash index at neighbor point
                     index = hash_val(x,y,z,spacing,params->length_hash);
@@ -111,12 +113,15 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         for (i=0; i<n_f; i++) {
             p = fluid_particle_pointers[i];
             ne = &neighbors[i];
+
             // Check in grid around currently particle position for neighbors
-            for (dx=-1; dx<=1; dx++) {
+	    // This will only find the "right" set of neighbors as forces are symetric
+            // This is an ugly mess of for loops...perhaps unroll by hand?
+            for (dx=0; dx<=1; dx++) {
                 x = p->x + dx*spacing;
-                for (dy=-1; dy<=1; dy++) {
+                for (dy=(dx?-1:0); dy<=1; dy++) {
                     y = p->y + dy*spacing;
-                    for (dz=-1; dz<=1; dz++) {
+                    for (dz=((dx|dy)?-1:0); dz<=1; dz++) {
                         z = p->z + dz*spacing;
                         // Calculate hash index at neighbor point
                         index = hash_val(x,y,z,spacing,params->length_hash);

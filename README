@@ -2,10 +2,6 @@ This is an SPH simulator modified to run on a RaspberryPi cluster.
 It includes loadblanced MPI
 
 TO DO:
-Remove boundary particles
-Switch all computed quantities
-Ensure efficient hash...which it is not currently
-        can probably shrink some bucket sizes
-	should checkf for duplicate hashes, not duplciate particles
-	should use sort...probably
-switch from double to float if possible
+compute density during neighbors search
+shrink bucket size
+store copies, not references, to particles in grid for better cache hit

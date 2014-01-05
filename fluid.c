@@ -28,10 +28,11 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
     
-    params.g = 9.8;
-    params.number_steps = 1000;
-    params.time_step = 1/60.0;
-    params.number_fluid_particles_global = 1800;
+    params.g = 0.0;//9.8;
+    params.number_steps = 500;
+    params.time_step = 0.01;
+    params.surface_tension =  0.01;
+    params.number_fluid_particles_global = 1000;
     params.rest_density = 1000.0; // water: kg/m^3
     
     // Boundary box
@@ -189,14 +190,14 @@ int main(int argc, char *argv[])
 ///////////////////////////////////////////////////////////////////////////
 double lap_W_visc(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    static const coef = 45.0/M_PI;
+    static const double coef = 45.0/M_PI;
     double lap = coef/(h*h*h*h*h*h) * (h-r);
     return lap;
 }
 
 double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    const static coef = 315.0/(64.0 * 3.14);
+    static const double coef = 315.0/(64.0 * 3.14);
     double C = coef/(h*h*h*h*h*h*h*h*h);
     double W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
     return W;
@@ -205,7 +206,7 @@ double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 
 double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h)
 {
-    const static coef = -45.0/M_PI;
+    static const double coef = -45.0/M_PI;
     double C = coef/(h*h*h*h*h*h * r);
     double del_W = C*(h-r)*(h-r);
     return  del_W;
@@ -226,24 +227,34 @@ double computePressure(fluid_particle *p, param *params)
     return pressure;
 }
 
+// This should be merged into the neighbor search
 void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
     double r;
+    double density;
+    double pressure;
     const double h = params->smoothing_radius;
+
+    // This should be moved into the neighbor search
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+        p->density = 0.0;
+    }
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
- 	p->density = 0.0;       
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
 	    if(r <= h){
                 q = n->fluid_neighbors[j];
-                p->density += computeDensity(p,q,r,params);
+                density= computeDensity(p,q,r,params);
+	        p->density+=density;
+	        q->density+=density;
 	    }
         }
         p->pressure = computePressure(p,params);
@@ -258,31 +269,60 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     const double x_diff = (p->x - q->x);
     const double y_diff = (p->y - q->y);
     const double z_diff = (p->z - q->z);
+
     const double r = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-    
+    double a_x, a_y, a_z;    
+
     if(p == q || r > h)
 	return;
 
     // Pressure force
-    accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
-    p->a_x -= accel * x_diff;
-    p->a_y -= accel * y_diff;
-    p->a_z -= accel * z_diff;
-        
+    if(r>0.0)
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
+    else
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
+    a_x = accel * x_diff;
+    a_y = accel * y_diff;
+    a_z = accel * z_diff;
+
+    p->a_x -= a_x;
+    p->a_y -= a_y;
+    p->a_z -= a_z;
+
+    q->a_x += a_x;
+    q->a_y += a_y;
+    q->a_z += a_z;
+
     // Viscosity force
     double mu = 3.5;
     accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, r, h);
-    p->a_x += accel  * (q->v_x - p->v_x);
-    p->a_y += accel  * (q->v_y - p->v_y);
-    p->a_z += accel  * (q->v_z - p->v_z);
+
+    a_x = accel * (q->v_x - p->v_x);
+    a_y = accel * (q->v_y - p->v_y);
+    a_z = accel * (q->v_z - p->v_z);
+
+    p->a_x += a_x;
+    p->a_y += a_y;
+    p->a_z += a_z;
+
+    q->a_x -= a_x;
+    q->a_y -= a_y;
+    q->a_z -= a_z;
 
     // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
     //Surface tension
     accel = params->surface_tension * W_dens(p,q,r,h);
-    p->a_x -= accel * x_diff;
-    p->a_y -= accel * y_diff;
-    p->a_z -= accel * z_diff;
+    a_x = accel * x_diff;
+    a_y = accel * y_diff;
+    a_z = accel * z_diff;
 
+    p->a_x -= a_x;
+    p->a_y -= a_y;
+    p->a_z -= a_z;
+
+    q->a_x += a_x;
+    q->a_y += a_y;
+    q->a_z += a_z;
 }
 
 // Update particle acclerations
@@ -291,22 +331,25 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
     int i,j;
     fluid_particle *p, *q;
     neighbor *n;
-    
+
+    // This should be reset in neighbor search or somethign
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
-        
-        n = &neighbors[i];
-        
+
         p->a_x = 0.0;
         p->a_y = 0.0;
         p->a_z = -params->g;
+    }    
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+        n = &neighbors[i];
         
-        // Acceleration on p due to neighbor fluid particles
+        // Acceleration on p and q due to neighbor fluid particles
         for(j=0; j<n->number_fluid_neighbors; j++) {
                 q = n->fluid_neighbors[j];
                 computeAcceleration(p,q,params);
         }
-        
     }
 }
 
@@ -395,6 +438,10 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
     // Hacky stuff - fix fix fix...please
     if(p->x < 0.0)
 	p->x = 0.0;
+    if(p->y < 0.0)
+	p->y = 0.0;
+    if(p->z < 0.0)
+	p->z = 0.0;
 
      norm[0] = (double)sgn(norm[0]);
      norm[1] = (double)sgn(norm[1]);
