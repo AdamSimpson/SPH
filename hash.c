@@ -8,9 +8,10 @@
 ////////////////////////////////////////////////////////////////////////////
 unsigned int hash_val(double x, double y, double z, double spacing, int hash_size)
 {
-    unsigned int x_d = (int)(x/spacing);
-    unsigned int y_d = (int)(y/spacing);
-    unsigned int z_d = (int)(z/spacing);
+    // Could get rid of floor and make bucket twice as big?
+    unsigned int x_d = (int)floor(x/spacing);
+    unsigned int y_d = (int)floor(y/spacing);
+    unsigned int z_d = (int)floor(z/spacing);
     const static unsigned int p1 = 73856093;
     const static unsigned int p2 = 19349663;
     const static unsigned int p3 = 83492791;
@@ -33,7 +34,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     fluid_particle *h_p, *q;
     int n_s = params->number_fluid_particles_local;
     int n_f = n_s + params->number_halo_particles;
-    double spacing = params->spacing_particle;
+    double spacing = params->smoothing_radius;
     neighbor *ne;
 
     for(i=n_s; i<n_f; i++)
@@ -86,7 +87,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         int i,dx,dy,dz,n,index,dupes;
         bool duped;
         double x,y,z;
-        double spacing = params->spacing_particle;//params->spacing_particle;
+        double spacing = params->smoothing_radius;//params->spacing_particle;
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q;
         neighbor *ne;
@@ -129,19 +130,21 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                         // Go through each fluid particle in neighbor point bucket
                         for (n=0;n<hash[index].number_fluid;n++) {
                             q = hash[index].fluid_particles[n];
-                            // Make sure not to add duplicate neighbors
-                            duped = false;
-                            for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
-                                if (ne->fluid_neighbors[dupes] == q) {
-                                    duped = true;
-                                    break;
+			    if(p!=q) // Don't add self to neighbors
+                            { 
+                                // Make sure not to add duplicate neighbors
+                                duped = false;
+                                for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
+                                    if (ne->fluid_neighbors[dupes] == q) {
+                                        duped = true;
+                                        break;
+                                    }
                                 }
-                            }
-                            if (!duped) {
-                                ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
-                                ne->number_fluid_neighbors++;
-                            }
-                                
+                                if (!duped) {
+                                    ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
+                                    ne->number_fluid_neighbors++;
+                                }
+                           }         
                        }
                       
                     }

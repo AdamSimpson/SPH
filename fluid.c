@@ -37,19 +37,19 @@ int main(int argc, char *argv[])
     
     // Boundary box
     boundary_global.min_x = 0.0;
-    boundary_global.max_x = 0.5;
+    boundary_global.max_x = 1.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 0.5;
+    boundary_global.max_y = 1.0;
     boundary_global.min_z = 0.0;
-    boundary_global.max_z = 0.5;
-    
+    boundary_global.max_z = 1.0;
+
     // water volume
-    water_volume_global.min_x = 0.005;
-    water_volume_global.max_x = 0.495;
-    water_volume_global.min_y = 0.005;
-    water_volume_global.max_y = 0.495;
-    water_volume_global.min_z = 0.005;
-    water_volume_global.max_z = 0.4;
+    water_volume_global.min_x = 0.1;
+    water_volume_global.max_x = 0.5;
+    water_volume_global.min_y = 0.1;
+    water_volume_global.max_y = 0.5;
+    water_volume_global.min_z = 0.1;
+    water_volume_global.max_z = 0.5;
     
     // Mass of each particle
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
@@ -241,7 +241,8 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     // This should be moved into the neighbor search
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
-        p->density = 0.0;
+        // Self contribution as to not double count below
+        p->density = computeDensity(p,p,r,params);;
     }
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
@@ -250,9 +251,9 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-	    if(r <= h){
-                q = n->fluid_neighbors[j];
-                density= computeDensity(p,q,r,params);
+	    if(r <= h)
+	    {
+                density = computeDensity(p,q,r,params);
 	        p->density+=density;
 	        q->density+=density;
 	    }
@@ -264,17 +265,18 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
 // Compute force(accleration) on fluid particle p by fluid particle q
 void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
 {
-    double accel;
     const double h = params->smoothing_radius;
+
     const double x_diff = (p->x - q->x);
     const double y_diff = (p->y - q->y);
     const double z_diff = (p->z - q->z);
 
     const double r = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-    double a_x, a_y, a_z;    
+    if(r > h)
+        return;
 
-    if(p == q || r > h)
-	return;
+    double accel;
+    double a_x, a_y, a_z;    
 
     // Pressure force
     if(r>0.0)
