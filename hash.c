@@ -1,6 +1,7 @@
 #include "hash.h"
 #include "fluid.h"
 #include <math.h>
+#include <stdbool.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // Spatial Hash
@@ -8,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 unsigned int hash_val(double x, double y, double z, double spacing, int hash_size)
 {
-    // Could get rid of floor and make bucket twice as big?
     unsigned int x_d = (int)floor(x/spacing);
     unsigned int y_d = (int)floor(y/spacing);
     unsigned int z_d = (int)floor(z/spacing);
@@ -88,13 +88,16 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         bool duped;
         double x,y,z;
         double spacing = params->smoothing_radius;
+	double h = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q;
         neighbor *ne;
-        
+        double r;        
+
         // zero out number of particles in bucket
-        for (index=0; index<params->length_hash; index++)
+        for (index=0; index<params->length_hash; index++){
             hash[index].number_fluid = 0;
+	}
         
         // First pass - insert fluid particles into hash
         for (i=0; i<n_f; i++) {
@@ -103,13 +106,13 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             neighbors[i].number_fluid_neighbors = 0;
             
             index = hash_val(p->x,p->y,p->z,spacing,params->length_hash);
-            
+
             if (hash[index].number_fluid < 200) {
                 hash[index].fluid_particles[hash[index].number_fluid] = p;
                 hash[index].number_fluid++;
             }
         }
-        
+
         // Second pass - fill particle neighbors
         for (i=0; i<n_f; i++) {
             p = fluid_particle_pointers[i];
@@ -126,30 +129,37 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                         z = p->z + dz*spacing;
                         // Calculate hash index at neighbor point
                         index = hash_val(x,y,z,spacing,params->length_hash);
-                        
+
                         // Go through each fluid particle in neighbor point bucket
                         for (n=0;n<hash[index].number_fluid;n++) {
                             q = hash[index].fluid_particles[n];
-			    if(p!=q) // Don't add self to neighbors
-                            { 
-                                // Make sure not to add duplicate neighbors
-                                duped = false;
-                                for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
-                                    if (ne->fluid_neighbors[dupes] == q) {
-                                        duped = true;
-                                        break;
-                                    }
+		
+			    // This should not be in hash unless pressure/density calculated here as well
+                            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
+
+			    if(p==q || r > h) // Don't add self to neighbors
+                                continue;
+ 
+                            // Make sure not to add duplicate neighbors
+		            // If hash collisions occur duplicates may be introduced
+			    // This is probably ok to try to remove for quicker simulation
+                            duped = false;
+                            for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
+                               if (ne->fluid_neighbors[dupes] == q) {
+                                   duped = true;
+                                    break;
                                 }
-                                if (!duped) {
-                                    ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
-                                    ne->number_fluid_neighbors++;
-                                }
-                           }         
+                            }
+                            if (!duped) {
+                                ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
+                                ne->number_fluid_neighbors++;
+                            }
                        }
                       
                     }
                 }
             }
+
         }
         
 }

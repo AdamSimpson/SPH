@@ -5,3 +5,16 @@ TO DO:
 compute density during neighbors search
 shrink bucket size
 store copies, not references, to particles in grid for better cache hit
+
+for p in particles
+	get hash cell C at point p
+	if !c.done_already // process neighbor cells
+	  for each p in C
+	      search neighbor cells for q
+		add q to p's neighbors
+	      end
+	      for k in C from (current p) to (num p in C)
+		add k to p neighbors
+	      end
+	   end
+	   c.done_already = true

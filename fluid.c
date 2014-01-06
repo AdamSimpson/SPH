@@ -248,6 +248,8 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
             printf("particle 1 self density: %f, num neighbors: %d\n", p->density, neighbors[i].number_fluid_neighbors);
     }
 
+    int num_neighbors_total = 0;
+
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
@@ -259,6 +261,11 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
                 density = computeDensity(p,q,r,params);
 	        p->density+=density;
 	        q->density+=density;
+		
+		if(p->id == 1 || q->id == 1) {
+		    printf("p: %d, q: %d\n", p->id, q->id);
+		    num_neighbors_total++;
+		}
 	    }
         }
     }
@@ -267,8 +274,8 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
         p = fluid_particle_pointers[i];
         p->pressure = computePressure(p,params);
 	
-	if(p->id == 1)
-	    printf("particle 1 pressure: %f\n", p->pressure);
+        if(p->id == 1)
+            printf("particle 1 pressure: %f, num_neighbors %d\n", p->pressure,num_neighbors_total);
     }
 
 }
