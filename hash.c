@@ -87,7 +87,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         int i,dx,dy,dz,n,index,dupes;
         bool duped;
         double x,y,z;
-        double spacing = params->smoothing_radius;//params->spacing_particle;
+        double spacing = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q;
         neighbor *ne;

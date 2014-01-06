@@ -242,7 +242,10 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         // Self contribution as to not double count below
-        p->density = computeDensity(p,p,r,params);;
+        p->density = computeDensity(p,p,r,params);
+
+        if(p->id == 1)
+            printf("particle 1 self density: %f, num neighbors: %d\n", p->density, neighbors[i].number_fluid_neighbors);
     }
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
@@ -258,8 +261,16 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
 	        q->density+=density;
 	    }
         }
-        p->pressure = computePressure(p,params);
     }
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+        p->pressure = computePressure(p,params);
+	
+	if(p->id == 1)
+	    printf("particle 1 pressure: %f\n", p->pressure);
+    }
+
 }
 
 // Compute force(accleration) on fluid particle p by fluid particle q
@@ -349,8 +360,8 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
         
         // Acceleration on p and q due to neighbor fluid particles
         for(j=0; j<n->number_fluid_neighbors; j++) {
-                q = n->fluid_neighbors[j];
-                computeAcceleration(p,q,params);
+            q = n->fluid_neighbors[j];
+            computeAcceleration(p,q,params);
         }
     }
 }
@@ -539,7 +550,6 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 {
     int i;
     fluid_particle *p;
-    double h = params->spacing_particle;
 
     // Create fluid volume
     constructFluidVolume(fluid_particle_pointers, fluid_particles, water, start_x, number_particles_x, edges, params);
