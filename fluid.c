@@ -262,9 +262,6 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
         p = fluid_particle_pointers[i];
         // Self contribution as to not double count below
         p->density = computeDensity(p,p,0.0,params);
-
-        if(p->id == 1)
-            printf("particle 1 self density: %f, num neighbors: %d\n", p->density, neighbors[i].number_fluid_neighbors);
     }
 
     int num_neighbors_total = 0;
@@ -280,11 +277,6 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
                 density = computeDensity(p,q,r,params);
 	        p->density+=density;
 	        q->density+=density;
-		
-		if(p->id == 1 || q->id == 1) {
-		    printf("p: %d, q: %d\n", p->id, q->id);
-		    num_neighbors_total++;
-		}
 	    }
         }
     }
@@ -292,9 +284,6 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         p->pressure = computePressure(p,params);
-	
-        if(p->id == 1)
-            printf("particle 1 pressure: %f, num_neighbors %d\n", p->pressure,num_neighbors_total);
     }
 
 }
@@ -318,8 +307,9 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     // Pressure force
     if(r>0.0)
         accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
-//    else
-//        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
+    // We want some pressure if particles are in same position
+    else
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
     a_x = accel * x_diff;
     a_y = accel * y_diff;
     a_z = accel * z_diff;
