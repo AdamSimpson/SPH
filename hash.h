@@ -1,6 +1,8 @@
 #ifndef fluid_hash_h
 #define fluid_hash_h
 
+#include <stdbool.h>
+
 typedef struct N_BUCKET n_bucket;
 
 #include "fluid.h"
@@ -8,6 +10,7 @@ typedef struct N_BUCKET n_bucket;
 struct N_BUCKET {
     fluid_particle *fluid_particles[201];
     unsigned int number_fluid;
+    bool hashed;
 }; // neighbor 'bucket' for hash value
 
 unsigned int hash_val(double x, double y, double z, double h, int hash_size);

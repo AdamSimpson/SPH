@@ -83,20 +83,21 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
 // it is a waste to check as we hash as well
 void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params)
 {
-    
-        int i,dx,dy,dz,n,index,dupes;
+        int i,dx,dy,dz,n,c;
         bool duped;
         double x,y,z;
         double spacing = params->smoothing_radius;
 	double h = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
-        fluid_particle *p, *q;
+        fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
-        double r;        
+        double r; 
+	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket
         for (index=0; index<params->length_hash; index++){
             hash[index].number_fluid = 0;
+	    hash[index].hashed = false;
 	}
         
         // First pass - insert fluid particles into hash
@@ -113,53 +114,57 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             }
         }
 
-        // Second pass - fill particle neighbors
+        // Second pass - fill particle neighbors by processing buckets
+	// Could also iterate through hash directly but particles array will be shorter
         for (i=0; i<n_f; i++) {
-            p = fluid_particle_pointers[i];
-            ne = &neighbors[i];
+	   // Calculate hash index of bucket 
+           p = fluid_particle_pointers[i];
+           index = hash_val(p->x,p->y,p->z,spacing,params->length_hash);
 
-            // Check in grid around currently particle position for neighbors
-	    // This will only find the "right" set of neighbors as forces are symetric
-            // This is an ugly mess of for loops...perhaps unroll by hand?
+	   // If this bucket has been done try the next one
+           if(hash[index].hashed)
+               continue;
+
+            // Check neighbors of current bucket
+	    // This only checks "forward" neighbors
             for (dx=0; dx<=1; dx++) {
                 x = p->x + dx*spacing;
                 for (dy=(dx?-1:0); dy<=1; dy++) {
                     y = p->y + dy*spacing;
-                    for (dz=((dx|dy)?-1:0); dz<=1; dz++) {
+                    for (dz=((dx|dy)?-1:1); dz<=1; dz++) {
                         z = p->z + dz*spacing;
                         // Calculate hash index at neighbor point
-                        index = hash_val(x,y,z,spacing,params->length_hash);
-
-                        // Go through each fluid particle in neighbor point bucket
-                        for (n=0;n<hash[index].number_fluid;n++) {
-                            q = hash[index].fluid_particles[n];
-		
-			    // This should not be in hash unless pressure/density calculated here as well
-                            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
-
-			    if(p==q || r > h) // Don't add self to neighbors
-                                continue;
- 
-                            // Make sure not to add duplicate neighbors
-		            // If hash collisions occur duplicates may be introduced
-			    // This is probably ok to try to remove for quicker simulation
-                            duped = false;
-                            for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
-                               if (ne->fluid_neighbors[dupes] == q) {
-                                   duped = true;
-                                    break;
-                                }
-                            }
-                            if (!duped) {
-                                ne->fluid_neighbors[ne->number_fluid_neighbors] = q;
-                                ne->number_fluid_neighbors++;
-                            }
+                        neighbor_index = hash_val(x,y,z,spacing,params->length_hash);
+			
+                        // Add neighbor particles to particles in current bucket
+                        for (c=0; c<hash[index].number_fluid; c++) {
+			    // Particle in currently being worked on buccket
+                            q = hash[index].fluid_particles[c];
+                            ne = &neighbors[q->id];
+			    for(n=0; n<hash[neighbor_index].number_fluid; n++){
+                                // Append neighbor to q's neighbor list
+		   	        q_neighbor = hash[neighbor_index].fluid_particles[n];
+				ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
+		            }
                        }
                       
-                    }
-                }
+                   } // end dz
+                } // end dy
+             }  // end dx
+	     
+	    // Process current buckets own particle interactions
+	    // This will only add one neighbor entry per force-pair
+	    for(c=0; c<hash[index].number_fluid; c++) {
+                p = hash[index].fluid_particles[c];
+                ne = &neighbors[p->id];
+	        for(n=c+1; n<hash[index].number_fluid; n++) {
+		   q = hash[index].fluid_particles[n];
+		   // Append q to p's neighbor list
+		   ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
+		}
             }
+	    // This bucket has been hashed and does not need hashed again
+	    hash[index].hashed = true;
 
-        }
-        
-}
+        } // end main particle loop
+}// end function
