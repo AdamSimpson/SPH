@@ -164,6 +164,11 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 			    for(n=0; n<hash[neighbor_index].number_fluid; n++){
                                 // Append neighbor to q's neighbor list
 		   	        q_neighbor = hash[neighbor_index].fluid_particles[n];
+
+                                 r = sqrt((q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y) + (q_neighbor->z-q->z)*(q_neighbor->z-q->z));
+                                if(r > h)
+                                    continue;
+
 				ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
 		            }
                        }

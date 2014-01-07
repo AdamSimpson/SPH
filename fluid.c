@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
     
-    params.g = 0.0;//9.8;
+    params.g = 9.8;
     params.number_steps = 500;
     params.time_step = 0.01;
     params.surface_tension =  0.01;
