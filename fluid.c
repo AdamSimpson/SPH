@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
     double max_velocity = sqrt(2.0*params.g*max_height);
     params.speed_sound = max_velocity/sqrt(0.01);
 
-    double recomend_step = 0.4 * params.smoothing_radius / (params.speed_sound * (1+ 0.6*params.alpha));
-    printf("Using time step: %f, Minimum recomended %f\n",params.time_step, recomend_step);    
+//    double recomend_step = 0.4 * params.smoothing_radius / (params.speed_sound * (1+ 0.6*params.alpha));
+//    printf("Using time step: %f, Minimum recomended %f\n",params.time_step, recomend_step);    
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -103,13 +103,32 @@ int main(int argc, char *argv[])
     total_bytes+=params.max_fluid_particles_local*sizeof(neighbor);
     if(neighbors == NULL)
         printf("Could not allocate neighbors\n");
-
-    // Allocate new hash with all values zeroed
+/*
+    ////////////////
+    // SPATIAL HASH
+    ////////////////
+    // Allocate new hash with all values zeroed 
+    printf("hard coded hash length for testing...remove!\n");
     params.length_hash = 2 * (params.max_fluid_particles_local); // Hash works best with nearest prime > 2*nt
     n_bucket* hash = calloc(params.length_hash, sizeof(n_bucket));
     total_bytes+=params.length_hash*sizeof(n_bucket);
     if(hash == NULL)
         printf("Could not allocate hash\n");    
+*/
+    /////////////////////
+    // UNIFORM GRID HASH
+    /////////////////////
+    // +1 added because range begins at 0
+    params.grid_size_x = ceil((boundary_global.max_x - boundary_global.min_x) / params.smoothing_radius) + 1;
+    params.grid_size_y = ceil((boundary_global.max_y - boundary_global.min_y) / params.smoothing_radius) + 1;
+    params.grid_size_z = ceil((boundary_global.max_z - boundary_global.min_z) / params.smoothing_radius) + 1;
+    unsigned int grid_size = params.grid_size_x * params.grid_size_y * params.grid_size_z;
+//    printf("maxx %f, y:%f ,z: %f\n", (boundary.max_x - boundary.min_x),(boundary.max_y - boundary.min_y) ,(boundary.max_z - boundary.min_z) );
+//    printf("grid size %llu x:%d,y:%d,z:%d \n", grid_size,params.grid_size_x,params.grid_size_y,params.grid_size_z);
+    params.length_hash = grid_size;
+    n_bucket* hash = calloc(params.length_hash, sizeof(n_bucket));
+    if(hash == NULL)
+        printf("Could not allocate hash\n"); 
 
     // Allocate edge index arrays
     edges.edge_pointers_left = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
@@ -242,7 +261,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         // Self contribution as to not double count below
-        p->density = computeDensity(p,p,r,params);
+        p->density = computeDensity(p,p,0.0,params);
 
         if(p->id == 1)
             printf("particle 1 self density: %f, num neighbors: %d\n", p->density, neighbors[i].number_fluid_neighbors);
@@ -299,8 +318,8 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     // Pressure force
     if(r>0.0)
         accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
-    else
-        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
+//    else
+//        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
     a_x = accel * x_diff;
     a_y = accel * y_diff;
     a_z = accel * z_diff;

@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 
+/*
 ////////////////////////////////////////////////////////////////////////////
 // Spatial Hash
 // http://graphics.ethz.ch/Downloads/Publications/Papers/2003/Tes03/Tes03.pdf
@@ -19,7 +20,27 @@ unsigned int hash_val(double x, double y, double z, double spacing, int hash_siz
     unsigned int val = (x_d*p1 ^ y_d*p2 ^ z_d*p3) % hash_size;
     
     return val;
+}*/
+
+// Uniform grid hash, this prevents having to check duplicates when inserting
+unsigned int hash_val(double x, double y, double z, param *params)
+{
+    const double spacing = params->smoothing_radius;
+    // Calculate grid coordinates
+    unsigned int grid_x,grid_y,grid_z;
+    grid_x = floor(fabs(x)/spacing);
+    grid_y = floor(fabs(y)/spacing);
+    grid_z = floor(fabs(z)/spacing);
+
+    // If using glboal boundary size this can be static
+    int num_x = params->grid_size_x;
+    int num_y = params->grid_size_y;
+    int num_z = params->grid_size_z;
+
+    unsigned int grid_position = (num_x * num_y * grid_z) + (grid_y * num_x + grid_x);
+    return grid_position;
 }
+
 
 // Add halo particles to neighbors array
 // Halo particles are not added to hash, only neighbors list
@@ -27,7 +48,6 @@ unsigned int hash_val(double x, double y, double z, double spacing, int hash_siz
 // it is a waste to check as we hash as well
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
 {
-
     int index,i,dx,dy,dz,dupes,n;
     double x,y,z;
     bool duped;
@@ -40,7 +60,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     for(i=n_s; i<n_f; i++)
     {
         h_p = fluid_particle_pointers[i];
-        index = hash_val(h_p->x,h_p->y,h_p->z,spacing,params->length_hash);
+        index = hash_val(h_p->x,h_p->y,h_p->z, params);
 
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
@@ -51,7 +71,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                 for (dz=-1; dz<=((dx|dy)?1:0); dz++) {
                     z = h_p->z + dz*spacing;
                     // Calculate hash index at neighbor point
-                    index = hash_val(x,y,z,spacing,params->length_hash);
+                    index = hash_val(x,y,z,params);
                       // Go through each fluid particle in neighbor point bucket
                       for (n=0;n<hash[index].number_fluid;n++) {
                           q = hash[index].fluid_particles[n];
@@ -106,7 +126,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             
             neighbors[i].number_fluid_neighbors = 0;
             
-            index = hash_val(p->x,p->y,p->z,spacing,params->length_hash);
+            index = hash_val(p->x,p->y,p->z,params);
 
             if (hash[index].number_fluid < 200) {
                 hash[index].fluid_particles[hash[index].number_fluid] = p;
@@ -119,7 +139,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         for (i=0; i<n_f; i++) {
 	   // Calculate hash index of bucket 
            p = fluid_particle_pointers[i];
-           index = hash_val(p->x,p->y,p->z,spacing,params->length_hash);
+           index = hash_val(p->x,p->y,p->z,params);
 
 	   // If this bucket has been done try the next one
            if(hash[index].hashed)
@@ -134,7 +154,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                     for (dz=((dx|dy)?-1:1); dz<=1; dz++) {
                         z = p->z + dz*spacing;
                         // Calculate hash index at neighbor point
-                        neighbor_index = hash_val(x,y,z,spacing,params->length_hash);
+                        neighbor_index = hash_val(x,y,z,params);
 			
                         // Add neighbor particles to particles in current bucket
                         for (c=0; c<hash[index].number_fluid; c++) {

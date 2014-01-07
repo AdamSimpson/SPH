@@ -33,7 +33,7 @@ struct FLUID_PARTICLE {
     double a_z;
     double density;
     double pressure;
-    int id;
+    int id; // Id is 'local' index within the fluid particle pointer array
 };
 
 struct NEIGHBOR{
@@ -53,6 +53,9 @@ struct PARAM {
     double speed_sound;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
+    int grid_size_x;
+    int grid_size_y;
+    int grid_size_z;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles
     int max_fluid_particle_index;     // Max index used in actual particle array
