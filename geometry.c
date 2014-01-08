@@ -6,38 +6,32 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
 {
     double spacing;
     int num_y;
-    int num_z;
     
     spacing = params->spacing_particle;
     // Number of particles in y,z, number in x is passed in
     num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
-    num_z = floor((fluid->max_z - fluid->min_z ) / spacing);
     
     // zero out number of edge particles
     edges->number_edge_particles_left = 0;
     edges->number_edge_particles_right = 0;
     
     // Place particles inside bounding volume
-    double x,y,z;
-    int nx,ny,nz;
+    double x,y;
+    int nx,ny;
     int i = 0;
     fluid_particle *p;
-    for(nz=0; nz<num_z; nz++) {
-        z = fluid->min_z + nz*spacing;
-        for(ny=0; ny<num_y; ny++) {
-            y = fluid->min_y + ny*spacing;
-            for(nx=0; nx<number_particles_x; nx++) {
-                x = fluid->min_x + (start_x + nx)*spacing;
-                p = fluid_particles + i;
-                p->x = x;
-                p->y = y;
-                p->z = z;
-                
-                // Set pointer array
-                fluid_particle_pointers[i] = p;
-	        fluid_particle_pointers[i]->id = i;
-                i++;
-            }
+    for(ny=0; ny<num_y; ny++) {
+        y = fluid->min_y + ny*spacing;
+        for(nx=0; nx<number_particles_x; nx++) {
+            x = fluid->min_x + (start_x + nx)*spacing;
+            p = fluid_particles + i;
+            p->x = x;
+            p->y = y;
+            
+            // Set pointer array
+            fluid_particle_pointers[i] = p;
+	    fluid_particle_pointers[i]->id = i;
+            i++;
         }
     }
 
@@ -52,21 +46,19 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 {
     int num_x;
     int num_y;
-    int num_z;
     
     double spacing = params->spacing_particle;
 
     // Set fluid local
     num_x = number_particles_x;
     num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
-    num_z = floor((fluid_global->max_z - fluid_global->min_z ) / spacing);
 
-    // Maximum edge particles is a set to 4 particle width y,z slab
-    edges->max_edge_particles = 4 * num_y*num_z;
-    out_of_bounds->max_oob_particles = 4 * num_y*num_z;
+    // Maximum edge particles is a set to 4 particle widths
+    edges->max_edge_particles = 4 * num_y;
+    out_of_bounds->max_oob_particles = 4 * num_y;
 
     // Initial fluid particles
-    int num_initial = num_x * num_y * num_z;
+    int num_initial = num_x * num_y;
     printf("initial number of particles %d\n", num_initial);
     int num_extra = num_initial/5;
 

@@ -14,14 +14,14 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
     MPI_Status status;
     int i;
     char name[64];
-    sprintf(name, "/tmp/work/atj/sim-%d.bin", fileNum);
+    sprintf(name, "/lustre/atlas/scratch/atj/stf007/sim-%d.bin", fileNum);
 
     int num_particles = params->number_fluid_particles_local;
 
     // How many bytes each process will write
     int rank_write_counts[params->nprocs];
     // alltoall of write counts
-    int num_doubles_to_send = 3 * num_particles;
+    int num_doubles_to_send = 2 * num_particles;
     MPI_Allgather(&num_doubles_to_send, 1, MPI_INT, rank_write_counts, 1, MPI_INT, MPI_COMM_WORLD);
     // Displacement can overflow with int, max size = 8*3*(global num particles)
     uint64_t displacement=0;
@@ -38,8 +38,7 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
     for(i=0; i<num_particles; i++) {
         send_buffer[index]   = particles[i]->x;
         send_buffer[index+1] = particles[i]->y;
-        send_buffer[index+2] = particles[i]->z;
-        index+=3;
+        index+=2;
     }
 
     // Open file
@@ -66,7 +65,7 @@ void writeFile(fluid_particle **particles, int fileNum, param *params)
     FILE *fp ;
     int i;
     char name[64];
-    sprintf(name, "/tmp/work/atj/sim-%d.csv", fileNum);
+    sprintf(name, "/lustre/atlas/scratch/atj/stf007/sim-%d.csv", fileNum);
     fp = fopen ( name,"w" );
     if (!fp) {
         printf("ERROR: error opening file\n");
@@ -74,7 +73,7 @@ void writeFile(fluid_particle **particles, int fileNum, param *params)
     }
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = particles[i];
-        fprintf(fp,"%f,%f,%f\n",p->x,p->y,p->z);
+        fprintf(fp,"%f,%f\n",p->x,p->y);
     }
     fclose(fp);
     printf("wrote file: %s\n", name);

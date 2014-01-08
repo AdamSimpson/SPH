@@ -21,16 +21,12 @@ typedef struct PARAM param;
 struct FLUID_PARTICLE {
     double x;
     double y;
-    double z;
     double v_x;
     double v_y;
-    double v_z;
     double v_half_x;
     double v_half_y;
-    double v_half_z;
     double a_x;
     double a_y;
-    double a_z;
     double density;
     double pressure;
     int id; // Id is 'local' index within the fluid particle pointer array
@@ -55,7 +51,6 @@ struct PARAM {
     double node_end_x;   // right x position of node partition
     int grid_size_x;
     int grid_size_y;
-    int grid_size_z;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles
     int max_fluid_particle_index;     // Max index used in actual particle array

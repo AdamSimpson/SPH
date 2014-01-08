@@ -29,34 +29,31 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
     
     params.g = 9.8;
-    params.number_steps = 100;
-    params.time_step = 0.01;
+    params.number_steps = 33;
+    params.time_step = 0.03;
     params.surface_tension =  0.01;
     params.number_fluid_particles_global = 1000;
-    params.rest_density = 1000.0; // water: kg/m^3
+    params.rest_density = 100.0; // water: kg/m^2 (This doesn't really make sense for 2D obviously)
     
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 1.0;
     boundary_global.min_y = 0.0;
     boundary_global.max_y = 1.0;
-    boundary_global.min_z = 0.0;
-    boundary_global.max_z = 1.0;
 
     // water volume
     water_volume_global.min_x = 0.1;
     water_volume_global.max_x = 0.5;
     water_volume_global.min_y = 0.1;
     water_volume_global.max_y = 0.5;
-    water_volume_global.min_z = 0.1;
-    water_volume_global.max_z = 0.5;
     
     // Mass of each particle
-    double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
-    params.mass_particle = params.rest_density * (volume/params.number_fluid_particles_global);
+    // This doesn't really make sense in 2D
+    double area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
+    params.mass_particle = params.rest_density * (area/params.number_fluid_particles_global);
     
     // Initial spacing between particles
-    params.spacing_particle = pow(volume/params.number_fluid_particles_global,1.0/3.0);
+    params.spacing_particle = pow(area/params.number_fluid_particles_global,1.0/2.0);
 
     // Smoothing radius, h
     params.smoothing_radius = 2.0*params.spacing_particle;
@@ -65,14 +62,6 @@ int main(int argc, char *argv[])
 
     // Number of steps before frame needs to be written for 30 fps
     int steps_per_frame = (int)(1.0/(params.time_step*30.0));
-    
-    // Calculate speed of sound for simulation
-    double max_height = water_volume_global.max_y;
-    double max_velocity = sqrt(2.0*params.g*max_height);
-    params.speed_sound = max_velocity/sqrt(0.01);
-
-//    double recomend_step = 0.4 * params.smoothing_radius / (params.speed_sound * (1+ 0.6*params.alpha));
-//    printf("Using time step: %f, Minimum recomended %f\n",params.time_step, recomend_step);    
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -103,28 +92,14 @@ int main(int argc, char *argv[])
     total_bytes+=params.max_fluid_particles_local*sizeof(neighbor);
     if(neighbors == NULL)
         printf("Could not allocate neighbors\n");
-/*
-    ////////////////
-    // SPATIAL HASH
-    ////////////////
-    // Allocate new hash with all values zeroed 
-    printf("hard coded hash length for testing...remove!\n");
-    params.length_hash = 2 * (params.max_fluid_particles_local); // Hash works best with nearest prime > 2*nt
-    n_bucket* hash = calloc(params.length_hash, sizeof(n_bucket));
-    total_bytes+=params.length_hash*sizeof(n_bucket);
-    if(hash == NULL)
-        printf("Could not allocate hash\n");    
-*/
+
     /////////////////////
     // UNIFORM GRID HASH
     /////////////////////
     // +1 added because range begins at 0
     params.grid_size_x = ceil((boundary_global.max_x - boundary_global.min_x) / params.smoothing_radius) + 1;
     params.grid_size_y = ceil((boundary_global.max_y - boundary_global.min_y) / params.smoothing_radius) + 1;
-    params.grid_size_z = ceil((boundary_global.max_z - boundary_global.min_z) / params.smoothing_radius) + 1;
-    unsigned int grid_size = params.grid_size_x * params.grid_size_y * params.grid_size_z;
-//    printf("maxx %f, y:%f ,z: %f\n", (boundary.max_x - boundary.min_x),(boundary.max_y - boundary.min_y) ,(boundary.max_z - boundary.min_z) );
-//    printf("grid size %llu x:%d,y:%d,z:%d \n", grid_size,params.grid_size_x,params.grid_size_y,params.grid_size_z);
+    unsigned int grid_size = params.grid_size_x * params.grid_size_y;
     params.length_hash = grid_size;
     n_bucket* hash = calloc(params.length_hash, sizeof(n_bucket));
     if(hash == NULL)
@@ -147,8 +122,8 @@ int main(int argc, char *argv[])
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
-//    int fileNum=0;
-//    writeMPI(fluid_particle_pointers, fileNum++, &params);
+    int fileNum=0;
+    writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
@@ -184,8 +159,8 @@ int main(int argc, char *argv[])
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-//        if (n % steps_per_frame == 0)
-//          writeMPI(fluid_particle_pointers, fileNum++, &params);
+        if (n % steps_per_frame == 0)
+          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -216,7 +191,7 @@ double lap_W_visc(const double r, const double h)
 
 double W_dens(const double r, const double h)
 {
-    static const double coef = 315.0/(64.0 * 3.14);
+    static const double coef = 315.0/(64.0 * M_PI);
     double C = coef/(h*h*h*h*h*h*h*h*h);
     double W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
     return W;
@@ -271,7 +246,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
         n = &neighbors[i];
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
+            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
 	    if(r <= h)
 	    {
                 density = computeDensity(r,params);
@@ -295,12 +270,11 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
 
     const double x_diff = (p->x - q->x);
     const double y_diff = (p->y - q->y);
-    const double z_diff = (p->z - q->z);
 
-    const double r = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
+    const double r = sqrt(x_diff*x_diff + y_diff*y_diff);
 
     double accel;
-    double a_x, a_y, a_z;    
+    double a_x, a_y;
 
     // Pressure force
     if(r>0.0)
@@ -310,7 +284,6 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
         accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(h*0.01,h);
     a_x = -accel * x_diff;
     a_y = -accel * y_diff;
-    a_z = -accel * z_diff;
 
     // Viscosity force
     static const double mu = 3.5;
@@ -318,23 +291,19 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
 
     a_x += accel * (q->v_x - p->v_x);
     a_y += accel * (q->v_y - p->v_y);
-    a_z += accel * (q->v_z - p->v_z);
 
     // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
     //Surface tension
     accel = params->surface_tension * W_dens(r,h);
     a_x -= accel * x_diff;
     a_y -= accel * y_diff;
-    a_z -= accel * z_diff;
 
     // Update particle pairs
     p->a_x += a_x;
     p->a_y += a_y;
-    p->a_z += a_z;
 
     q->a_x -= a_x;
     q->a_y -= a_y;
-    q->a_z -= a_z;
 }
 
 // Update particle acclerations
@@ -349,8 +318,7 @@ void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *nei
         p = fluid_particle_pointers[i];
 
         p->a_x = 0.0;
-        p->a_y = 0.0;
-        p->a_z = -params->g;
+        p->a_y = -params->g;
     }    
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
@@ -373,17 +341,14 @@ void updateParticle(fluid_particle *p, int particle_index, param *params)
     // Velocity at t + dt/2
     p->v_half_x = p->v_half_x + dt * p->a_x;
     p->v_half_y = p->v_half_y + dt * p->a_y;
-    p->v_half_z = p->v_half_z + dt * p->a_z;
     
     // Velocity at t + dt, must estimate for foce calc
     p->v_x = p->v_half_x + p->a_x * (dt / 2.0);
     p->v_y = p->v_half_y + p->a_y * (dt / 2.0);
-    p->v_z = p->v_half_z + p->a_z * (dt / 2.0);
     
     // Position at time t + dt
     p->x = p->x + dt * p->v_half_x;
     p->y = p->y + dt * p->v_half_y;
-    p->z = p->z + dt * p->v_half_z;
 
 }
 
@@ -430,7 +395,6 @@ void eulerStart(fluid_particle **fluid_particle_pointers, neighbor* neighbors, p
         dt_half = params->time_step/2.0;
         p->v_half_x = p->v_x - p->a_x * dt_half;
         p->v_half_y = p->v_y - p->a_y * dt_half;
-        p->v_half_z = p->v_z - p->a_z * dt_half;
     }
 }
 
@@ -444,7 +408,6 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
     // project particle back onto surface
     p->x = p->x + (pen_depth * norm[0]);
     p->y = p->y + (pen_depth * norm[1]);
-    p->z = p->z + (pen_depth * norm[2]);
 
     //////////////////////////////////////
     // Hacky stuff - fix fix fix...please
@@ -452,33 +415,27 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
 	p->x = 0.0;
     if(p->y < 0.0)
 	p->y = 0.0;
-    if(p->z < 0.0)
-	p->z = 0.0;
 
      norm[0] = (double)sgn(norm[0]);
      norm[1] = (double)sgn(norm[1]);
-     norm[2] = (double)sgn(norm[2]);
-     double mag = sqrt(norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2]);
+     double mag = sqrt(norm[0]*norm[0] + norm[1]*norm[1]);
     norm[0]/=mag;
     norm[1]/=mag;
-    norm[2]/=mag;
     ///////////////////////////////////////
 
 
-    double v_mag = sqrt(p->v_x*p->v_x + p->v_y*p->v_y + p->v_z*p->v_z);
-    double vDotn = p->v_x*norm[0] + p->v_y*norm[1] + p->v_z*norm[2];
+    double v_mag = sqrt(p->v_x*p->v_x + p->v_y*p->v_y);
+    double vDotn = p->v_x*norm[0] + p->v_y*norm[1];
 
-    double v_half_mag = sqrt(p->v_half_x*p->v_half_x + p->v_half_y*p->v_half_y + p->v_half_z*p->v_half_z);
-    double vHalfDotn = p->v_half_x*norm[0] + p->v_half_y*norm[1] + p->v_half_z*norm[2];
+    double v_half_mag = sqrt(p->v_half_x*p->v_half_x + p->v_half_y*p->v_half_y);
+    double vHalfDotn = p->v_half_x*norm[0] + p->v_half_y*norm[1];
 
     // Calculate new reflected velocity
     p->v_x = p->v_x - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[0]);
     p->v_y = p->v_y - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[1]);
-    p->v_z = p->v_z - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[2]);
 
     p-> v_half_x = p-> v_half_x - ((1.0 + (restitution*pen_depth)/(dt/2.0*v_half_mag)) * vHalfDotn * norm[0]);
     p-> v_half_y = p-> v_half_y - ((1.0 + (restitution*pen_depth)/(dt/2.0*v_half_mag)) * vHalfDotn * norm[1]);
-    p-> v_half_z = p-> v_half_z - ((1.0 + (restitution*pen_depth)/(dt/2.0*v_half_mag)) * vHalfDotn * norm[2]);
 }
 
 // Assume AABB with min point being axis origin 
@@ -487,25 +444,21 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     // AABB center
     double c_x = boundary->min_x + (boundary->max_x - boundary->min_x)/2.0;
     double c_y = boundary->min_y + (boundary->max_y - boundary->min_y)/2.0;
-    double c_z = boundary->min_z + (boundary->max_z - boundary->min_z)/2.0;
 
     // AABB extent from center of frame, aka half size
     double e_x = boundary->max_x - c_x;
     double e_y = boundary->max_y - c_y;
-    double e_z = boundary->max_z - c_z;
 
     // local position of particle from center of AABB
     double local_x = p->x - c_x;
     double local_y = p->y - c_y;
-    double local_z = p->z - c_z;
 
     // Relative distance between particle and boundary
     double f_x = fabs(local_x) - e_x;
     double f_y = fabs(local_y) - e_y;
-    double f_z = fabs(local_z) - e_z;
 
     // F = max(f_x,f_y,f_z): F > 0 outside, F < 0 inside, F=0 on a face
-    double f = max(max(f_x,f_y),f_z);
+    double f = max(f_x,f_y);
 
     // Particle outside of bounding volume and should be inside
     if(f > 0.0)
@@ -513,15 +466,13 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         // Calculate local contact point
         double local_cp_x = min(e_x, max(-e_x, local_x));
         double local_cp_y = min(e_y, max(-e_y, local_y));
-        double local_cp_z = min(e_z, max(-e_z, local_z));
 
         // world position of contact point // Must modify for OBB
         double cp_x = c_x + local_cp_x;
         double cp_y = c_y + local_cp_y;
-        double cp_z = c_z + local_cp_z;
 
         // Penetration depth
-        double depth = sqrt((cp_x-p->x)*(cp_x-p->x) + (cp_y-p->y)*(cp_y-p->y) + (cp_z-p->z)*(cp_z-p->z));
+        double depth = sqrt((cp_x-p->x)*(cp_x-p->x) + (cp_y-p->y)*(cp_y-p->y));
 
         // Surface normal scaled
         // Use local coordinates otherwise small round off errors from world->local frame throw off sgn calculation
@@ -530,15 +481,13 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 //        double n_z = (double)sgn(local_cp_z - local_z);
         double n_x = (local_cp_x - local_x);
         double n_y = (local_cp_y - local_y);
-        double n_z = (local_cp_z - local_z);
 
 
-        double norm = sqrt(n_x*n_x + n_y*n_y + n_z*n_z);
+        double norm = sqrt(n_x*n_x + n_y*n_y);
         n_x = n_x/norm;
         n_y = n_y/norm;
-        n_z = n_z/norm;
 
-        double normal[3] = {n_x,n_y,n_z};
+        double normal[2] = {n_x,n_y};
         reflectParticle(p, params, depth, normal);
     }
 }
@@ -561,10 +510,8 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
     for(i=0; i<params->number_fluid_particles_local; i++) {
         fluid_particle_pointers[i]->a_x = 0.0;
         fluid_particle_pointers[i]->a_y = 0.0;
-        fluid_particle_pointers[i]->a_z = 0.0;
         fluid_particle_pointers[i]->v_x = 0.0;
         fluid_particle_pointers[i]->v_y = 0.0;
-        fluid_particle_pointers[i]->v_z = 0.0;
         fluid_particle_pointers[i]->density = params->rest_density;
     }
 
