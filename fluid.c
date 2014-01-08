@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
     
     params.g = 9.8;
-    params.number_steps = 500;
+    params.number_steps = 100;
     params.time_step = 0.01;
     params.surface_tension =  0.01;
     params.number_fluid_particles_global = 1000;
@@ -147,8 +147,8 @@ int main(int argc, char *argv[])
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
-    int fileNum=0;
-    writeMPI(fluid_particle_pointers, fileNum++, &params);
+//    int fileNum=0;
+//    writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
@@ -184,8 +184,8 @@ int main(int argc, char *argv[])
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-        if (n % steps_per_frame == 0)
-          writeMPI(fluid_particle_pointers, fileNum++, &params);
+//        if (n % steps_per_frame == 0)
+//          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -207,14 +207,14 @@ int main(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////
 // Smoothing Kernels
 ///////////////////////////////////////////////////////////////////////////
-double lap_W_visc(fluid_particle *p, fluid_particle *q, double r, double h)
+double lap_W_visc(const double r, const double h)
 {
     static const double coef = 45.0/M_PI;
     double lap = coef/(h*h*h*h*h*h) * (h-r);
     return lap;
 }
 
-double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
+double W_dens(const double r, const double h)
 {
     static const double coef = 315.0/(64.0 * 3.14);
     double C = coef/(h*h*h*h*h*h*h*h*h);
@@ -223,7 +223,7 @@ double W_dens(fluid_particle *p, fluid_particle *q, double r, double h)
 
 }
 
-double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h)
+double del_W_pressure(const double r, const double h)
 {
     static const double coef = -45.0/M_PI;
     double C = coef/(h*h*h*h*h*h * r);
@@ -234,13 +234,13 @@ double del_W_pressure(fluid_particle *p, fluid_particle *q, double r, double h)
 ////////////////////////////////////////////////////////////////////////////
 // Particle attribute computations
 ////////////////////////////////////////////////////////////////////////////
-double computeDensity(fluid_particle *p, fluid_particle *q, double r, param *params)
+double computeDensity(const double r, const param *const params)
 {
-    double density = params->mass_particle * W_dens(p,q,r,params->smoothing_radius);
+    double density = params->mass_particle * W_dens(r,params->smoothing_radius);
     return density;
 }
 
-double computePressure(fluid_particle *p, param *params)
+double computePressure(const fluid_particle *const p, const param *const params)
 {
     double pressure = 3.0 * (p->density - params->rest_density);
     return pressure;
@@ -261,7 +261,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         // Self contribution as to not double count below
-        p->density = computeDensity(p,p,0.0,params);
+        p->density = computeDensity(0.0,params);
     }
 
     int num_neighbors_total = 0;
@@ -274,7 +274,7 @@ void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbo
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y) + (p->z-q->z)*(p->z-q->z));
 	    if(r <= h)
 	    {
-                density = computeDensity(p,q,r,params);
+                density = computeDensity(r,params);
 	        p->density+=density;
 	        q->density+=density;
 	    }
@@ -298,38 +298,36 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     const double z_diff = (p->z - q->z);
 
     const double r = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-    if(r > h)
-        return;
 
     double accel;
     double a_x, a_y, a_z;    
 
     // Pressure force
     if(r>0.0)
-        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,r,h);
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(r,h);
     // We want some pressure if particles are in same position
     else
-        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(p,q,h*0.01,h);
-    a_x = accel * x_diff;
-    a_y = accel * y_diff;
-    a_z = accel * z_diff;
-
-    p->a_x -= a_x;
-    p->a_y -= a_y;
-    p->a_z -= a_z;
-
-    q->a_x += a_x;
-    q->a_y += a_y;
-    q->a_z += a_z;
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(h*0.01,h);
+    a_x = -accel * x_diff;
+    a_y = -accel * y_diff;
+    a_z = -accel * z_diff;
 
     // Viscosity force
-    double mu = 3.5;
-    accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(p, q, r, h);
+    static const double mu = 3.5;
+    accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(r, h);
 
-    a_x = accel * (q->v_x - p->v_x);
-    a_y = accel * (q->v_y - p->v_y);
-    a_z = accel * (q->v_z - p->v_z);
+    a_x += accel * (q->v_x - p->v_x);
+    a_y += accel * (q->v_y - p->v_y);
+    a_z += accel * (q->v_z - p->v_z);
 
+    // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
+    //Surface tension
+    accel = params->surface_tension * W_dens(r,h);
+    a_x -= accel * x_diff;
+    a_y -= accel * y_diff;
+    a_z -= accel * z_diff;
+
+    // Update particle pairs
     p->a_x += a_x;
     p->a_y += a_y;
     p->a_z += a_z;
@@ -337,21 +335,6 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     q->a_x -= a_x;
     q->a_y -= a_y;
     q->a_z -= a_z;
-
-    // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
-    //Surface tension
-    accel = params->surface_tension * W_dens(p,q,r,h);
-    a_x = accel * x_diff;
-    a_y = accel * y_diff;
-    a_z = accel * z_diff;
-
-    p->a_x -= a_x;
-    p->a_y -= a_y;
-    p->a_z -= a_z;
-
-    q->a_x += a_x;
-    q->a_y += a_y;
-    q->a_z += a_z;
 }
 
 // Update particle acclerations
