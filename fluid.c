@@ -29,10 +29,10 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
     
     params.g = 9.8;
-    params.number_steps = 100;
+    params.number_steps = 500;
     params.time_step = 0.01;
     params.surface_tension =  0.01;
-    params.number_fluid_particles_global = 5000;
+    params.number_fluid_particles_global = 1000;
     params.rest_density = 100.0; // water: kg/m^3 (This doesn't really make sense for 2D obviously)
     
     // Boundary box
@@ -220,7 +220,7 @@ double computeDensity(const double r, const param *const params)
 
 double computePressure(const fluid_particle *const p, const param *const params)
 {
-    double pressure = 3.0 * (p->density - params->rest_density);
+    double pressure = 5.0 * (p->density - params->rest_density);
     return pressure;
 }
 

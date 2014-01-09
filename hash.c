@@ -110,7 +110,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             
             index = hash_val(p->x, p->y, params);
 
-            if (hash[index].number_fluid < 200) {
+            if (hash[index].number_fluid < 60) {
                 hash[index].fluid_particles[hash[index].number_fluid] = p;
                 hash[index].number_fluid++;
             }
@@ -152,6 +152,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                            if(r > h)
                                continue;
 
+			    if(ne->number_fluid_neighbors <60)
 		            ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
 		        }
                      }
@@ -167,6 +168,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 	        for(n=c+1; n<hash[index].number_fluid; n++) {
 		   q = hash[index].fluid_particles[n];
 		   // Append q to p's neighbor list
+                   if(ne->number_fluid_neighbors <60)
 		   ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
 		}
             }

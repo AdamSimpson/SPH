@@ -33,7 +33,7 @@ struct FLUID_PARTICLE {
 };
 
 struct NEIGHBOR{
-    fluid_particle* fluid_neighbors[201];
+    fluid_particle* fluid_neighbors[60];
     int number_fluid_neighbors;
 };
 
