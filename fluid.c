@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
     params.number_steps = 100;
     params.time_step = 0.01;
     params.surface_tension =  0.01;
-    params.number_fluid_particles_global = 100;
-    params.rest_density = 1.0; // water: kg/m^3 (This doesn't really make sense for 2D obviously)
+    params.number_fluid_particles_global = 5000;
+    params.rest_density = 100.0; // water: kg/m^3 (This doesn't really make sense for 2D obviously)
     
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -43,9 +43,9 @@ int main(int argc, char *argv[])
 
     // water volume
     water_volume_global.min_x = 0.1;
-    water_volume_global.max_x = 0.5;
-    water_volume_global.min_y = 0.1;
-    water_volume_global.max_y = 0.5;
+    water_volume_global.max_x = 1.0;
+    water_volume_global.min_y = 0.0;
+    water_volume_global.max_y = 1.0;
     
     // Mass of each particle
     // This doesn't really make sense in 2D
@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
-    int fileNum=0;
-    writeMPI(fluid_particle_pointers, fileNum++, &params);
+//    int fileNum=0;
+//    writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
@@ -160,16 +160,16 @@ int main(int argc, char *argv[])
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-        if (n % steps_per_frame == 0)
-          writeMPI(fluid_particle_pointers, fileNum++, &params);
+//        if (n % steps_per_frame == 0)
+//          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
     printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);    
 
     // Release memory
-    free(fluid_particles);
     free(fluid_particle_pointers);
+    free(fluid_particles);
     free(neighbors);
     free(hash);
     
@@ -183,6 +183,13 @@ int main(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////
 // Smoothing Kernels
 ///////////////////////////////////////////////////////////////////////////
+
+double lap_W_visc(const double r, const double h)
+{
+    static const double coef = 30.0/M_PI;
+    double lap = coef/(h*h*h*h*h) * (h-r);
+    return lap;
+}
 
 // (h^2 - r^2)^3 normalized in 2D
 double W_dens(const double r, const double h)
@@ -273,12 +280,11 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     if(r>0.0)
         accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(r,h);
     // We want some pressure if particles are in same position
-//    else
-//        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(h*0.01,h);
+    else
+        accel = (p->pressure + q->pressure)/(2.0 * q->density)*params->mass_particle/p->density  * del_W_pressure(h*0.01,h);
     a_x = -accel * x_diff;
     a_y = -accel * y_diff;
 
-/*
     // Viscosity force
     static const double mu = 3.5;
     accel = mu*params->mass_particle/q->density/p->density * lap_W_visc(r, h);
@@ -291,7 +297,7 @@ void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
     accel = params->surface_tension * W_dens(r,h);
     a_x -= accel * x_diff;
     a_y -= accel * y_diff;
-*/
+
     // Update particle pairs
     p->a_x += a_x;
     p->a_y += a_y;
