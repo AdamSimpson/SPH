@@ -87,12 +87,12 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 {
         int i,dx,dy,n,c;
         double x,y, px,py;
-        double spacing = params->smoothing_radius;
-	double h = params->smoothing_radius;
+        const double spacing = params->smoothing_radius;
+	const double h = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
-        double r; 
+        double r2; 
 	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket
@@ -148,8 +148,9 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                            // Append neighbor to q's neighbor list
 		           q_neighbor = hash[neighbor_index].fluid_particles[n];
 
-                           r = sqrt((q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y));
-                           if(r > h)
+			   // sqrt is expensive...compare squared instead
+                           r2 = (q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y);
+                           if(r2 > h*h)
                                continue;
 
 			    if(ne->number_fluid_neighbors <60)
