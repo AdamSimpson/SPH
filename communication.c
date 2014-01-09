@@ -9,7 +9,8 @@ void createMpiTypes()
     //Create fluid particle type
     MPI_Datatype types[12];
     int i;
-    for (i=0; i<11; i++) types[i] = MPI_DOUBLE;
+    for (i=0; i<10; i++) types[i] = MPI_DOUBLE;
+    types[10] = MPI_INT;
     types[11] = MPI_UB;
     int blocklens[12];
     for (i=0; i<12; i++) blocklens[i] = 1;
