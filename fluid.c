@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 100;
+    params.number_steps = 200;
     params.time_step = 0.01;
     params.surface_tension =  0.01;
     params.number_fluid_particles_global = 1000;
