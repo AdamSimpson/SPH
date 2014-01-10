@@ -149,11 +149,21 @@ int main(int argc, char *argv[])
         // This part is incorrect as halo particles do not have correct pressure/density 
         // Need to do a little more mpi work for this to be correct.
 
-        updatePressures(fluid_particle_pointers, neighbors, &params);
-        
-        updateAccelerations(fluid_particle_pointers, neighbors, &params);
-        
-        updatePositions(fluid_particle_pointers, &out_of_bounds, &edges, &boundary_global, &params);
+        // Initialize velocities
+	apply_gravity(fluid_particle_pointers, &params);        
+
+        // Viscosity impluse
+        viscosity_impluses(fluid_particle_pointers, neighbors, hash, &params);
+
+        // Advance to predicted position
+        predict_position(fluid_particle_pointers, neighbors, hash, &params);
+
+        // double density relaxation
+        double_density_relaxation(fluid_particle_pointers, neighbors, hash, &params);
+
+        // boundary conditions
+
+        // update velocity
 
         if (n % 10 == 0)
             checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
@@ -180,179 +190,126 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Smoothing Kernels
-///////////////////////////////////////////////////////////////////////////
-
-double lap_W_visc(const double r, const double h)
+// This should go into the hash, perhaps with the viscocity?
+void apply_gravity(fluid_particle *fluid_particle_pointers, param *params)
 {
-    static const double coef = 30.0/M_PI;
-    double lap = coef/(h*h*h*h*h) * (h-r);
-    return lap;
+    fluid_particle *p;
+    double dt = params->time_step;
+    double g = -params->g;
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+        p->v_y += p->v_y + g*dt;
+     }
 }
 
-// (h^2 - r^2)^3 normalized in 2D
-double W_dens(const double r2, const double h)
-{
-    const double C = 4.0/(M_PI*h*h*h*h*h*h*h*h);
-    double W = C*(h*h-r2)*(h*h-r2)*(h*h-r2);
-    return W;
-
-}
-
-// Gradient (h-r)^3 normalized in 2D
-double del_W_pressure(const double r, const double h)
-{
-    static const double coef = -30.0/M_PI;
-    double C = coef/(h*h*h*h*h * r);
-    double del_W = C*(h-r)*(h-r);
-    return  del_W;
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Particle attribute computations
-////////////////////////////////////////////////////////////////////////////
-double computeDensity(const double r2, const param *const params)
-{
-    double density = params->mass_particle * W_dens(r2,params->smoothing_radius);
-    return density;
-}
-
-double computePressure(const fluid_particle *const p, const param *const params)
-{
-    double pressure = 5.0 * (p->density - params->rest_density);
-    return pressure;
-}
-
-// This should be merged into the neighbor search
-void updatePressures(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
+// Add viscosity impluses
+void viscosity_impluses(fluid_particle_pointers, neighbors, hash, &params)
 {
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
-    double r2;
-    double density;
-    double pressure;
-    const double h = params->smoothing_radius;
-
-    // This should be moved into the neighbor search
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-        // Self contribution as to not double count below
-        p->density = computeDensity(0.0,params);
-    }
-
-    int num_neighbors_total = 0;
+    double r,ratio,h,u;
+    double imp, imp_x, imp_y;
+    h = params->smoothing_radius;
+    static const sigma = 1.0;
+    static const beta =  1.0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-	    r2 = (p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y);
-            density = computeDensity(r2,params);
-            p->density+=density;
-            q->density+=density;
-        }
-    }
+	    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+	    ratio = r/h;
 
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-        p->pressure = computePressure(p,params);
-    }
-
-}
-
-// Compute force(accleration) on fluid particle p by fluid particle q
-void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params)
-{
-    const double h = params->smoothing_radius;
-
-    const double x_diff = (p->x - q->x);
-    const double y_diff = (p->y - q->y);
-    const double mass = params->mass_particle;
-    const double q_density = q->density;
-    const double p_density = p->density;
-
-    const double r = sqrt(x_diff*x_diff + y_diff*y_diff);
-
-    double accel;
-    double a_x, a_y;
-
-    // Pressure force
-    if(r>0.0)
-        accel = (p->pressure + q->pressure)/(2.0 * q_density)*mass/p_density  * del_W_pressure(r,h);
-    // We want some pressure if particles are in same position
-    else
-        accel = (p->pressure + q->pressure)/(2.0 * q_density)*mass/p_density  * del_W_pressure(h*0.01,h);
-    a_x = -accel * x_diff;
-    a_y = -accel * y_diff;
-
-    // Viscosity force
-    accel = 3.5*mass/q_density/p_density * lap_W_visc(r, h);
-
-    a_x += accel * (q->v_x - p->v_x);
-    a_y += accel * (q->v_y - p->v_y);
-
-    // BT 07 http://cg.informatik.uni-freiburg.de/publications/2011_GRAPP_airBubbles.pdf
-    //Surface tension
-    accel = params->surface_tension * W_dens(r*r,h);
-    a_x -= accel * x_diff;
-    a_y -= accel * y_diff;
-
-    // Update particle pairs
-    p->a_x += a_x;
-    p->a_y += a_y;
-
-    q->a_x -= a_x;
-    q->a_y -= a_y;
-
-}
-
-// Update particle acclerations
-void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
-{
-    int i,j;
-    fluid_particle *p, *q;
-    neighbor *n;
-
-    // This should be reset in neighbor search or somethign
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-
-        p->a_x = 0.0;
-        p->a_y = -params->g;
-    }    
-
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-        n = &neighbors[i];
-        
-        // Acceleration on p and q due to neighbor fluid particles
-        for(j=0; j<n->number_fluid_neighbors; j++) {
-            q = n->fluid_neighbors[j];
-            computeAcceleration(p,q,params);
+            //Inward radial velocity
+            u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->x-p->x))/r;
+            if(u>0.0)
+            {
+                imp = dt * (1-ratio)*(sigma * u + beta * u*u);
+	        imp_x = imp/((q->x-p->x)*r);
+                imp_y = imp/((q->y-p->y)*r);
+                p->v_x -= imp_x/2.0;
+		p->v_y -= imp_y/2.0;
+                q->v_x += imp_x/2.0;
+                q->v_y += imp_y/2.0;
+            }
         }
     }
 }
 
-// Leap Frog integration with v(t+1) estimated
-void updateParticle(fluid_particle *p, int particle_index, param *params)
+// Predict position
+predict_position(fluid_particle_pointers, neighbors, hash, &params)
 {
+    fluid_particle *p;
     double dt = params->time_step;
-    
-    // Velocity at t + dt/2
-    p->v_half_x = p->v_half_x + dt * p->a_x;
-    p->v_half_y = p->v_half_y + dt * p->a_y;
-    
-    // Velocity at t + dt, must estimate for foce calc
-    p->v_x = p->v_half_x + p->a_x * (dt / 2.0);
-    p->v_y = p->v_half_y + p->a_y * (dt / 2.0);
-    
-    // Position at time t + dt
-    p->x = p->x + dt * p->v_half_x;
-    p->y = p->y + dt * p->v_half_y;
 
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+	p->x_prev = p->x;
+        p->y_prev = p->y;
+	p->x += p->v_x * dt;
+        p->y += p->v_y * dt;
+     }
+}
+
+double_density_relaxation(fluid_particle_pointers, neighbors, hash, &params)
+{
+    static const k = 3.0;
+    static const k_near = 1.0;
+
+    int i, j;
+    fluid_particle *p, *q;
+    neighbor* n;
+    double r,ratio,u,dx_x,dx_y,D_p,D_q,D_x,D_y;
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+	p->density = 0.0;
+        p->density_near = 0.0;
+        n = &neighbors[i];
+	
+	// Compute density and near density
+        for(j=0; j<n->number_fluid_neighbors; j++) {
+            q = n->fluid_neighbors[j];
+            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+            ratio = r/h;
+	    if(ratio < 1.0) {
+		p->density += (1-ratio)*(1-ratio);
+		p->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+            }
+         }
+
+        // Compute pressure and near pressure
+        p->pressure = k * (p->density-params->rest_density);
+	p->pressure_near = k_near * p->density_near;
+    }
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+        n = &neighbors[i];
+
+        dx = 0.0;
+        // Compute density and near density
+        for(j=0; j<n->number_fluid_neighbors; j++) {
+            q = n->fluid_neighbors[j];
+            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+	    ratio = r/h;
+	    if(ratio < 1.0) {
+                D_p = dt*dt*(p->pressure*(1.0-ratio) + p->pressure_near*(1.0-ratio)*(1.0-ratio));
+                D_q = dt*dt*(q->pressure*(1.0-ratio) + q->pressure_near*(1.0-ratio)*(1.0-ratio));
+		Dx = D*(q->x-p->x)/r;
+                Dy = D*(q->y-p->y)/r;
+		q->x += D_x/2.0;
+	        q->y += D_x/2.0;
+		dx_x -= D_x/2.0;
+		dx_y -= D_y/2.0;
+            }
+        }
+        p->x += dx;
+        p->y += dy;
+    }
 }
 
 // Update particle position and check boundary

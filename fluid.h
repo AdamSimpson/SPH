@@ -19,16 +19,18 @@ typedef struct PARAM param;
 ////////////////////////////////////////////////
 
 struct FLUID_PARTICLE {
+    double x_prev;
+    double y_prev;
     double x;
     double y;
     double v_x;
     double v_y;
-    double v_half_x;
-    double v_half_y;
     double a_x;
     double a_y;
     double density;
+    double density_near;
     double pressure;
+    double pressure_near;
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
