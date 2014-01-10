@@ -7,29 +7,31 @@
 void createMpiTypes()
 {
     //Create fluid particle type
-    MPI_Datatype types[12];
+    MPI_Datatype types[14];
     int i;
-    for (i=0; i<10; i++) types[i] = MPI_DOUBLE;
-    types[10] = MPI_INT;
-    types[11] = MPI_UB;
-    int blocklens[12];
-    for (i=0; i<12; i++) blocklens[i] = 1;
-    MPI_Aint disps[12];
+    for (i=0; i<12; i++) types[i] = MPI_DOUBLE;
+    types[12] = MPI_INT;
+    types[13] = MPI_UB;
+    int blocklens[14];
+    for (i=0; i<14; i++) blocklens[i] = 1;
+    MPI_Aint disps[14];
     // Get displacement of each struct member
-    disps[0] = offsetof( fluid_particle, x);
-    disps[1] = offsetof( fluid_particle, y);
-    disps[2] = offsetof( fluid_particle, v_x);
-    disps[3] = offsetof( fluid_particle, v_y);
-    disps[4] = offsetof( fluid_particle, v_half_x);
-    disps[5] = offsetof( fluid_particle, v_half_y);
+    disps[0] = offsetof( fluid_particle, x_prev);
+    disps[1] = offsetof( fluid_particle, y_prev);
+    disps[2] = offsetof( fluid_particle, x);
+    disps[3] = offsetof( fluid_particle, y);
+    disps[4] = offsetof( fluid_particle, v_x);
+    disps[5] = offsetof( fluid_particle, v_y);
     disps[6] = offsetof( fluid_particle, a_x);
     disps[7] = offsetof( fluid_particle, a_y);
     disps[8] = offsetof( fluid_particle, density);
-    disps[9] = offsetof( fluid_particle, pressure);
-    disps[10] = offsetof( fluid_particle, id);
-    disps[11] = sizeof(fluid_particle);
+    disps[9] = offsetof( fluid_particle, density_near);
+    disps[10] = offsetof( fluid_particle, pressure);
+    disps[11] = offsetof( fluid_particle, pressure_near);
+    disps[12] = offsetof( fluid_particle, id);
+    disps[13] = sizeof(fluid_particle);
     // Commit type
-    MPI_Type_create_struct( 12, blocklens, disps, types, &Particletype );
+    MPI_Type_create_struct( 14, blocklens, disps, types, &Particletype );
     MPI_Type_commit( &Particletype );
 }
 

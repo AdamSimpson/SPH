@@ -71,18 +71,16 @@ struct PARAM {
 double lap_W_visc(const double r, const double h);
 double W_dens(const double r, const double h);
 double del_W_pressure(const double r, const double h);
-double computeDensity(const double r, const param *const params);
-double computePressure(const fluid_particle *const p, const param *const params);
-void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params);
-void updateParticle(fluid_particle *p, int particle_index, param *params);
 void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm);
-
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
-void updatePressures(fluid_particle **fluid_particle_pointers,neighbor *neighbors, param *params);
-void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void updatePositions(fluid_particle **fluid_particle_pointers,oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
-void eulerStart(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
+
+void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
+void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
+void predict_positions(fluid_particle **fluid_particle_pointers, param *params);
+void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
+void updateVelocity(fluid_particle *p, param *params);
+void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
 
 #endif

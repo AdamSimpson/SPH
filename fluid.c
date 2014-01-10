@@ -28,12 +28,11 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
     
-    params.g = 9.8;
+    params.g = 1;
     params.number_steps = 100;
-    params.time_step = 0.01;
-    params.surface_tension =  0.01;
+    params.time_step = 1;
     params.number_fluid_particles_global = 1000;
-    params.rest_density = 100.0; // water: kg/m^3 (This doesn't really make sense for 2D obviously)
+    params.rest_density = 10.0;
     
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -62,7 +61,7 @@ int main(int argc, char *argv[])
     printf("smoothing radius: %f\n", params.smoothing_radius);    
 
     // Number of steps before frame needs to be written for 30 fps
-    int steps_per_frame = (int)(1.0/(params.time_step*30.0));
+    int steps_per_frame = 30;//(int)(1.0/(params.time_step*30.0));
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -123,8 +122,8 @@ int main(int argc, char *argv[])
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
-//    int fileNum=0;
-//    writeMPI(fluid_particle_pointers, fileNum++, &params);
+    int fileNum=0;
+    writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
@@ -153,25 +152,24 @@ int main(int argc, char *argv[])
 	apply_gravity(fluid_particle_pointers, &params);        
 
         // Viscosity impluse
-        viscosity_impluses(fluid_particle_pointers, neighbors, hash, &params);
+//        viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position
-        predict_position(fluid_particle_pointers, neighbors, hash, &params);
+        predict_positions(fluid_particle_pointers, &params);
 
         // double density relaxation
-        double_density_relaxation(fluid_particle_pointers, neighbors, hash, &params);
-
-        // boundary conditions
+        double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
+        updateVelocities(fluid_particle_pointers, &out_of_bounds, &edges, &boundary_global, &params);
 
         if (n % 10 == 0)
             checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
           
-//        if (n % steps_per_frame == 0)
-//          writeMPI(fluid_particle_pointers, fileNum++, &params);
+        if (n % steps_per_frame == 0)
+          writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -191,8 +189,9 @@ int main(int argc, char *argv[])
 }
 
 // This should go into the hash, perhaps with the viscocity?
-void apply_gravity(fluid_particle *fluid_particle_pointers, param *params)
+void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 {
+    int i;
     fluid_particle *p;
     double dt = params->time_step;
     double g = -params->g;
@@ -204,16 +203,17 @@ void apply_gravity(fluid_particle *fluid_particle_pointers, param *params)
 }
 
 // Add viscosity impluses
-void viscosity_impluses(fluid_particle_pointers, neighbors, hash, &params)
+void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
-    double r,ratio,h,u;
+    double r,ratio,h,u,dt;
     double imp, imp_x, imp_y;
     h = params->smoothing_radius;
-    static const sigma = 1.0;
-    static const beta =  1.0;
+    dt = params->time_step;
+    static const double sigma = 1.0;
+    static const double beta =  1.0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -237,11 +237,13 @@ void viscosity_impluses(fluid_particle_pointers, neighbors, hash, &params)
             }
         }
     }
+
 }
 
 // Predict position
-predict_position(fluid_particle_pointers, neighbors, hash, &params)
+void predict_positions(fluid_particle **fluid_particle_pointers, param *params)
 {
+    int i;
     fluid_particle *p;
     double dt = params->time_step;
 
@@ -254,15 +256,17 @@ predict_position(fluid_particle_pointers, neighbors, hash, &params)
      }
 }
 
-double_density_relaxation(fluid_particle_pointers, neighbors, hash, &params)
+void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
-    static const k = 3.0;
-    static const k_near = 1.0;
+    static const double k = 0.004;
+    static const double k_near = 0.01;
 
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
-    double r,ratio,u,dx_x,dx_y,D_p,D_q,D_x,D_y;
+    double r,ratio,dt,h,u,dx_x,dx_y,D,D_x,D_y;
+    h = params->smoothing_radius;
+    dt = params->time_step;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -278,42 +282,57 @@ double_density_relaxation(fluid_particle_pointers, neighbors, hash, &params)
 	    if(ratio < 1.0) {
 		p->density += (1-ratio)*(1-ratio);
 		p->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+
+                q->density += (1-ratio)*(1-ratio);
+                q->density_near += (1-ratio)*(1-ratio)*(1-ratio);
             }
          }
+    }
 
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
         // Compute pressure and near pressure
         p->pressure = k * (p->density-params->rest_density);
-	p->pressure_near = k_near * p->density_near;
+        p->pressure_near = k_near * p->density_near;
     }
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
 
-        dx = 0.0;
+        dx_x = 0.0;
+        dx_y = 0.0;
         // Compute density and near density
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
 	    ratio = r/h;
-	    if(ratio < 1.0) {
-                D_p = dt*dt*(p->pressure*(1.0-ratio) + p->pressure_near*(1.0-ratio)*(1.0-ratio));
-                D_q = dt*dt*(q->pressure*(1.0-ratio) + q->pressure_near*(1.0-ratio)*(1.0-ratio));
-		Dx = D*(q->x-p->x)/r;
-                Dy = D*(q->y-p->y)/r;
-		q->x += D_x/2.0;
-	        q->y += D_x/2.0;
-		dx_x -= D_x/2.0;
-		dx_y -= D_y/2.0;
+	    if(ratio < 1.0 && ratio > 0.0) {
+		// Updating both neighbor pairs at the same time will hopefully be ok
+                D = dt*dt*((p->pressure-q->pressure)*(1.0-ratio) + (p->pressure_near-q->pressure_near)*(1.0-ratio)*(1.0-ratio));
+		D_x = D*(q->x-p->x)/r;
+                D_y = D*(q->y-p->y)/r;
+		q->x += D_x;
+	        q->y += D_y;
+		dx_x -= D_x;
+		dx_y -= D_y;
             }
         }
-        p->x += dx;
-        p->y += dy;
+        p->x += dx_x;
+        p->y += dx_y;
     }
 }
 
+void updateVelocity(fluid_particle *p, param *params)
+{
+    double dt = params->time_step;
+
+    p->v_x = (p->x-p->x_prev)/dt;
+    p->v_y = (p->y-p->y_prev)/dt;
+}
+
 // Update particle position and check boundary
-void updatePositions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params)
+void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
@@ -325,36 +344,14 @@ void updatePositions(fluid_particle **fluid_particle_pointers, oob *out_of_bound
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
-        updateParticle(p, i, params);
         boundaryConditions(p, boundary_global, params);
+        updateVelocity(p, params);
 
         // Set OOB particle indicies and update number
         if (p->x < params->node_start_x)
             out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
         else if (p->x > params->node_end_x)
             out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
-    }
-}
-
-// Seed simulation with Euler step v(t-dt/2) needed by leap frog integrator
-void eulerStart(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
-{
-    updatePressures(fluid_particle_pointers, neighbors, params);
-    
-    updateAccelerations(fluid_particle_pointers, neighbors, params);
-   
-    // Set V (t0 - dt/2)
-    int i;
-    double dt_half;
-    fluid_particle *p;
-    
-    for(i=0; i<params->number_fluid_particles_local; i++)
-    {
-        p = fluid_particle_pointers[i];
-
-        dt_half = params->time_step/2.0;
-        p->v_half_x = p->v_x - p->a_x * dt_half;
-        p->v_half_y = p->v_y - p->a_y * dt_half;
     }
 }
 
@@ -391,15 +388,9 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
     double v_mag = sqrt(p->v_x*p->v_x + p->v_y*p->v_y);
     double vDotn = p->v_x*norm[0] + p->v_y*norm[1];
 
-    double v_half_mag = sqrt(p->v_half_x*p->v_half_x + p->v_half_y*p->v_half_y);
-    double vHalfDotn = p->v_half_x*norm[0] + p->v_half_y*norm[1];
-
     // Calculate new reflected velocity
     p->v_x = p->v_x - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[0]);
     p->v_y = p->v_y - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[1]);
-
-    p-> v_half_x = p-> v_half_x - ((1.0 + (restitution*pen_depth)/(dt/2.0*v_half_mag)) * vHalfDotn * norm[0]);
-    p-> v_half_y = p-> v_half_y - ((1.0 + (restitution*pen_depth)/(dt/2.0*v_half_mag)) * vHalfDotn * norm[1]);
 }
 
 // Assume AABB with min point being axis origin 
@@ -501,7 +492,4 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
     hash_fluid(fluid_particle_pointers, neighbors, hash, params);
     finishHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
     hash_halo(fluid_particle_pointers, neighbors, hash, params);
-
-    // Set initial velocity half step
-    eulerStart(fluid_particle_pointers, neighbors, params);
 }
