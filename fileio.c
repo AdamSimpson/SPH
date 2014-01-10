@@ -14,7 +14,7 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
     MPI_Status status;
     int i;
     char name[64];
-    sprintf(name, "/lustre/atlas/scratch/atj/stf007/sim-%d.bin", fileNum);
+    sprintf(name, "sim-%d.bin", fileNum);
 
     int num_particles = params->number_fluid_particles_local;
 
@@ -54,7 +54,7 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
     // Close file
     MPI_File_close(&file);
 
-    // Free buffer 
+    // Free buffer
     free(send_buffer);
 }
 

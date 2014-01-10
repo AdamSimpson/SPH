@@ -16,24 +16,24 @@ int main(int argc, char *argv[])
     int rank, nprocs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-    
+
     createMpiTypes();
-    
+
     param params;
     AABB water_volume_global;
     AABB boundary_global;
     edge edges;
     oob out_of_bounds;
-    
+
     params.rank = rank;
     params.nprocs = nprocs;
-    
+
     params.g = 1;
     params.number_steps = 100;
     params.time_step = 1;
     params.number_fluid_particles_global = 1000;
     params.rest_density = 10.0;
-    
+
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 1.0;
@@ -45,33 +45,33 @@ int main(int argc, char *argv[])
     water_volume_global.max_x = 1.0;
     water_volume_global.min_y = 0.0;
     water_volume_global.max_y = 1.0;
-    
+
     // Mass of each particle
     // This doesn't really make sense in 2D
     // Try to come up with the mass as if the particles are "3D"
     double area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
     params.mass_particle = params.rest_density * (area/params.number_fluid_particles_global);
-    
+
     // Initial spacing between particles
     params.spacing_particle = pow(area/params.number_fluid_particles_global,1.0/2.0);
 
     // Smoothing radius, h
     params.smoothing_radius = 2.0*params.spacing_particle;
 
-    printf("smoothing radius: %f\n", params.smoothing_radius);    
+    printf("smoothing radius: %f\n", params.smoothing_radius);
 
     // Number of steps before frame needs to be written for 30 fps
     int steps_per_frame = 30;//(int)(1.0/(params.time_step*30.0));
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
-    
+
     // Divide problem set amongst nodes
     partitionProblem(&boundary_global, &water_volume_global, &start_x, &number_particles_x, &params);
-    
+
     // Set local/global number of particles to allocate
     setParticleNumbers(&boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, &params);
-    
+
     long long total_bytes = 0;
     size_t bytes;
     // Allocate fluid particles array
@@ -103,21 +103,21 @@ int main(int argc, char *argv[])
     params.length_hash = grid_size;
     n_bucket* hash = calloc(params.length_hash, sizeof(n_bucket));
     if(hash == NULL)
-        printf("Could not allocate hash\n"); 
+        printf("Could not allocate hash\n");
 
     // Allocate edge index arrays
     edges.edge_pointers_left = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
     edges.edge_pointers_right = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
     // Allocate out of bound index arrays
     out_of_bounds.oob_pointer_indicies_left = malloc(out_of_bounds.max_oob_particles * sizeof(int));
-    out_of_bounds.oob_pointer_indicies_right = malloc(out_of_bounds.max_oob_particles * sizeof(int));  
+    out_of_bounds.oob_pointer_indicies_right = malloc(out_of_bounds.max_oob_particles * sizeof(int));
     out_of_bounds.vacant_indicies = malloc(2*out_of_bounds.max_oob_particles * sizeof(int));
 
     printf("gigabytes allocated: %lld\n", total_bytes/1073741824);
 
     // Initialize particles
     initParticles(fluid_particle_pointers, fluid_particles, neighbors, hash, &water_volume_global, start_x, number_particles_x, &edges, &params);
-    
+
     // Print some parameters
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     // In the current form the particles with be re-hashed and halos re-sent for step 0
     int n;
     double start_time, end_time;
-    
+
     MPI_Barrier(MPI_COMM_WORLD);
 
     start_time = MPI_Wtime();
@@ -145,11 +145,11 @@ int main(int argc, char *argv[])
 
         hash_halo(fluid_particle_pointers, neighbors, hash, &params);
 
-        // This part is incorrect as halo particles do not have correct pressure/density 
+        // This part is incorrect as halo particles do not have correct pressure/density
         // Need to do a little more mpi work for this to be correct.
 
         // Initialize velocities
-	apply_gravity(fluid_particle_pointers, &params);        
+	apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
 //        viscosity_impluses(fluid_particle_pointers, neighbors, &params);
@@ -167,24 +167,23 @@ int main(int argc, char *argv[])
             checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
-          
         if (n % steps_per_frame == 0)
           writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
-    printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);    
+    printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);
 
     // Release memory
     free(fluid_particle_pointers);
     free(fluid_particles);
     free(neighbors);
     free(hash);
-    
+
     // Close MPI
     freeMpiTypes();
     MPI_Finalize();
-    
+
     return 0;
 }
 
@@ -273,7 +272,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	p->density = 0.0;
         p->density_near = 0.0;
         n = &neighbors[i];
-	
+
 	// Compute density and near density
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
@@ -337,10 +336,10 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_boun
     int i;
     fluid_particle *p;
     double h = params->smoothing_radius;
- 
+
     // Reset OOB numbers
     out_of_bounds->number_oob_particles_left = 0;
-    out_of_bounds->number_oob_particles_right = 0;    
+    out_of_bounds->number_oob_particles_right = 0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -393,7 +392,7 @@ void reflectParticle(fluid_particle *p, param* params, double pen_depth, double 
     p->v_y = p->v_y - ((1.0 + (restitution*pen_depth)/(dt*v_mag)) * vDotn * norm[1]);
 }
 
-// Assume AABB with min point being axis origin 
+// Assume AABB with min point being axis origin
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
     // AABB center
@@ -487,7 +486,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 
     // Send halo particles
     startHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
-    
+
     //Generate neighbor hash
     hash_fluid(fluid_particle_pointers, neighbors, hash, params);
     finishHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
