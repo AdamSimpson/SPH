@@ -40,7 +40,7 @@ for file_name in os.listdir("."):
 
     for piece in read_in_chunks(bin,chunk_size=2*8*4194304):
         # partion list into tuples
-        data = [piece[i:i+3] for i in range(0,len(piece),2)]
+        data = [piece[i:i+2] for i in range(0,len(piece),2)]
         # write csv
         writer.writerows(data)
 

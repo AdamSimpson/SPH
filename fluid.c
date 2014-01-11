@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 1;
-    params.number_steps = 100;
-    params.time_step = 1;
-    params.number_fluid_particles_global = 1000;
+    params.g = 0.0;//0.1;
+    params.number_steps = 500;
+    params.time_step = 0.03;
+    params.number_fluid_particles_global = 300;
     params.rest_density = 10.0;
 
     // Boundary box
@@ -41,14 +41,13 @@ int main(int argc, char *argv[])
     boundary_global.max_y = 1.0;
 
     // water volume
-    water_volume_global.min_x = 0.1;
-    water_volume_global.max_x = 1.0;
-    water_volume_global.min_y = 0.0;
-    water_volume_global.max_y = 1.0;
+    water_volume_global.min_x = 0.3;
+    water_volume_global.max_x = 0.6;
+    water_volume_global.min_y = 0.3;
+    water_volume_global.max_y = 0.6;
 
     // Mass of each particle
     // This doesn't really make sense in 2D
-    // Try to come up with the mass as if the particles are "3D"
     double area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
     params.mass_particle = params.rest_density * (area/params.number_fluid_particles_global);
 
@@ -61,7 +60,7 @@ int main(int argc, char *argv[])
     printf("smoothing radius: %f\n", params.smoothing_radius);
 
     // Number of steps before frame needs to be written for 30 fps
-    int steps_per_frame = 30;//(int)(1.0/(params.time_step*30.0));
+    int steps_per_frame = 1;//(int)(1.0/(params.time_step*30.0));
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -137,13 +136,11 @@ int main(int argc, char *argv[])
 
 //        printf("Rank %d Entering fluid step %d with %d particles\n",rank, n, params.number_fluid_particles_local);
 
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-        hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
+//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-
-        hash_halo(fluid_particle_pointers, neighbors, hash, &params);
+//        hash_halo(fluid_particle_pointers, neighbors, hash, &params);
 
         // This part is incorrect as halo particles do not have correct pressure/density
         // Need to do a little more mpi work for this to be correct.
@@ -152,10 +149,12 @@ int main(int argc, char *argv[])
 	apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
-//        viscosity_impluses(fluid_particle_pointers, neighbors, &params);
+        viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position
         predict_positions(fluid_particle_pointers, &params);
+
+        hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
         // double density relaxation
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
@@ -197,7 +196,7 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
-        p->v_y += p->v_y + g*dt;
+        p->v_y += g*dt;
      }
 }
 
@@ -219,18 +218,18 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
         n = &neighbors[i];
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-	    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	    ratio = r/h;
+            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+            ratio = r/h;
 
             //Inward radial velocity
-            u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->x-p->x))/r;
+            u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))/r;
             if(u>0.0)
             {
                 imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-	        imp_x = imp/((q->x-p->x)*r);
-                imp_y = imp/((q->y-p->y)*r);
+                imp_x = imp*(q->x-p->x)/r;
+                imp_y = imp*(q->y-p->y)/r;
                 p->v_x -= imp_x/2.0;
-		p->v_y -= imp_y/2.0;
+                p->v_y -= imp_y/2.0;
                 q->v_x += imp_x/2.0;
                 q->v_y += imp_y/2.0;
             }
@@ -250,8 +249,8 @@ void predict_positions(fluid_particle **fluid_particle_pointers, param *params)
         p = fluid_particle_pointers[i];
 	p->x_prev = p->x;
         p->y_prev = p->y;
-	p->x += p->v_x * dt;
-        p->y += p->v_y * dt;
+	p->x += (p->v_x * dt);
+        p->y += (p->v_y * dt);
      }
 }
 
@@ -267,10 +266,17 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     h = params->smoothing_radius;
     dt = params->time_step;
 
+    // Density initially set to 1 to account for own particles density
+    // as neighbor list does not include own particle
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
-	p->density = 0.0;
-        p->density_near = 0.0;
+        p->density = 1.0;
+        p->density_near = 1.0;
+    }
+
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
         n = &neighbors[i];
 
 	// Compute density and near density
@@ -299,8 +305,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
 
-        dx_x = 0.0;
-        dx_y = 0.0;
+//        dx_x = 0.0;
+//        dx_y = 0.0;
         // Compute density and near density
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
@@ -308,17 +314,19 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	    ratio = r/h;
 	    if(ratio < 1.0 && ratio > 0.0) {
 		// Updating both neighbor pairs at the same time will hopefully be ok
-                D = dt*dt*((p->pressure-q->pressure)*(1.0-ratio) + (p->pressure_near-q->pressure_near)*(1.0-ratio)*(1.0-ratio));
+                D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
 		q->x += D_x;
 	        q->y += D_y;
-		dx_x -= D_x;
-		dx_y -= D_y;
+                p->x -= D_x;
+                p->y -= D_y;
+//		dx_x -= D_x;
+//		dx_y -= D_y;
             }
         }
-        p->x += dx_x;
-        p->y += dx_y;
+//        p->x += dx_x;
+//        p->y += dx_y;
     }
 }
 
