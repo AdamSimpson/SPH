@@ -35,7 +35,7 @@ struct FLUID_PARTICLE {
 };
 
 struct NEIGHBOR{
-    fluid_particle* fluid_neighbors[60];
+    fluid_particle* fluid_neighbors[300];
     int number_fluid_neighbors;
 };
 
@@ -71,7 +71,7 @@ struct PARAM {
 double lap_W_visc(const double r, const double h);
 double W_dens(const double r, const double h);
 double del_W_pressure(const double r, const double h);
-void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm);
+void collisionImpulse(fluid_particle *p, int norm_x, int norm_y);
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);

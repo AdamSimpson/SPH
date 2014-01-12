@@ -10,7 +10,6 @@ typedef struct N_BUCKET n_bucket;
 struct N_BUCKET {
     fluid_particle *fluid_particles[60];
     unsigned int number_fluid;
-    bool hashed;
 }; // neighbor 'bucket' for hash value
 
 unsigned int hash_val(double x, double y, param *params);
