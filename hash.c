@@ -99,10 +99,9 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket
-//	memset(hash, 0, params->length_hash*sizeof(n_bucket));
         for (index=0; index<params->length_hash; index++){
             hash[index].number_fluid = 0;
-      }
+        }
         
         // First pass - insert fluid particles into hash
         for (i=0; i<n_f; i++) {

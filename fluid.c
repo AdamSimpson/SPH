@@ -28,23 +28,23 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 1.0;
-    params.number_steps = 10000;
+    params.g = 3.0;
+    params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 1000;
     params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
-    boundary_global.max_x = 1.0;
+    boundary_global.max_x = 20.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 1.0;
+    boundary_global.max_y = 20.0;
 
     // water volume
-    water_volume_global.min_x = 0.1;
-    water_volume_global.max_x = 0.9;
-    water_volume_global.min_y = 0.1;
-    water_volume_global.max_y = 0.9;
+    water_volume_global.min_x = 0.0;
+    water_volume_global.max_x = 10.0;
+    water_volume_global.min_y = 0.0;
+    water_volume_global.max_y = 15.0;
 
     // Mass of each particle
     // This doesn't really make sense in 2D
@@ -209,8 +209,8 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     double imp, imp_x, imp_y;
     h = params->smoothing_radius;
     dt = params->time_step;
-    static const double sigma = 1.0;
-    static const double beta =  1.0;
+    static const double sigma = 0.0;
+    static const double beta =  0.3;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -222,7 +222,7 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
 
             //Inward radial velocity
             u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))/r;
-            if(u>0.0)
+            if(r< 1 && u>0.0)
             {
                 imp = dt * (1-ratio)*(sigma * u + beta * u*u);
                 imp_x = imp*(q->x-p->x)/r;
@@ -269,11 +269,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
 
-        //////////////////////////////////
-	// SHOULD THIS BE 1?? I think not
         p->density = 0.0;
         p->density_near = 0.0;
-        //////////////////////////////////
     }
 
 
@@ -367,8 +364,8 @@ void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
     double vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
 
     // Velocity normal to surface
-    vx_norm = (p->v_x*norm_x);
-    vy_norm = (p->v_y*norm_y);
+    vx_norm = fabs(p->v_x*norm_x)*norm_x;
+    vy_norm = fabs(p->v_y*norm_y)*norm_y;
 
     // Velocity tangential to surface
     vx_tan = p->v_x - vx_norm;
@@ -379,14 +376,26 @@ void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
     I_y = vy_norm - mu*vy_tan;
 
     // Update velocity based on I
-    p->v_x += I_x;
-    p->v_y += I_y;
+    p->v_x -= I_x;
+    p->v_y -= I_y;
+
+    // x needs to be updated as the velocity estimate will wipe the collision information out
+    // otherwise
+    p->x_prev = p->x;
+    p->y_prev = p->y;
+    p->x += (p->v_x * 0.03);
+    p->y += (p->v_y * 0.03);
+
+//    p->x += I_x * 0.03;
+//    p->y += I_y * 0.03;
+
+//    if(p->id == 9)
+//	printf("y: %f, v_y: %f, v_x: %f\n",p->y, p->v_y, p->v_x);
 }
 
 // Assume AABB with min point being axis origin
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
-
     // Update velocity
     if(p->x < boundary->min_x) {
 	collisionImpulse(p,1,0);
@@ -402,17 +411,19 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     }
 
     // Make sure object is not outside boundary
+    // The particle must not be equal to boundary max or hash won't pick it up
+    // as the particle is in the 'next' bin
     if(p->x < boundary->min_x) {
         p->x = boundary->min_x;
     }
     else if(p->x > boundary->max_x){
-        p->x = boundary->max_x;
+        p->x = boundary->max_x-0.001;
     }
     if(p->y < boundary->min_y) {
         p->y = boundary->min_y;
     }
     else if(p->y > boundary->max_y){
-        p->y = boundary->max_y;
+        p->y = boundary->max_y-0.001;
     }
 
 }
@@ -437,14 +448,14 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
         fluid_particle_pointers[i]->a_y = 0.0;
         fluid_particle_pointers[i]->v_x = 0.0;
         fluid_particle_pointers[i]->v_y = 0.0;
-        fluid_particle_pointers[i]->density = params->rest_density;
+//        fluid_particle_pointers[i]->density = params->rest_density;
     }
 
     // Send halo particles
 //    startHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
 
     //Generate neighbor hash
-    hash_fluid(fluid_particle_pointers, neighbors, hash, params);
+//   hash_fluid(fluid_particle_pointers, neighbors, hash, params);
 //    finishHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
 //    hash_halo(fluid_particle_pointers, neighbors, hash, params);
 }
