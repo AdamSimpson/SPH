@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 0.2;
-    params.number_steps = 1000;
+    params.g = 1.0;
+    params.number_steps = 10000;
     params.time_step = 0.03;
-    params.number_fluid_particles_global = 300;
+    params.number_fluid_particles_global = 1000;
     params.rest_density = 10.0;
 
     // Boundary box
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position
-        predict_positions(fluid_particle_pointers, &params);
+        predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
 //        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
@@ -234,11 +234,10 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
             }
         }
     }
-
 }
 
 // Predict position
-void predict_positions(fluid_particle **fluid_particle_pointers, param *params)
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
@@ -251,29 +250,14 @@ void predict_positions(fluid_particle **fluid_particle_pointers, param *params)
 	p->x += (p->v_x * dt);
         p->y += (p->v_y * dt);
 
-	// Make sure object is not outside boundary
-	// Without this the spatial hash will blow up
-
-	// This needs to be changed to use actual boundary values
-	if(p->x < 0.0) {
-	    p->x = 0;
-	}
-	else if(p->x > 1.0){
-	    p->x = 1.0;
-	}
-	if(p->y < 0.0) {
-	    p->y = 0.0;
-	}
-	else if(p->y > 1.0){
-	    p->y = 1.0;
-	}
+        boundaryConditions(p, boundary_global, params);
     }
 }
 
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
-    static const double k = 0.04;
-    static const double k_near = 0.1;
+    static const double k = 0.5;
+    static const double k_near = 5.0;
 
     int i, j;
     fluid_particle *p, *q;
@@ -284,8 +268,12 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
+
+        //////////////////////////////////
+	// SHOULD THIS BE 1?? I think not
         p->density = 0.0;
         p->density_near = 0.0;
+        //////////////////////////////////
     }
 
 
@@ -319,26 +307,23 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
 
-        dx_x = 0.0;
-        dx_y = 0.0;
         // Compute density and near density
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
 	    ratio = r/h;
 	    if(ratio < 1.0 && ratio > 0.0) {
-		// Updating both neighbor pairs at the same time will hopefully be ok
+		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
+	        // Also the running sum sum of D for particle p seems to produce more bias/instability so is removed
                 D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
 		q->x += D_x;
 	        q->y += D_y;
-		dx_x -= D_x;
-		dx_y -= D_y;
+		p->x -= D_x;
+                p->y -= D_y;
             }
         }
-        p->x += dx_x;
-        p->y += dx_y;
     }
 }
 
@@ -377,7 +362,7 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_boun
 void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
 {
     // Boundary friction
-    const static double mu = 0.0;
+    const static double mu = 0.5;
 
     double vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
 
@@ -418,16 +403,16 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 
     // Make sure object is not outside boundary
     if(p->x < boundary->min_x) {
-        p->x = boundary->min_x;//-p->x;
+        p->x = boundary->min_x;
     }
     else if(p->x > boundary->max_x){
-        p->x = boundary->max_x;//2.0*boundary->max_x - p->x;
+        p->x = boundary->max_x;
     }
     if(p->y < boundary->min_y) {
-        p->y = boundary->min_y;//-p->y;
+        p->y = boundary->min_y;
     }
     else if(p->y > boundary->max_y){
-        p->y = boundary->max_y;//2.0*boundary->max_y - p->y;
+        p->y = boundary->max_y;
     }
 
 }

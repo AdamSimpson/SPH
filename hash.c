@@ -128,6 +128,25 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 	    if(hash[index].number_fluid == 0)
 	        continue;
 
+            // Process current buckets own particle interactions
+            // This will only add one neighbor entry per force-pair
+            for(c=0; c<hash[index].number_fluid; c++) {
+                p = hash[index].fluid_particles[c];
+                ne = &neighbors[p->id];
+                for(n=c+1; n<hash[index].number_fluid; n++) {
+                   q = hash[index].fluid_particles[n];
+                   // Append q to p's neighbor list
+                    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+                    if(r > h)
+                        continue;
+
+                   if(ne->number_fluid_neighbors <300)
+                   ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
+                   else
+                      printf("self bucket overflow\n");
+                }
+            }
+
             // Check neighbors of current bucket
 	    // This only checks "forward" neighbors
             for (dx=0; dx<=1; dx++) {
@@ -163,25 +182,6 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                 } // end dy
              }  // end dx
 	     
-	    // Process current buckets own particle interactions
-	    // This will only add one neighbor entry per force-pair
-	    for(c=0; c<hash[index].number_fluid; c++) {
-                p = hash[index].fluid_particles[c];
-                ne = &neighbors[p->id];
-	        for(n=c+1; n<hash[index].number_fluid; n++) {
-		   q = hash[index].fluid_particles[n];
-		   // Append q to p's neighbor list
-                    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-                    if(r > h)
-                        continue;
-
-                   if(ne->number_fluid_neighbors <300)
-		   ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
-		   else
-		      printf("self bucket overflow\n");
-		}
-            }
-
             } // end grid y
         } // end grid x
 }// end function

@@ -78,7 +78,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
-void predict_positions(fluid_particle **fluid_particle_pointers, param *params);
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params);
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
