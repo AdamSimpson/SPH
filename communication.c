@@ -106,6 +106,8 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     int indexToReceiveLeft = params->max_fluid_particle_index + 1;
     int indexToReceiveRight = indexToReceiveLeft + num_from_left;
 
+    printf("rank %d, halo: send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
+
     int tagl = 4312;
     int tagr = 5177;
     // Receive halo from left rank
@@ -138,7 +140,7 @@ void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle
     int total_received = num_received_left + num_received_right;
     params->number_halo_particles = total_received;
 
-//    printf("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
+    printf("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
 
     // Update pointer array with new values
     int local_index;
@@ -254,7 +256,7 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     int total_sent = num_moving_left + num_moving_right;
     int total_received = num_received_right + num_received_left;
 
-//    printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
+    printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
    
     // Update maximum particle index if neccessary
     if (indicies_recv[total_received-1] > params->max_fluid_particle_index)

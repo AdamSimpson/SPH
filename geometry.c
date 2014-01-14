@@ -60,7 +60,9 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
     // Initial fluid particles
     int num_initial = num_x * num_y;
     printf("initial number of particles %d\n", num_initial);
-    int num_extra = num_initial/5;
+
+    // Allow space for twice as many particles as initially have on processor
+    int num_extra = num_initial;
 
     params->max_node_difference = num_extra/2;
  
@@ -183,7 +185,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
             params->node_end_x += h;
     }
 
-//    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
+    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
 
     // Reset out of bound numbers
     out_of_bounds->number_oob_particles_left = 0;

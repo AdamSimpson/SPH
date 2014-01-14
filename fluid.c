@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
             checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
 
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
-        if (n % steps_per_frame == 0)
+       if (n % steps_per_frame == 0)
           writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
