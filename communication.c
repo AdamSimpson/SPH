@@ -68,15 +68,21 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
     int proc_to_right = (rank == nprocs-1 ? MPI_PROC_NULL : rank+1);
 
+    printf("rank %d, halo: will send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
+
     // Get number of halo particles from right and left
     int num_from_left = 0;
     int num_from_right = 0;
     int tag = 3217;
+
     // Send number to right and receive from left
-    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     // Send number to left and receive from right
     tag = 8425;
-    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    printf("rank %d, halo: will recv %d from left, %d from right\n", rank, num_from_left, num_from_right);
+
 
     int *blocklens_left = (int*)malloc(num_moving_left * sizeof(int));
     int *blocklens_right = (int*)malloc(num_moving_right * sizeof(int));
@@ -101,12 +107,14 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     MPI_Type_commit(&LeftEdgetype);
     MPI_Type_indexed(num_moving_right,blocklens_right,indicies_right,Particletype,&RightEdgetype);
     MPI_Type_commit(&RightEdgetype);
+   
+    printf("rank %d, prams->max_fluid_particle_index: %d\n", rank,  params->max_fluid_particle_index);
 
     //Index to start receiving halo particles
     int indexToReceiveLeft = params->max_fluid_particle_index + 1;
     int indexToReceiveRight = indexToReceiveLeft + num_from_left;
 
-    printf("rank %d, halo: send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
+    printf("rank %d, halo: send %d to left, %d to right, indexToRecieveLeft %d, indexToReceiveRight %d \n", rank, num_moving_left, num_moving_right, indexToReceiveLeft, indexToReceiveRight);
 
     int tagl = 4312;
     int tagr = 5177;
@@ -259,8 +267,9 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
    
     // Update maximum particle index if neccessary
-    if (indicies_recv[total_received-1] > params->max_fluid_particle_index)
-        params->max_fluid_particle_index = indicies_recv[total_received-1];
+    int max_received_index = total_received?total_received-1:0;// If non received don't access indicies_recv[-1]...
+    if (max_received_index && indicies_recv[max_received_index] > params->max_fluid_particle_index)
+        params->max_fluid_particle_index = indicies_recv[max_received_index];
     
     // Update vacancy total for particles received
     if (total_received < out_of_bounds->number_vacancies )
