@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 1000;
-    params.rest_density = 10.0;
+    params.rest_density = 30.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -380,17 +380,10 @@ void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
     p->v_y -= I_y;
 
     // x needs to be updated as the velocity estimate will wipe the collision information out
-    // otherwise
+    // otherwise...maybe?
     p->x_prev = p->x;
     p->y_prev = p->y;
-    p->x += (p->v_x * 0.03);
-    p->y += (p->v_y * 0.03);
 
-//    p->x += I_x * 0.03;
-//    p->y += I_y * 0.03;
-
-//    if(p->id == 9)
-//	printf("y: %f, v_y: %f, v_x: %f\n",p->y, p->v_y, p->v_x);
 }
 
 // Assume AABB with min point being axis origin
