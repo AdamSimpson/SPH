@@ -25,7 +25,6 @@ unsigned int hash_val(double x, double y, param *params)
     return grid_position;
 }
 
-
 // Add halo particles to neighbors array
 // Each halo particle looks at the 'behind' fluid particles and adds itself to any within h
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
@@ -33,14 +32,14 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     int index,i,dx,dy,n, grid_x, grid_y;
     double x,y,r;
     fluid_particle *h_p, *p;
-    int n_s = params->number_fluid_particles_local; // Start of halo particles
-    int n_f = n_s + params->number_halo_particles;  // End of halo particles
+    int n_start = params->number_fluid_particles_local; // Start of halo particles
+    int n_finish = n_start + params->number_halo_particles;  // End of halo particles
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
     neighbor *ne;
 
     // Loop over each halo particle
-    for(i=n_s; i<n_f; i++)
+    for(i=n_start; i<n_finish; i++)
     {
 	// Retrieve hash index for halo particle
         h_p = fluid_particle_pointers[i];
@@ -62,7 +61,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
 	        index = (grid_y + dy)*params->grid_size_x + (grid_x + dx);
 
                 // Go through each fluid particle, p, in neighbor point bucket
-                for (n=0;n<hash[index].number_fluid;n++) {
+                for (n=0; n<hash[index].number_fluid; n++) {
                     p = hash[index].fluid_particles[n];
 	
 		    // Enforce cutoff
@@ -70,7 +69,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                     if(r > h)
                         continue;
 
-                    // Get neighbor bucket for particle p and add halo particle to it
+                     // Get neighbor bucket for particle p and add halo particle to it
                      ne = &neighbors[p->id];
                      if (ne->number_fluid_neighbors < 300) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
