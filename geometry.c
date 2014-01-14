@@ -42,6 +42,7 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
 }
 
 // Sets upper bound on number of particles, used for memory allocation
+// These numbers are set judiciously for TitanTitan as the number of particles is always small
 void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, oob *out_of_bounds, int number_particles_x, param *params)
 {
     int num_x;
@@ -53,9 +54,9 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
     num_x = number_particles_x;
     num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
 
-    // Maximum edge particles is a set to 4 particle widths
-    edges->max_edge_particles = 4 * num_y;
-    out_of_bounds->max_oob_particles = 4 * num_y;
+    // Maximum edge particles is a set to 10 particle widths
+    edges->max_edge_particles = 10 * num_y;
+    out_of_bounds->max_oob_particles = 10 * num_y;
 
     // Initial fluid particles
     int num_initial = num_x * num_y;

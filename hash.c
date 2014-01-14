@@ -54,8 +54,12 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
         for (dx=-1; dx<=0; dx++) {
     	    for (dy=-1; dy<=(dx?1:-1); dy++) {
 
+                // If the neighbor is outside of the grid we don't process it
+                if ( grid_y+dy < 0 || grid_x+dx < 0 || (grid_x+dx) >= params->grid_size_x || (grid_y+dy) >= params->grid_size_y)
+                    continue;
+
 	        // Calculate index of neighbor cell
-	        index = (grid_x + dy)*params->grid_size_x + (grid_y + dx);
+	        index = (grid_y + dy)*params->grid_size_x + (grid_x + dx);
 
                 // Go through each fluid particle, p, in neighbor point bucket
                 for (n=0;n<hash[index].number_fluid;n++) {
@@ -150,7 +154,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                 for (dy=(dx?-1:1); dy<=1; dy++) {
 		
 	  	    // If the neighbor is outside of the grid we don't process it
-		    if ( j+dy < 0 || x+dx < 0 || (i+dx) >= params->grid_size_x || (j+dy) >= params->grid_size_y)
+		    if ( j+dy < 0 || i+dx < 0 || (i+dx) >= params->grid_size_x || (j+dy) >= params->grid_size_y)
 		        continue;
 
 		    neighbor_index = (j+dy)*params->grid_size_x + (i+dx);

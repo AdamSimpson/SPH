@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 1000;
-    params.rest_density = 30.0;
+    params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
