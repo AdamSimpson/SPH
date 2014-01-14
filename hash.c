@@ -25,7 +25,6 @@ unsigned int hash_val(double x, double y, param *params)
     return grid_position;
 }
 
-
 // Add halo particles to neighbors array
 // Each halo particle looks at the 'behind' fluid particles and adds itself to any within h
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
@@ -55,7 +54,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     	    for (dy=-1; dy<=(dx?1:-1); dy++) {
 
 	        // Calculate index of neighbor cell
-	        index = (grid_x + dy)*params->grid_size_x + (grid_y + dx);
+	        index = (grid_y + dy)*params->grid_size_x + (grid_x + dx);
 
                 // Go through each fluid particle, p, in neighbor point bucket
                 for (n=0;n<hash[index].number_fluid;n++) {
