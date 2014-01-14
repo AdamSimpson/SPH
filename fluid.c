@@ -133,11 +133,6 @@ int main(int argc, char *argv[])
     start_time = MPI_Wtime();
     for(n=0; n<params.number_steps; n++) {
 
-//        printf("Rank %d Entering fluid step %d with %d particles\n",rank, n, params.number_fluid_particles_local);
-
-        // This part is incorrect as halo particles do not have correct pressure/density
-        // Need to do a little more mpi work for this to be correct.
-
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);
 
@@ -147,16 +142,22 @@ int main(int argc, char *argv[])
         // Advance to predicted position
         predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
-//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+	// Start a non blocking halo particle exchange
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
+	// Hash the non halo regions
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
-//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+	// Finish the halo particle exchange
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-//        hash_halo(fluid_particle_pointers, neighbors, hash, &params);
+	// Add the halo particles
+        hash_halo(fluid_particle_pointers, neighbors, hash, &params);
 
         // double density relaxation
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
+
+        // Technically some relaxation displacement should be sent for halo particles here(?)...probably ok though
 
         // update velocity
         updateVelocities(fluid_particle_pointers, &out_of_bounds, &edges, &boundary_global, &params);

@@ -27,65 +27,63 @@ unsigned int hash_val(double x, double y, param *params)
 
 
 // Add halo particles to neighbors array
-// Halo particles are not added to hash, only neighbors list
-// Neighbors may be more than h away...since distance is computed in all smoothing functions
-// it is a waste to check as we hash as well
+// Each halo particle looks at the 'behind' fluid particles and adds itself to any within h
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
 {
-    int index,i,dx,dy,dupes,n;
+    int index,i,dx,dy,n, grid_x, grid_y;
     double x,y,r;
-    bool duped;
-    fluid_particle *h_p, *q;
-    int n_s = params->number_fluid_particles_local;
-    int n_f = n_s + params->number_halo_particles;
+    fluid_particle *h_p, *p;
+    int n_s = params->number_fluid_particles_local; // Start of halo particles
+    int n_f = n_s + params->number_halo_particles;  // End of halo particles
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
     neighbor *ne;
 
+    // Loop over each halo particle
     for(i=n_s; i<n_f; i++)
     {
+	// Retrieve hash index for halo particle
         h_p = fluid_particle_pointers[i];
-        index = hash_val(h_p->x,h_p->y, params);
 
-        // This is an ugly mess of for loops...
-        // This will only find the "lower left" neighbors as forces are symetric
+	// Calculate coordinates within bucket grid
+	grid_x = floor(h_p->x/spacing);
+	grid_y = floor(h_p->y/spacing);
+
+        // Check neighbors of current bucket
+        // This only checks 'behind' neighbors as 'forward' neighbors are fluid particles
         for (dx=-1; dx<=0; dx++) {
-            x = h_p->x + dx*spacing;
-            for (dy=-1; dy<=(dx?1:0); dy++) {
-                y = h_p->y + dy*spacing;
-                    // Calculate hash index at neighbor point
-                    index = hash_val(x,y,params);
-                      // Go through each fluid particle in neighbor point bucket
-                      for (n=0;n<hash[index].number_fluid;n++) {
-                          q = hash[index].fluid_particles[n];
-                          r = sqrt((h_p->x-q->x)*(h_p->x-q->x) + (h_p->y-q->y)*(h_p->y-q->y));
-                         if(r > h)
-                            continue;
-                          // Get neighbor ne for particle q
-                          ne = &neighbors[q->id];
-                          // Make sure not to add duplicate neighbors
-                          duped = false;
-                          for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
-                                if (ne->fluid_neighbors[dupes] == h_p) {
-                                    duped = true;
-                                    break;
-                                }
-                            }
-                            if (!duped && ne->number_fluid_neighbors < 200) {
-                                ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
-                                ne->number_fluid_neighbors++;
-                            }
+    	    for (dy=-1; dy<=(dx?1:-1); dy++) {
 
-                      }
-            }
-        }
-    }
+	        // Calculate index of neighbor cell
+	        index = (grid_x + dy)*params->grid_size_x + (grid_y + dx);
+
+                // Go through each fluid particle, p, in neighbor point bucket
+                for (n=0;n<hash[index].number_fluid;n++) {
+                    p = hash[index].fluid_particles[n];
+	
+		    // Enforce cutoff
+                    r = sqrt((h_p->x-p->x)*(h_p->x-p->x) + (h_p->y-p->y)*(h_p->y-p->y));
+                    if(r > h)
+                        continue;
+
+                    // Get neighbor bucket for particle p and add halo particle to it
+                     ne = &neighbors[p->id];
+                     if (ne->number_fluid_neighbors < 300) {
+                         ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
+                         ne->number_fluid_neighbors++;
+                     }
+
+                }
+
+            } // End neighbor search y
+        } // End neighbor search x
+
+    } // End halo particle loop
 
 } 
 
-// Fill fluid particles into hash
-// Neighbors may be more than h away...since distance is computed in all smoothing functions
-// it is a waste to check as we hash as well
+// The following function will fill the i'th neighbor bucket with the i'th fluid_particle_pointers particle neighbors
+// Only the forward half of the neighbors are added as the forces are symmetrized.
 void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params)
 {
         int i,j,dx,dy,n,c;
