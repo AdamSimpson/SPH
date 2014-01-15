@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
 	apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
+        // This is missing halo particle contribution
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position
@@ -151,13 +152,12 @@ int main(int argc, char *argv[])
 	// Finish the halo particle exchange
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-	// Add the halo particles
+	// Add the halo particles to neighbor buckets
         hash_halo(fluid_particle_pointers, neighbors, hash, &params);
 
         // double density relaxation
+	// halo particles will be missing origin contributions to density/pressure
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
-
-        // Technically some relaxation displacement should be sent for halo particles here(?)...probably ok though
 
         // update velocity
         updateVelocities(fluid_particle_pointers, &out_of_bounds, &edges, &boundary_global, &params);
@@ -197,6 +197,10 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         p->v_y += g*dt;
+
+        // Zero out density as well
+        p->density = 0.0;
+        p->density_near = 0.0;
      }
 }
 
@@ -255,6 +259,21 @@ void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_
     }
 }
 
+void calculate_density(fluid_particle *p, fluid_particle *q, param *params)
+{
+    double ratio, r;
+    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+    ratio = r/params->smoothing_radius;
+    if(ratio < 1.0) {
+	p->density += (1-ratio)*(1-ratio);
+	p->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+
+	q->density += (1-ratio)*(1-ratio);
+	q->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+    }
+
+}
+
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
     static const double k = 0.5;
@@ -266,33 +285,6 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     double r,ratio,dt,h,u,dx_x,dx_y,D,D_x,D_y;
     h = params->smoothing_radius;
     dt = params->time_step;
-
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-
-        p->density = 0.0;
-        p->density_near = 0.0;
-    }
-
-
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-        n = &neighbors[i];
-
-	// Compute density and near density
-        for(j=0; j<n->number_fluid_neighbors; j++) {
-            q = n->fluid_neighbors[j];
-            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-            ratio = r/h;
-	    if(ratio < 1.0) {
-		p->density += (1-ratio)*(1-ratio);
-		p->density_near += (1-ratio)*(1-ratio)*(1-ratio);
-
-                q->density += (1-ratio)*(1-ratio);
-                q->density_near += (1-ratio)*(1-ratio)*(1-ratio);
-            }
-         }
-    }
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -312,7 +304,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	    ratio = r/h;
 	    if(ratio < 1.0 && ratio > 0.0) {
 		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
-	        // Also the running sum sum of D for particle p seems to produce more bias/instability so is removed
+	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
                 D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
@@ -449,7 +441,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 //    startHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
 
     //Generate neighbor hash
-//   hash_fluid(fluid_particle_pointers, neighbors, hash, params);
+//    hash_fluid(fluid_particle_pointers, neighbors, hash, params);
 //    finishHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
 //    hash_halo(fluid_particle_pointers, neighbors, hash, params);
 }
