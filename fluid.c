@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 0.0;//3.0;
+    params.g = 3.0;
     params.number_steps = 1000;
     params.time_step = 0.03;
-    params.number_fluid_particles_global = 1000;
+    params.number_fluid_particles_global = 5000;
     params.rest_density = 10.0;
 
     // Boundary box
@@ -140,10 +140,10 @@ int main(int argc, char *argv[])
         // This is missing halo particle contribution
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
-        // Advance to predicted position
+        // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
 
-        // Transfer particles that have left t&cessor bounds
+        // Transfer particles that have left the cessor bounds
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
 
         // Hash the non halo regions
@@ -152,7 +152,6 @@ int main(int argc, char *argv[])
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
 	// Start a non blocking halo particle exchange
-	// On the Raspi I doubt this is any faster than blocking with work overlap
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 	// Finish the halo particle exchange
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
@@ -304,7 +303,6 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     h = params->smoothing_radius;
     dt = params->time_step;
 
-
     // Calculate the pressure of all particles, including halo
     for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
         p = fluid_particle_pointers[i];
@@ -330,7 +328,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
 
-		// Do not move the halp particles
+		// Do not move the halo particles
+		// Halo particles are missing D from their origin so I believe this is appropriate
 		if(q->id < params->number_fluid_particles_local) {
 	  	  q->x += D_x;
 	          q->y += D_y;

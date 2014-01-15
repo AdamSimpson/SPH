@@ -124,7 +124,7 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
 
     free(particle_length_x);    
 
-    printf("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, params->spacing_particle, *x_start, *length_x, params->node_start_x, params->node_end_x);
+    debug_print("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, params->spacing_particle, *x_start, *length_x, params->node_start_x, params->node_end_x);
     
 }
 
@@ -186,7 +186,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
             params->node_end_x += h;
     }
 
-    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
+    debug_print("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
 
     // Reset out of bound numbers
     out_of_bounds->number_oob_particles_left = 0;
