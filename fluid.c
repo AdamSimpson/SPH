@@ -151,10 +151,8 @@ int main(int argc, char *argv[])
 	// This works well on the raspi's but destroys communication/computation overlap
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
-	// Start a non blocking halo particle exchange
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-	// Finish the halo particle exchange
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+	// Exchange halo particles
+        haloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
 	// Add the halo particles to neighbor buckets
 	// Also update density

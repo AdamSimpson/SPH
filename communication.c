@@ -40,7 +40,7 @@ void freeMpiTypes()
     MPI_Type_free(&Particletype);
 }
 
-void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
+void haloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
 {
     int i;
     int rank = params->rank;
@@ -73,8 +73,8 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     // Get number of halo particles from right and left
     int num_from_left = 0;
     int num_from_right = 0;
-    int tag = 3217;
 
+    int tag = 3217;
     // Send number to right and receive from left
     MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     // Send number to left and receive from right
@@ -116,39 +116,17 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
 
     debug_print("rank %d, halo: send %d to left, %d to right, indexToRecieveLeft %d, indexToReceiveRight %d \n", rank, num_moving_left, num_moving_right, indexToReceiveLeft, indexToReceiveRight);
 
-    int tagl = 4312;
-    int tagr = 5177;
-    // Receive halo from left rank
-    MPI_Irecv(&fluid_particles[indexToReceiveLeft], num_from_left, Particletype, proc_to_left,tagl, MPI_COMM_WORLD, &edges->reqs[0]);
-    // Receive halo from right rank
-    MPI_Irecv(&fluid_particles[indexToReceiveRight], num_from_right, Particletype, proc_to_right,tagr, MPI_COMM_WORLD, &edges->reqs[1]);
-    // Send halo to right rank
-    MPI_Isend(fluid_particles,1,RightEdgetype,proc_to_right,tagl,MPI_COMM_WORLD, &edges->reqs[2]);
-    MPI_Isend(fluid_particles,1,LeftEdgetype,proc_to_left,tagr,MPI_COMM_WORLD, &edges->reqs[3]);
+    // Send halo to right and receive from left
+    tag = 4312;
+    MPI_Sendrecv(fluid_particles, 1, RightEdgetype, proc_to_right, tag, &fluid_particles[indexToReceiveLeft], num_from_left, Particletype, proc_to_left, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // Send halo to left and receive from right
+    tag = 5177;
+    MPI_Sendrecv(fluid_particles, 1, LeftEdgetype, proc_to_left, tag, &fluid_particles[indexToReceiveRight], num_from_right, Particletype, proc_to_right, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    // Free allocated arays
-    free(blocklens_left);
-    free(blocklens_right);
-    free(indicies_left);
-    free(indicies_right);
-}
-
-void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
-{
-    int i;
-    // Wait for transfer to complete
-    MPI_Status statuses[4];
-    MPI_Waitall(4, edges->reqs, statuses);
-
-    int num_received_right = 0;
-    int num_received_left = 0;
-    MPI_Get_count(&statuses[0], Particletype, &num_received_left);
-    MPI_Get_count(&statuses[1], Particletype, &num_received_right);
-
-    int total_received = num_received_left + num_received_right;
+    int total_received = num_from_left + num_from_right;
     params->number_halo_particles = total_received;
 
-    debug_print("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
+    debug_print("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_from_left,num_from_right);
 
     // Update pointer array with new values
     int local_index;
@@ -163,6 +141,13 @@ void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle
     // Free indexed types
     MPI_Type_free(&LeftEdgetype);
     MPI_Type_free(&RightEdgetype);
+
+
+    // Free allocated arays
+    free(blocklens_left);
+    free(blocklens_right);
+    free(indicies_left);
+    free(indicies_right);
 }
 
 // Transfer particles that are out of node bounds
