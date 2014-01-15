@@ -141,10 +141,13 @@ int main(int argc, char *argv[])
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position
-        predict_positions(fluid_particle_pointers, &boundary_global, &params);
+        predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
+
+        // Transfer particles that have left t&cessor bounds
+        transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
 
         // Hash the non halo regions
-	// This will update the densities so when the hal is exchanged it's good to go
+	// This will update the densities so when the halo is exchanged the halo particles are up to date
 	// This works well on the raspi's but destroys communication/computation overlap
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
@@ -163,14 +166,15 @@ int main(int argc, char *argv[])
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
-        updateVelocities(fluid_particle_pointers, &out_of_bounds, &edges, &boundary_global, &params);
+        updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
 
+	// Check for a balanced particle load between MPI tasks
         if (n % 10 == 0)
             checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
 
-        transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
-       if (n % steps_per_frame == 0)
-          writeMPI(fluid_particle_pointers, fileNum++, &params);
+        // Write particle positions
+        if (n % steps_per_frame == 0)
+           writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -245,11 +249,15 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
 }
 
 // Predict position
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params)
+void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
     double dt = params->time_step;
+
+    // Reset OOB numbers
+    out_of_bounds->number_oob_particles_left = 0;
+    out_of_bounds->number_oob_particles_right = 0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -258,7 +266,14 @@ void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_
 	p->x += (p->v_x * dt);
         p->y += (p->v_y * dt);
 
+	// Enforce boundary conditions
         boundaryConditions(p, boundary_global, params);
+
+        // Set OOB particle indicies and update number
+        if (p->x < params->node_start_x)
+            out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
+        else if (p->x > params->node_end_x)
+            out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 }
 
@@ -337,26 +352,16 @@ void updateVelocity(fluid_particle *p, param *params)
 }
 
 // Update particle position and check boundary
-void updateVelocities(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params)
+void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AABB *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
     double h = params->smoothing_radius;
 
-    // Reset OOB numbers
-    out_of_bounds->number_oob_particles_left = 0;
-    out_of_bounds->number_oob_particles_right = 0;
-
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         boundaryConditions(p, boundary_global, params);
         updateVelocity(p, params);
-
-        // Set OOB particle indicies and update number
-        if (p->x < params->node_start_x)
-            out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x > params->node_end_x)
-            out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 }
 
