@@ -268,7 +268,7 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
    
     // Update maximum particle index if neccessary
     int max_received_index = total_received?total_received-1:0;// If non received don't access indicies_recv[-1]...
-    if (max_received_index && indicies_recv[max_received_index] > params->max_fluid_particle_index)
+    if (total_received && indicies_recv[max_received_index] > params->max_fluid_particle_index)
         params->max_fluid_particle_index = indicies_recv[max_received_index];
     
     // Update vacancy total for particles received
