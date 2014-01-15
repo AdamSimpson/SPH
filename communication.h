@@ -36,7 +36,6 @@ void createMpiTypes();
 void freeMpiTypes();
 void transferHalos(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, edge *edges, param *params);
 void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, param *params);
-void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params);
-void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params);
+void haloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params);
 
 #endif
