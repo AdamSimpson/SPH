@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 5000;
-    params.rest_density = 10.0;
+    params.rest_density = 30.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -152,7 +152,8 @@ int main(int argc, char *argv[])
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
 	// Exchange halo particles
-        haloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
 	// Add the halo particles to neighbor buckets
 	// Also update density
