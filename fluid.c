@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 3.0;
+    params.g = 0.0;//3.0;
     params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 1000;
@@ -143,16 +143,19 @@ int main(int argc, char *argv[])
         // Advance to predicted position
         predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
-	// Start a non blocking halo particle exchange
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-
-	// Hash the non halo regions
+        // Hash the non halo regions
+	// This will update the densities so when the hal is exchanged it's good to go
+	// This works well on the raspi's but destroys communication/computation overlap
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
 
+	// Start a non blocking halo particle exchange
+	// On the Raspi I doubt this is any faster than blocking with work overlap
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 	// Finish the halo particle exchange
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
 	// Add the halo particles to neighbor buckets
+	// Also update density
         hash_halo(fluid_particle_pointers, neighbors, hash, &params);
 
         // double density relaxation
@@ -286,13 +289,16 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     h = params->smoothing_radius;
     dt = params->time_step;
 
-    for(i=0; i<params->number_fluid_particles_local; i++) {
+
+    // Calculate the pressure of all particles, including halo
+    for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
         p = fluid_particle_pointers[i];
         // Compute pressure and near pressure
         p->pressure = k * (p->density-params->rest_density);
         p->pressure_near = k_near * p->density_near;
     }
 
+    // Relax particle positions
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
@@ -308,8 +314,13 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
                 D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
-		q->x += D_x;
-	        q->y += D_y;
+
+		// Do not move the halp particles
+		if(q->id < params->number_fluid_particles_local) {
+	  	  q->x += D_x;
+	          q->y += D_y;
+		}
+
 		p->x -= D_x;
                 p->y -= D_y;
             }

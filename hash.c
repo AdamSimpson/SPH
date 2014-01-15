@@ -51,8 +51,8 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
 
         // Check neighbors of current bucket
         // This only checks 'behind' neighbors as 'forward' neighbors are fluid particles
-        for (dx=-1; dx<=0; dx++) {
-    	    for (dy=-1; dy<=(dx?1:-1); dy++) {
+        for (dx=-1; dx<=1; dx++) {
+    	    for (dy=-1; dy<=1; dy++) {
 
                 // If the neighbor is outside of the grid we don't process it
                 if ( grid_y+dy < 0 || grid_x+dx < 0 || (grid_x+dx) >= params->grid_size_x || (grid_y+dy) >= params->grid_size_y)
@@ -76,6 +76,8 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
                          calculate_density(p, h_p, params);
                      }
+		     else
+			printf("halo overflowing\n");
 
                 }
 
