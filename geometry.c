@@ -129,24 +129,31 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
 }
 
 // Test if boundaries need to be adjusted
-void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, param *params)
+void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, double *partition_time, param *params)
 {
     
     int i;
     fluid_particle *p;
-    int max_diff = params->max_node_difference;
-    int num_rank = params->number_fluid_particles_local;
     int rank = params->rank;
     int nprocs = params->nprocs;
     double h = params->spacing_particle;
+
+    // Get elapsed time since last partition and set new partition time
+    double now = MPI_Wtime();
+    double seconds_self =  now - *partition_time;
+    *partition_time = now;
+
+    double length = params->node_end_x - params->node_start_x;
+
+    // Allow for a 10% time difference before moving partition
+    double max_diff = seconds_self * 0.05;
 
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
     int proc_to_right = (rank == nprocs-1 ? MPI_PROC_NULL : rank+1);
 
-    // Get number of particles and partition length  from right and left
-    double length = params->node_end_x - params->node_start_x;
-    double node[2] = {(double)num_rank, length};
+    // Send elapsed time to procs to the left and right
+    double node[2] = {seconds_self, length};
     double left[2];
     double right[2];
     int tag = 627;
@@ -156,17 +163,19 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     tag = 895;
     MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_left, tag, right,2,MPI_DOUBLE,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    // Number of particles in left/right ranks
-    int num_left = (int)left[0];
-    int num_right = (int)right[0];
+    // Number of seconds for left/right ranks
+    double seconds_left = left[0];
+    double seconds_right = right[0];
 
     // Partition length of left/right ranks
     double length_left = left[1];
     double length_right = right[1];
 
-    // Difference in particle numbers of left/right ranks
-    int diff_left = num_rank-num_left;
-    int diff_right = num_rank-num_right;
+    // Difference in time since last partitioning between self and left/right ranks
+    double diff_left = seconds_self - seconds_left;
+    double diff_right = seconds_self - seconds_right;
+
+    debug_print("max_diff %f, diff_left: %f, diff_right %f\n",max_diff,diff_left,diff_right);
 
     // Adjust left boundary
     // Ensure partition length is atleast 4*h

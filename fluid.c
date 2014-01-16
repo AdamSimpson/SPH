@@ -120,17 +120,19 @@ int main(int argc, char *argv[])
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
-    int fileNum=0;
-    writeMPI(fluid_particle_pointers, fileNum++, &params);
+//    int fileNum=0;
+//    writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
     int n;
-    double start_time, end_time;
+    double start_time, end_time, partition_time;
 
     MPI_Barrier(MPI_COMM_WORLD);
 
+    // Set timing variables
     start_time = MPI_Wtime();
+
     for(n=0; n<params.number_steps; n++) {
 
         // Initialize velocities
@@ -155,6 +157,10 @@ int main(int argc, char *argv[])
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
+	// Every 10 steps start the timer used to determine if the partition needs to be modified
+	if(n % 10 == 0)
+	    partition_time = MPI_Wtime();
+
 	// Add the halo particles to neighbor buckets
 	// Also update density
         hash_halo(fluid_particle_pointers, neighbors, hash, &params);
@@ -168,11 +174,11 @@ int main(int argc, char *argv[])
 
 	// Check for a balanced particle load between MPI tasks
         if (n % 10 == 0)
-            checkPartition(fluid_particle_pointers, &out_of_bounds, &params);
+            checkPartition(fluid_particle_pointers, &out_of_bounds, &partition_time, &params);
 
         // Write particle positions
-        if (n % steps_per_frame == 0)
-           writeMPI(fluid_particle_pointers, fileNum++, &params);
+//      if (n % steps_per_frame == 0)
+//           writeMPI(fluid_particle_pointers, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
