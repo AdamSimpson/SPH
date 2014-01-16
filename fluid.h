@@ -51,9 +51,6 @@ struct PARAM {
     double smoothing_radius;
     double g;
     double time_step;
-    double alpha;
-    double surface_tension;
-    double speed_sound;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
     int grid_size_x;
