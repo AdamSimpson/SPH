@@ -158,10 +158,10 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double right[2];
     int tag = 627;
     // Send number of particles to  right and receive from left
-    MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_right, tag, left,2,MPI_DOUBLE,proc_to_left,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_right, tag, left,2,MPI_DOUBLE,proc_to_left,tag,MPI_COMM_COMPUTE,MPI_STATUS_IGNORE);
     // Send number of particles to left and receive from right
     tag = 895;
-    MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_left, tag, right,2,MPI_DOUBLE,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_left, tag, right,2,MPI_DOUBLE,proc_to_right,tag,MPI_COMM_COMPUTE,MPI_STATUS_IGNORE);
 
     // Number of seconds for left/right ranks
     double seconds_left = left[0];

@@ -10,6 +10,7 @@ typedef struct OOB oob;
 MPI_Datatype Particletype;
 MPI_Datatype LeftEdgetype;
 MPI_Datatype RightEdgetype;
+MPI_Comm MPI_COMM_COMPUTE;
 
 // Particles that are within 2*h distance of node edge
 struct EDGES {
@@ -33,6 +34,7 @@ struct OOB {
 };
 
 void createMpiTypes();
+void create_communicators();
 void freeMpiTypes();
 void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params);
 void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params);

@@ -4,6 +4,27 @@
 #include "fluid.h"
 #include <stddef.h>
 
+// Rank 0 is the render node, the rest are compute nodes
+// This will create appropriate MPI communicators
+void create_communicators()
+{
+    MPI_Group group_world;
+    MPI_Group group_compute;
+
+    // Extract group handle
+    MPI_Comm_group(MPI_COMM_WORLD, &group_world);    
+
+    // Add ranks > 0 to group_compute
+    int exclude_rank = 0;
+    MPI_Group_excl(group_world, 1, &exclude_rank, &group_compute);
+   
+    // Create communicator from group_compute
+    MPI_Comm_create(MPI_COMM_WORLD, group_compute, &MPI_COMM_COMPUTE);
+
+    MPI_Group_free(&group_world);
+    MPI_Group_free(&group_compute);
+}
+
 void createMpiTypes()
 {
     //Create fluid particle type
@@ -76,10 +97,10 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     int tag = 3217;
 
     // Send number to right and receive from left
-    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
     // Send number to left and receive from right
     tag = 8425;
-    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     debug_print("rank %d, halo: will recv %d from left, %d from right\n", rank, num_from_left, num_from_right);
 
@@ -119,12 +140,12 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     int tagl = 4312;
     int tagr = 5177;
     // Receive halo from left rank
-    MPI_Irecv(&fluid_particles[indexToReceiveLeft], num_from_left, Particletype, proc_to_left,tagl, MPI_COMM_WORLD, &edges->reqs[0]);
+    MPI_Irecv(&fluid_particles[indexToReceiveLeft], num_from_left, Particletype, proc_to_left,tagl, MPI_COMM_COMPUTE, &edges->reqs[0]);
     // Receive halo from right rank
-    MPI_Irecv(&fluid_particles[indexToReceiveRight], num_from_right, Particletype, proc_to_right,tagr, MPI_COMM_WORLD, &edges->reqs[1]);
+    MPI_Irecv(&fluid_particles[indexToReceiveRight], num_from_right, Particletype, proc_to_right,tagr, MPI_COMM_COMPUTE, &edges->reqs[1]);
     // Send halo to right rank
-    MPI_Isend(fluid_particles,1,RightEdgetype,proc_to_right,tagl,MPI_COMM_WORLD, &edges->reqs[2]);
-    MPI_Isend(fluid_particles,1,LeftEdgetype,proc_to_left,tagr,MPI_COMM_WORLD, &edges->reqs[3]);
+    MPI_Isend(fluid_particles,1,RightEdgetype,proc_to_right,tagl,MPI_COMM_COMPUTE, &edges->reqs[2]);
+    MPI_Isend(fluid_particles,1,LeftEdgetype,proc_to_left,tagr,MPI_COMM_COMPUTE, &edges->reqs[3]);
 
     // Free allocated arays
     free(blocklens_left);
@@ -185,10 +206,10 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     int num_from_right = 0;
     int tag = 7006;
     // Send number to right and receive from left
-    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_COMPUTE,MPI_STATUS_IGNORE);
     // Send number to left and receive from right
     tag = 8278;
-    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_COMPUTE,MPI_STATUS_IGNORE);
 
     // Create indexed type to send
     MPI_Datatype LeftMovetype;
@@ -254,11 +275,11 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
 
     // Sending to right, recv from left
     tag = 2522;
-    MPI_Sendrecv(fluid_particles,1,RightMovetype,proc_to_right,tag,fluid_particles,1,LeftRecvtype,proc_to_left,tag,MPI_COMM_WORLD,&status);
+    MPI_Sendrecv(fluid_particles,1,RightMovetype,proc_to_right,tag,fluid_particles,1,LeftRecvtype,proc_to_left,tag,MPI_COMM_COMPUTE,&status);
     MPI_Get_count(&status, Particletype, &num_received_left);
     // Sending to left, recv from right
     tag = 1165;
-    MPI_Sendrecv(fluid_particles,1,LeftMovetype,proc_to_left,tag,fluid_particles,1,RightRecvtype,proc_to_right,tag,MPI_COMM_WORLD,&status);
+    MPI_Sendrecv(fluid_particles,1,LeftMovetype,proc_to_left,tag,fluid_particles,1,RightRecvtype,proc_to_right,tag,MPI_COMM_COMPUTE,&status);
     MPI_Get_count(&status, Particletype, &num_received_right);
 
     int total_sent = num_moving_left + num_moving_right;

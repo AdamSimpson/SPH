@@ -3,19 +3,41 @@
 #include <math.h>
 #include "mpi.h"
 
-#include "fluid.h"
 #include "hash.h"
+#include "renderer.h"
 #include "geometry.h"
-#include "fileio.h"
+#include "fluid.h"
 #include "communication.h"
 
 int main(int argc, char *argv[])
 {
-    // Initialize MPI
+     // Initialize MPI
     MPI_Init(&argc, &argv);
-    int rank, nprocs;
+    int rank;
+
+    // Rank in world space
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    printf("compute rank: %d \n",rank);
+
+    create_communicators();
+
+    // Rank 0 is the render node, otherwise a simulation node
+    if(rank == 0)
+	start_renderer();
+    else
+	start_simulation();
+}
+
+
+void start_simulation()
+{
+    int rank, nprocs;
+
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
+
+    printf("compute rank: %d, num compute procs: %d \n",rank, nprocs);
 
     createMpiTypes();
 
@@ -31,8 +53,8 @@ int main(int argc, char *argv[])
     params.g = 3.0;
     params.number_steps = 1000;
     params.time_step = 0.03;
-    params.number_fluid_particles_global = 5000;
-    params.rest_density = 30.0;
+    params.number_fluid_particles_global = 2000;
+    params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -42,9 +64,9 @@ int main(int argc, char *argv[])
 
     // water volume
     water_volume_global.min_x = 0.0;
-    water_volume_global.max_x = 10.0;
+    water_volume_global.max_x = 20.0;
     water_volume_global.min_y = 0.0;
-    water_volume_global.max_y = 15.0;
+    water_volume_global.max_y = 10.0;
 
     // Mass of each particle
     // This doesn't really make sense in 2D
@@ -79,6 +101,14 @@ int main(int argc, char *argv[])
     fluid_particle *fluid_particles = malloc(bytes);
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
+
+    // Allocate (x,y) coordinate array
+    bytes = 2 * params.max_fluid_particles_local * sizeof(float);
+    total_bytes+=bytes;
+    float *fluid_particle_coords = malloc(bytes);
+    if(fluid_particle_coords == NULL)
+        printf("Could not allocate fluid_particle coords\n");
+
     // Allocate pointer array used to traverse non vacant particles
     bytes = params.max_fluid_particles_local * sizeof(fluid_particle*);
     total_bytes+=bytes;
@@ -92,9 +122,7 @@ int main(int argc, char *argv[])
     if(neighbors == NULL)
         printf("Could not allocate neighbors\n");
 
-    /////////////////////
     // UNIFORM GRID HASH
-    /////////////////////
     params.grid_size_x = ceil((boundary_global.max_x - boundary_global.min_x) / params.smoothing_radius);
     params.grid_size_y = ceil((boundary_global.max_y - boundary_global.min_y) / params.smoothing_radius);
     unsigned int grid_size = params.grid_size_x * params.grid_size_y;
@@ -119,22 +147,21 @@ int main(int argc, char *argv[])
     // Print some parameters
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
-    // Initial configuration
-//    int fileNum=0;
-//    writeMPI(fluid_particle_pointers, fileNum++, &params);
-
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
-    int n;
     double start_time, end_time, partition_time;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_COMPUTE);
 
     // Set timing variables
     start_time = MPI_Wtime();
 
-    for(n=0; n<params.number_steps; n++) {
+    fluid_particle *p;
 
+    unsigned int i,j;
+    unsigned int n = 0;
+
+    while(1) {
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);
 
@@ -173,14 +200,26 @@ int main(int argc, char *argv[])
         updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
 
 	// Check for a balanced particle load between MPI tasks
-        if (n % 10 == 0)
+        if (n % 10 == 0) {
             checkPartition(fluid_particle_pointers, &out_of_bounds, &partition_time, &params);
+            // reset loop count
+	    n = 0;
+        }
 
-        // Write particle positions
-//      if (n % steps_per_frame == 0)
-//           writeMPI(fluid_particle_pointers, fileNum++, &params);
+        // Pack fluid_particle_coords
+	for(i=0; i<params.number_fluid_particles_local; i++) {
+	    p = fluid_particle_pointers[i];
+	    fluid_particle_coords[i*2] = p->x;
+	    fluid_particle_coords[(i*2)+1] = p->y;
+        }
 
+        // Send particle positions to be rendered
+	MPI_Send(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT, 0, 1, MPI_COMM_WORLD);
+ 
+       // iterate sim loop counter
+	n++;
     }
+
     end_time = MPI_Wtime();
     printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);
 
@@ -194,7 +233,6 @@ int main(int argc, char *argv[])
     freeMpiTypes();
     MPI_Finalize();
 
-    return 0;
 }
 
 // This should go into the hash, perhaps with the viscocity?
