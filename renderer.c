@@ -31,7 +31,7 @@ void start_renderer()
     float *points = (float*)malloc(point_size*max_particles);
 
     int i,j, coords_recvd, disp;
-    int num_compute = 2;
+    int num_compute = 3;
     MPI_Status status;
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
@@ -39,7 +39,6 @@ void start_renderer()
 
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
 
 	for(i=0; i<num_compute; i++) {
 	    // receive particles

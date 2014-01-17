@@ -16,7 +16,10 @@ void update_points(float *points, int num_points, STATE_T *state)
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
+
+    // Unbind buffer
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     draw_circles(state, num_points);
 }
@@ -72,20 +75,24 @@ void create_shaders(STATE_T *state)
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get tex_coord location
     state->color_location = glGetAttribLocation(state->program, "color");
-}
 
-void draw_circles(STATE_T *state, int num_points)
-{
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Size of each vertex in bytes
-    size_t vert_size = 5*sizeof(GL_FLOAT);
 
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
+}
+
+void draw_circles(STATE_T *state, int num_points)
+{
+    // Set buffer
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), 0);
     glEnableVertexAttribArray(state->position_location);
-    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT),(void*)(2*sizeof(GL_FLOAT)));
     glEnableVertexAttribArray(state->color_location);
+
+    // Draw
     glDrawArrays(GL_POINTS, 0, num_points);
 }
