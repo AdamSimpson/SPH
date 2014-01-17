@@ -30,7 +30,7 @@ void create_shaders(STATE_T *state)
 	"varying vec4 frag_color;"
         "void main() {"
         "   gl_Position = vec4(position, 0.0, 1.0);"
-        "   gl_PointSize = 20.0;"
+        "   gl_PointSize = 10.0;"
 	"   frag_color = vec4(color, 1.0);"
         "}";
     const GLchar* fragmentSource =
@@ -76,9 +76,6 @@ void create_shaders(STATE_T *state)
 
 void draw_circles(STATE_T *state, int num_points)
 {
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

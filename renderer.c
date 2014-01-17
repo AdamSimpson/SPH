@@ -36,6 +36,11 @@ void start_renderer()
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     while(1){
+
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+
 	for(i=0; i<num_compute; i++) {
 	    // receive particles
 	    MPI_Recv(positions, max_particles, MPI_FLOAT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
@@ -44,11 +49,12 @@ void start_renderer()
 
             // Create proper points array
             for(j=0; j<coords_recvd; j++) {
-	        points[j*5]   = positions[j*2]/20.0 - 0.5; 
-	        points[j*5+1] = positions[j*2+1]/10.0 - 0.5;
+	        points[j*5]   = positions[j*2]/10.0 - 1.0; 
+	        points[j*5+1] = positions[j*2+1]/10.0 - 0.8;
                 points[j*5+2] = 0.0;
 	        points[j*5+3] = 0.0;
 		points[j*5+4] = 1.0;
+	
             }
 
   	    // Render particles

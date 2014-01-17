@@ -158,7 +158,7 @@ void start_simulation()
 
     fluid_particle *p;
 
-    unsigned int i,j;
+    unsigned int i;
     unsigned int n = 0;
 
     while(1) {
