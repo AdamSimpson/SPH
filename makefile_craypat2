@@ -1,5 +1,0 @@
-CC=cc
-CFLAGS= -g -mp
-
-all:
-	$(CC) $(CFLAGS) geometry.o hash.o fileio.o communication.o fluid.o -o sph.out
