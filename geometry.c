@@ -145,9 +145,6 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
 
     double length = params->node_end_x - params->node_start_x;
 
-    // Allow for a 10% time difference before moving partition
-    double max_diff = seconds_self * 0.05;
-
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
     int proc_to_right = (rank == nprocs-1 ? MPI_PROC_NULL : rank+1);
@@ -175,23 +172,31 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double diff_left = seconds_self - seconds_left;
     double diff_right = seconds_self - seconds_right;
 
-    debug_print("max_diff %f, diff_left: %f, diff_right %f\n",max_diff,diff_left,diff_right);
+    // Must use the average time as a base otherwise the partitions will not neccessarily move the same ammount
+    double average_left = (seconds_self + seconds_left)/2.0;
+    double average_right = (seconds_self + seconds_right)/2.0;
+
+    // Allow a 5% difference in the average time
+    double max_diff_left = average_left * 0.5;
+    double max_diff_right = average_right * 0.5;
+
+    debug_print("max_diff_left %f, max_diff_right %f, diff_left: %f, diff_right %f\n",max_diff_left,max_diff_right,diff_left,diff_right);
 
     // Adjust left boundary
     // Ensure partition length is atleast 4*h
     if (rank != 0) // Dont move left most boundary
     {
-        if( diff_left > max_diff && length > 4*h) 
+        if( diff_left > max_diff_left && length > 4*h) 
             params->node_start_x += h;
-        else if (diff_left < -max_diff && length_left > 4*h)
+        else if (diff_left < -max_diff_left && length_left > 4*h)
             params->node_start_x -= h;
     }
     // Adjust right boundary
     if (rank != (nprocs-1))
     {
-        if( diff_right > max_diff && length > 4*h)
+        if( diff_right > max_diff_right&& length > 4*h)
             params->node_end_x -= h;
-        else if (diff_right < -max_diff && length_right > 4*h)
+        else if (diff_right < -max_diff_right && length_right > 4*h)
             params->node_end_x += h;
     }
 
