@@ -44,6 +44,8 @@ void compile_shader(GLuint shader, const char *file_name)
     glShaderSource(shader, 1, &shader_source, NULL);
     glCompileShader(shader);
 
+    printf("Shader:\n%s\n", shader_source);
+
     showlog(shader);
 
     free(shader_source);
@@ -91,9 +93,6 @@ void create_shaders(STATE_T *state)
     #else
       compile_shader(fragmentShader, "particle.frag");
     #endif
-
-    check();
-
 
     // Create shader program
     state->program = glCreateProgram();

@@ -22,7 +22,6 @@ void init_ogl(GL_STATE_T *state)
     glfwSetErrorCallback(error_callback);
 
     // Initialize GLFW
-    glfwInit();
     if(!glfwInit())
         exit(EXIT_FAILURE);
 
@@ -35,6 +34,8 @@ void init_ogl(GL_STATE_T *state)
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     state->window = glfwCreateWindow(800, 800, "SPH", NULL, NULL);
+    if(!state->window)
+	exit(EXIT_FAILURE);
 
     // Set current context to window
     glfwMakeContextCurrent(state->window);
@@ -48,7 +49,6 @@ void init_ogl(GL_STATE_T *state)
     // Set background color and clear buffers
     glClearColor(0.15f, 0.25f, 0.35f, 1.0f);
     glClear( GL_COLOR_BUFFER_BIT );
-
 }
 
 void swap_ogl(GL_STATE_T *state)

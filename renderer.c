@@ -10,7 +10,7 @@ void start_renderer()
     STATE_T state;
     memset(&state, 0, sizeof(STATE_T));
 
-    // Start OGLES
+    // Start OpenGL
     init_ogl(&state.gl_state);
 
     // Create and set shaders
