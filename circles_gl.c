@@ -44,8 +44,6 @@ void compile_shader(GLuint shader, const char *file_name)
     glShaderSource(shader, 1, &shader_source, NULL);
     glCompileShader(shader);
 
-    printf("Shader:\n%s\n", shader_source);
-
     showlog(shader);
 
     free(shader_source);
@@ -113,6 +111,9 @@ void create_shaders(STATE_T *state)
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Enable point size to be specified in the shader
+    glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
 void draw_circles(STATE_T *state, int num_points)

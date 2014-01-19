@@ -201,7 +201,7 @@ void start_simulation()
 
 	// Check for a balanced particle load between MPI tasks
         if (n % 10 == 0) {
-//            checkPartition(fluid_particle_pointers, &out_of_bounds, &partition_time, &params);
+            checkPartition(fluid_particle_pointers, &out_of_bounds, &partition_time, &params);
             // reset loop count
 	    n = 0;
         }
