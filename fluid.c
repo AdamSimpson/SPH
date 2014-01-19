@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
 	start_simulation();
 }
 
-
 void start_simulation()
 {
     int rank, nprocs;
@@ -50,11 +49,11 @@ void start_simulation()
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 3.0;
+    params.g = 1.0;
     params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 30.0;
+    params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -456,7 +455,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash won't pick it up
-    // as the particle is in the 'next' bin
+    // as the particle will in the 'next' after last x direction bin
     if(p->x < boundary->min_x) {
         p->x = boundary->min_x;
     }
@@ -492,14 +491,6 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
         fluid_particle_pointers[i]->a_y = 0.0;
         fluid_particle_pointers[i]->v_x = 0.0;
         fluid_particle_pointers[i]->v_y = 0.0;
-//        fluid_particle_pointers[i]->density = params->rest_density;
     }
 
-    // Send halo particles
-//    startHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
-
-    //Generate neighbor hash
-//    hash_fluid(fluid_particle_pointers, neighbors, hash, params);
-//    finishHaloExchange(fluid_particle_pointers,fluid_particles, edges, params);
-//    hash_halo(fluid_particle_pointers, neighbors, hash, params);
 }
