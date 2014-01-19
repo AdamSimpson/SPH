@@ -1,18 +1,68 @@
 #include <stdio.h>
 #include <assert.h>
-
-#include "egl_utils.h"
-
-#include "GLES2/gl2.h"
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
-
+#include <sys/stat.h>
+#include <stdlib.h>
 #include "circles_gl.h"
 
-#include "bcm_host.h"
+#ifdef GLFW
+  #include "glfw_utils.h"
+#else
+  #include "egl_utils.h"
+#endif
+
+inline void check()
+{
+    GLenum err = glGetError();
+    if(err != GL_NO_ERROR) {
+        printf("GL Error: %s\n", glewGetErrorString(err));
+        exit(1);
+    }
+}
+
+void showlog(GLint shader)
+{
+   // Prints the compile log for a shader
+   char log[1024];
+   glGetShaderInfoLog(shader,sizeof log,NULL,log);
+   printf("%d:shader:\n%s\n", shader, log);
+}
+
+void compile_shader(GLuint shader, const char *file_name)
+{
+    // Read shader source from file_name
+    FILE *fh = fopen(file_name, "r");
+    if(!fh) {
+        printf("Error: Failed to open shader\n");
+    }
+    struct stat statbuf;
+    stat(file_name, &statbuf);
+    char *shader_source = (char *) malloc(statbuf.st_size + 1);
+    fread(shader_source, statbuf.st_size, 1, fh);
+    shader_source[statbuf.st_size] = '\0';
+
+    // Compile shader
+    glShaderSource(shader, 1, &shader_source, NULL);
+    glCompileShader(shader);
+
+    showlog(shader);
+
+    free(shader_source);
+}
 
 void update_points(float *points, int num_points, STATE_T *state)
 {
+    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
+    #ifndef GLES
+    // Set vertex array object
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    #endif
+
+    // Create buffer if not already
+    if(!state->vbo)
+        glGenBuffers(1, &state->vbo);
+
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
@@ -26,50 +76,35 @@ void update_points(float *points, int num_points, STATE_T *state)
 
 void create_shaders(STATE_T *state)
 {
-    // Shader source
-    const GLchar* vertexSource =
-        "attribute vec2 position;"
-        "attribute vec3 color;"
-	"varying vec4 frag_color;"
-        "void main() {"
-        "   gl_Position = vec4(position, 0.0, 1.0);"
-        "   gl_PointSize = 10.0;"
-	"   frag_color = vec4(color, 1.0);"
-        "}";
-    const GLchar* fragmentSource =
-        "precision mediump float;"
-	"varying vec4 frag_color;"
-        "const mediump vec2 center = vec2(0.5, 0.5);"
-        "const mediump float radius = 0.5;"
-        "void main() {"
-	"    mediump float distance_from_center = distance(center, gl_PointCoord);"
-	"    lowp float in_radius = step(distance_from_center, radius);"
-        "    gl_FragColor = frag_color * in_radius;"
-        "}";
-
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
-
-    showlog(vertexShader);   
+    #ifdef GLES
+      compile_shader(vertexShader, "particle_es.vert");
+    #else
+      compile_shader(vertexShader, "particle.vert");
+    #endif
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-    glCompileShader(fragmentShader);
+    #ifdef GLES
+      compile_shader(fragmentShader, "particle_es.frag");
+    #else
+      compile_shader(fragmentShader, "particle.frag");
+    #endif
 
-    showlog(fragmentShader);
+    check();
+
 
     // Create shader program
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
-  
+//    check();  
+
     // Link and use program
     glLinkProgram(state->program);
     glUseProgram(state->program);
-    check();
+//    check();
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
@@ -79,8 +114,6 @@ void create_shaders(STATE_T *state)
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
 }
 
 void draw_circles(STATE_T *state, int num_points)

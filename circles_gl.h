@@ -1,8 +1,12 @@
 #ifndef MULTI_TEX_H
 #define MULTI_TEX_H
 
-#include "GLES2/gl2.h"
-#include "egl_utils.h"
+#ifdef GLFW
+  #include "glfw_utils.h"
+#else
+  #include "GLES2/gl2.h"
+  #include "egl_utils.h"
+#endif
 
 #define NUM_TEXTURES 2
 #define LEFT 0
@@ -10,8 +14,8 @@
 
 typedef struct
 {
-    // OpenGL|ES state
-    EGL_STATE_T egl_state;
+    // OpenGL state
+    GL_STATE_T gl_state;
 
     // Program handle
     GLuint program;
@@ -24,6 +28,8 @@ typedef struct
     GLuint vbo;
 } STATE_T;
 
+inline void check();
+void showlog(GLint shader);
 void update_points(float *points, int num_points, STATE_T *state);
 void create_shaders(STATE_T *state);
 void draw_circles(STATE_T *state, int num_points);

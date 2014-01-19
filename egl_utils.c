@@ -4,33 +4,14 @@
 
 #include "egl_utils.h"
 
-#include "GLES2/gl2.h"
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
-
-#include "fcntl.h"
-#include "linux/input.h"
-
-#include "bcm_host.h"
-
-inline void check()
-{
-    assert(glGetError() == 0);
-}
-
-void showlog(GLint shader)
-{
-   // Prints the compile log for a shader
-   char log[1024];
-   glGetShaderInfoLog(shader,sizeof log,NULL,log);
-   printf("%d:shader:\n%s\n", shader, log);
-}
-
 // Description: Sets the display, OpenGL|ES context and screen stuff
-void init_ogl(EGL_STATE_T *state)
+void init_ogl(GL_STATE_T *state)
 {
+
+    bcm_host_init();
+
     // Initialize struct
-    memset(state, 0, sizeof(EGL_STATE_T));
+    memset(state, 0, sizeof(GL_STATE_T));
     state->keyboard_fd = -1;
 
     int32_t success = 0;
@@ -121,13 +102,12 @@ void init_ogl(EGL_STATE_T *state)
 
 }
 
-void egl_swap(EGL_STATE_T *state)
+void swap_ogl(GL_STATE_T *state)
 {
     eglSwapBuffers(state->display, state->surface);
 }
 
-void exit_ogl(EGL_STATE_T *state)
-// Function to be passed to atexit().
+void exit_ogl(GL_STATE_T *state)
 {
    // clear screen
    glClear( GL_COLOR_BUFFER_BIT );
@@ -142,9 +122,9 @@ void exit_ogl(EGL_STATE_T *state)
    close(state->keyboard_fd);
 
    printf("close\n");
-} // exit_func()
+}
 
-int get_key_press(EGL_STATE_T *state)
+int get_key_press(GL_STATE_T *state)
 {
     int key_code = -1;
 

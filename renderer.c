@@ -1,8 +1,8 @@
-#include "egl_utils.h"
 #include "circles_gl.h"
 #include "stdio.h"
-#include "linux/input.h"
 #include "mpi.h"
+#include <string.h> 
+#include <stdlib.h>
 
 void start_renderer()
 {
@@ -10,13 +10,8 @@ void start_renderer()
     STATE_T state;
     memset(&state, 0, sizeof(STATE_T));
 
-    bcm_host_init();
-
     // Start OGLES
-    init_ogl(&state.egl_state);
-
-    // Create buffer
-    glGenBuffers(1, &state.vbo);
+    init_ogl(&state.gl_state);
 
     // Create and set shaders
     create_shaders(&state);
@@ -60,10 +55,10 @@ void start_renderer()
             update_points(points, coords_recvd, &state);
         }
 
-	// Swap buffers
-        egl_swap(&state.egl_state);
+	// Swap front/back buffers
+        swap_ogl(&state.gl_state);
     };
 
-    exit_ogl(&state.egl_state);
+    exit_ogl(&state.gl_state);
 
 }
