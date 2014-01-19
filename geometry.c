@@ -196,7 +196,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     }
 
     debug_print("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
-
+/*
     // Reset out of bound numbers
     out_of_bounds->number_oob_particles_left = 0;
     out_of_bounds->number_oob_particles_right = 0;
@@ -213,7 +213,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
             out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
        }
     }
-
+*/
 }
 
 ////////////////////////////////////////////////
