@@ -17,7 +17,7 @@ void start_renderer()
     create_shaders(&state);
 
     // Allocate particle receive array
-    int max_particles = 5000;
+    int max_particles = 10000;
     int num_coords = 2;
     float *positions = (float*)malloc(num_coords * max_particles*sizeof(float));
 
@@ -26,7 +26,7 @@ void start_renderer()
     float *points = (float*)malloc(point_size*max_particles);
 
     int i,j, coords_recvd, disp;
-    int num_compute = 3;
+    int num_compute = 1;
     MPI_Status status;
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
