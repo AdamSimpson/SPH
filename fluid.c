@@ -50,7 +50,6 @@ void start_simulation()
     params.nprocs = nprocs;
 
     params.g = 1.0;
-    params.number_steps = 1000;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 2000;
     params.rest_density = 10.0;
@@ -63,7 +62,7 @@ void start_simulation()
 
     // water volume
     water_volume_global.min_x = 0.0;
-    water_volume_global.max_x = 20.0;
+    water_volume_global.max_x = 10.0;
     water_volume_global.min_y = 0.0;
     water_volume_global.max_y = 10.0;
 
@@ -79,9 +78,6 @@ void start_simulation()
     params.smoothing_radius = 2.0*params.spacing_particle;
 
     printf("smoothing radius: %f\n", params.smoothing_radius);
-
-    // Number of steps before frame needs to be written for 30 fps
-    int steps_per_frame = (int)(1.0/(params.time_step*30.0));
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -138,7 +134,7 @@ void start_simulation()
     out_of_bounds.oob_pointer_indicies_right = malloc(out_of_bounds.max_oob_particles * sizeof(int));
     out_of_bounds.vacant_indicies = malloc(2*out_of_bounds.max_oob_particles * sizeof(int));
 
-    printf("gigabytes allocated: %lld\n", total_bytes/1073741824);
+    printf("bytes allocated: %lld\n", total_bytes);
 
     // Initialize particles
     initParticles(fluid_particle_pointers, fluid_particles, neighbors, hash, &water_volume_global, start_x, number_particles_x, &edges, &params);
@@ -151,9 +147,6 @@ void start_simulation()
     double start_time, end_time, partition_time;
 
     MPI_Barrier(MPI_COMM_COMPUTE);
-
-    // Set timing variables
-    start_time = MPI_Wtime();
 
     fluid_particle *p;
 
@@ -171,7 +164,7 @@ void start_simulation()
         // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
 
-        // Transfer particles that have left the cessor bounds
+        // Transfer particles that have left the processor bounds
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
 
         // Hash the non halo regions
@@ -211,16 +204,12 @@ void start_simulation()
 	    fluid_particle_coords[i*2] = p->x;
 	    fluid_particle_coords[(i*2)+1] = p->y;
         }
-
         // Send particle positions to be rendered
 	MPI_Send(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT, 0, 1, MPI_COMM_WORLD);
  
        // iterate sim loop counter
 	n++;
     }
-
-    end_time = MPI_Wtime();
-    printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);
 
     // Release memory
     free(fluid_particle_pointers);
@@ -252,6 +241,34 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
      }
 }
 
+void viscosity_impulse(fluid_particle *p, fluid_particle *q, param* params)
+{
+
+    static const double sigma = 0.5;
+    static const double beta =  0.1;
+    double h = params->smoothing_radius;
+    double dt = params->time_step;
+
+    double r, ratio, u, imp, imp_x, imp_y;
+
+    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+    ratio = r/h;
+
+    //Inward radial velocity
+    u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))/r;
+    if(u>0.0)
+    {
+	imp = dt * (1-ratio)*(sigma * u + beta * u*u);
+	imp_x = imp*(q->x-p->x)/r;
+	imp_y = imp*(q->y-p->y)/r;
+	p->v_x -= imp_x/2.0;
+	p->v_y -= imp_y/2.0;
+	q->v_x += imp_x/2.0;
+	q->v_y += imp_y/2.0;
+    }
+
+}
+
 // Add viscosity impluses
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
@@ -260,31 +277,15 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     neighbor* n;
     double r,ratio,h,u,dt;
     double imp, imp_x, imp_y;
-    h = params->smoothing_radius;
-    dt = params->time_step;
-    static const double sigma = 0.0;
-    static const double beta =  0.3;
+    static const double sigma = 0.5;
+    static const double beta =  0.1;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-            ratio = r/h;
-
-            //Inward radial velocity
-            u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))/r;
-            if(r< 1 && u>0.0)
-            {
-                imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-                imp_x = imp*(q->x-p->x)/r;
-                imp_y = imp*(q->y-p->y)/r;
-                p->v_x -= imp_x/2.0;
-                p->v_y -= imp_y/2.0;
-                q->v_x += imp_x/2.0;
-                q->v_y += imp_y/2.0;
-            }
+	    viscosity_impulse(p,q,params);
         }
     }
 }
@@ -313,7 +314,7 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
         // Set OOB particle indicies and update number
         if (p->x < params->node_start_x)
             out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x > params->node_end_x)
+        else if (p->x >= params->node_end_x)
             out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 }
@@ -335,8 +336,8 @@ void calculate_density(fluid_particle *p, fluid_particle *q, param *params)
 
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
-    static const double k = 0.5;
-    static const double k_near = 5.0;
+    static const double k = 0.2;
+    static const double k_near = 2.0;
 
     int i, j;
     fluid_particle *p, *q;
@@ -354,12 +355,15 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     }
 
     // Relax particle positions
-    for(i=0; i<params->number_fluid_particles_local; i++) {
+//    for(i=0; i<params->number_fluid_particles_local; i++) {
+
+    // Iterating through the array in reverse seems to have a noticable effect on stability
+    for(i=params->number_fluid_particles_local; i-- > 0; ) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
 
-        // Compute density and near density
         for(j=0; j<n->number_fluid_neighbors; j++) {
+
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
 	    ratio = r/h;
@@ -370,17 +374,23 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 		D_x = D*(q->x-p->x)/r;
                 D_y = D*(q->y-p->y)/r;
 
-		// Do not move the halo particles
+		// Do not move the halo particles full D
 		// Halo particles are missing D from their origin so I believe this is appropriate
 		if(q->id < params->number_fluid_particles_local) {
 	  	  q->x += D_x;
 	          q->y += D_y;
+		}	
+		else { // Not even sure what i'm doing anymore
+                  q->x += D_x/2.0;
+                  q->y += D_y/2.0;
 		}
+		    
 
 		p->x -= D_x;
                 p->y -= D_y;
             }
         }
+
     }
 }
 
@@ -397,25 +407,29 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AAB
 {
     int i;
     fluid_particle *p;
-    double h = params->smoothing_radius;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         boundaryConditions(p, boundary_global, params);
         updateVelocity(p, params);
+
     }
 }
 
-void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
+void collisionImpulse(fluid_particle *p, int norm_x, int norm_y, param *params)
 {
     // Boundary friction
-    const static double mu = 0.5;
+    const static double mu = 0.0;
+    double dt = params->time_step;
 
-    double vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
+    double v_dot_n, vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
+
+    // v.n
+    v_dot_n = p->v_x*norm_x + p->v_y*norm_y;
 
     // Velocity normal to surface
-    vx_norm = fabs(p->v_x*norm_x)*norm_x;
-    vy_norm = fabs(p->v_y*norm_y)*norm_y;
+    vx_norm = v_dot_n*norm_x;
+    vy_norm = v_dot_n*norm_y;
 
     // Velocity tangential to surface
     vx_tan = p->v_x - vx_norm;
@@ -425,15 +439,8 @@ void collisionImpulse(fluid_particle *p, int norm_x, int norm_y)
     I_x = vx_norm - mu*vx_tan;
     I_y = vy_norm - mu*vy_tan;
 
-    // Update velocity based on I
-    p->v_x -= I_x;
-    p->v_y -= I_y;
-
-    // x needs to be updated as the velocity estimate will wipe the collision information out
-    // otherwise...maybe?
-    p->x_prev = p->x;
-    p->y_prev = p->y;
-
+    p->x += I_x * dt;
+    p->y += I_y * dt;
 }
 
 // Assume AABB with min point being axis origin
@@ -441,31 +448,35 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
     // Update velocity
     if(p->x < boundary->min_x) {
-	collisionImpulse(p,1,0);
+	collisionImpulse(p,1,0,params);
     }
     else if(p->x > boundary->max_x){
-        collisionImpulse(p,-1,0);
+        collisionImpulse(p, -1, 0, params);
     }
     if(p->y < boundary->min_y) {
-        collisionImpulse(p,0,1);
+        collisionImpulse(p,0,1,params);
     }
     else if(p->y > boundary->max_y){
-        collisionImpulse(p,0,-1);
+        collisionImpulse(p,0,-1,params);
     }
 
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash won't pick it up
     // as the particle will in the 'next' after last x direction bin
     if(p->x < boundary->min_x) {
+//        p->x_prev = p->x;
         p->x = boundary->min_x;
     }
     else if(p->x > boundary->max_x){
+//        p->x_prev = p->x;
         p->x = boundary->max_x-0.001;
     }
     if(p->y < boundary->min_y) {
+//        p->y_prev = p->y;
         p->y = boundary->min_y;
     }
     else if(p->y > boundary->max_y){
+//        p->y_prev = p->y;
         p->y = boundary->max_y-0.001;
     }
 

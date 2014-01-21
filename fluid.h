@@ -69,18 +69,15 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-double lap_W_visc(const double r, const double h);
-double W_dens(const double r, const double h);
-double del_W_pressure(const double r, const double h);
-void collisionImpulse(fluid_particle *p, int norm_x, int norm_y);
+void collisionImpulse(fluid_particle *p, int norm_x, int norm_y, param *params);
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
 
-
 void start_simulation();
 void calculate_density(fluid_particle *p, fluid_particle *q, param *params);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
+void viscosity_impulse(fluid_particle *p, fluid_particle *q, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
 void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params);
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);

@@ -365,6 +365,8 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
 
     params->number_fluid_particles_local = num_particles;
 
+    debug_print("rank %d num local: %d\n", params->rank, num_particles);
+
     // Free indexed types
     MPI_Type_free(&LeftRecvtype);
     MPI_Type_free(&RightRecvtype);
