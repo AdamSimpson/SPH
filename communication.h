@@ -8,6 +8,7 @@ typedef struct OOB oob;
 #include "mpi.h"
 
 MPI_Datatype Particletype;
+MPI_Datatype Paramtype;
 MPI_Datatype LeftEdgetype;
 MPI_Datatype RightEdgetype;
 MPI_Comm MPI_COMM_COMPUTE;

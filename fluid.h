@@ -45,7 +45,6 @@ struct NEIGHBOR{
 
 struct PARAM {
     double rest_density;
-    double mass_particle;
     double spacing_particle;
     double smoothing_radius;
     double g;
@@ -55,12 +54,11 @@ struct PARAM {
     int grid_size_x;
     int grid_size_y;
     int number_fluid_particles_global;
-    int number_fluid_particles_local; // Number of non vacant particles
+    int number_fluid_particles_local; // Number of non vacant particles not including halo
     int max_fluid_particle_index;     // Max index used in actual particle array
     int max_fluid_particles_local;    // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles;        // Starting at max_fluid_particle_index
     int max_node_difference;
-    int number_steps;
     int length_hash;
     int rank;
     int nprocs;

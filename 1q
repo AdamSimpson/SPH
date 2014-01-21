@@ -20,8 +20,6 @@ int main(int argc, char *argv[])
 
     create_communicators();
 
-    createMpiTypes();
-
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0)
 	start_renderer();
@@ -37,6 +35,8 @@ void start_simulation()
     MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
 
     printf("compute rank: %d, num compute procs: %d \n",rank, nprocs);
+
+    createMpiTypes();
 
     param params;
     AABB water_volume_global;
@@ -138,9 +138,9 @@ void start_simulation()
     // Print some parameters
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
+
     // Send intiial paramaters to render node
-    param tmp_param;
-    MPI_Gather(&params, 1, Paramtype, &tmp_param, 1, Paramtype, 0, MPI_COMM_WORLD);
+    MPI_Gather(&params, 1, Paramtype, 0, 0, 0, MPI_COMM_WORLD);
 
     // Main loop
     // In the current form the particles with be re-hashed and halos re-sent for step 0
