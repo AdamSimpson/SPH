@@ -14,8 +14,8 @@ inline void check()
 {
     GLenum err = glGetError();
     if(err != GL_NO_ERROR) {
-        printf("GL Error: %s\n", glewGetErrorString(err));
-        exit(1);
+        printf("GL Error: %d\n", err);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -51,18 +51,6 @@ void compile_shader(GLuint shader, const char *file_name)
 
 void update_points(float *points, int num_points, STATE_T *state)
 {
-    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef GLES
-    // Set vertex array object
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    #endif
-
-    // Create buffer if not already
-    if(!state->vbo)
-        glGenBuffers(1, &state->vbo);
-
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
@@ -74,12 +62,25 @@ void update_points(float *points, int num_points, STATE_T *state)
     draw_circles(state, num_points);
 }
 
+void create_buffers(STATE_T *state)
+{
+    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
+    #ifndef GLES
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    #endif
+
+    // Generate vertex buffer
+    glGenBuffers(1, &state->vbo);
+}
+
 void create_shaders(STATE_T *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
-      compile_shader(vertexShader, "particle_es.vert");
+      compile_shader(vertexShader, "/home/pi/SPH/particle_es.vert");
     #else
       compile_shader(vertexShader, "particle.vert");
     #endif
@@ -87,7 +88,7 @@ void create_shaders(STATE_T *state)
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-      compile_shader(fragmentShader, "particle_es.frag");
+      compile_shader(fragmentShader, "/home/pi/SPH/particle_es.frag");
     #else
       compile_shader(fragmentShader, "particle.frag");
     #endif
@@ -113,7 +114,9 @@ void create_shaders(STATE_T *state)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Enable point size to be specified in the shader
+    #ifndef GLES
     glEnable(GL_PROGRAM_POINT_SIZE);
+    #endif
 }
 
 void draw_circles(STATE_T *state, int num_points)

@@ -13,6 +13,9 @@ void start_renderer()
     // Start OpenGL
     init_ogl(&state.gl_state);
 
+    // Create OpenGL buffers
+    create_buffers(&state);
+
     // Create and set shaders
     create_shaders(&state);
 
@@ -26,13 +29,13 @@ void start_renderer()
     float *points = (float*)malloc(point_size*max_particles);
 
     int i,j, coords_recvd, disp;
-    int num_compute = 1;
+    int num_compute = 3;
     MPI_Status status;
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     while(1){
 
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
 	for(i=0; i<num_compute; i++) {

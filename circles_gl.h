@@ -1,5 +1,5 @@
-#ifndef MULTI_TEX_H
-#define MULTI_TEX_H
+#ifndef CIRCLES_GL_H
+#define CIRCLES_GL_H
 
 #ifdef GLFW
   #include "glfw_utils.h"
@@ -7,10 +7,6 @@
   #include "GLES2/gl2.h"
   #include "egl_utils.h"
 #endif
-
-#define NUM_TEXTURES 2
-#define LEFT 0
-#define RIGHT 1
 
 typedef struct
 {
@@ -33,5 +29,6 @@ void showlog(GLint shader);
 void update_points(float *points, int num_points, STATE_T *state);
 void create_shaders(STATE_T *state);
 void draw_circles(STATE_T *state, int num_points);
+void create_buffers(STATE_T *state);
 
 #endif

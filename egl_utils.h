@@ -1,7 +1,6 @@
 #ifndef EGL_UTILS_H
 #define EGL_UTILS_H
 
-
 #include "GLES2/gl2.h"
 #include "EGL/egl.h"
 #include "EGL/eglext.h"

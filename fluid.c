@@ -18,8 +18,6 @@ int main(int argc, char *argv[])
     // Rank in world space
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    printf("compute rank: %d \n",rank);
-
     create_communicators();
 
     // Rank 0 is the render node, otherwise a simulation node
@@ -49,7 +47,7 @@ void start_simulation()
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 1.0;
+    params.g = 3.0;
     params.time_step = 0.03;
     params.number_fluid_particles_global = 2000;
     params.rest_density = 10.0;

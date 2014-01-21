@@ -41,6 +41,7 @@ void init_ogl(GL_STATE_T *state)
        EGL_CONTEXT_CLIENT_VERSION, 2,
        EGL_NONE
     }; 
+
     EGLConfig config;
 
     // get an EGL display connection
@@ -53,6 +54,7 @@ void init_ogl(GL_STATE_T *state)
 
     // get an appropriate EGL frame buffer configuration
     result = eglChooseConfig(state->display, attribute_list, &config, 1, &num_config);
+//    result = eglSaneChooseConfigBRCM(state->display, attribute_list, &config, 1, &num_config);
     assert(EGL_FALSE != result);
 
     // get an appropriate EGL frame buffer configuration
@@ -61,6 +63,7 @@ void init_ogl(GL_STATE_T *state)
 
     // create an EGL rendering context
     state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, context_attributes);
+//    state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, NULL);
     assert(state->context!=EGL_NO_CONTEXT);
 
     // create an EGL window surface
@@ -95,11 +98,6 @@ void init_ogl(GL_STATE_T *state)
     // connect the context to the surface
     result = eglMakeCurrent(state->display, state->surface, state->surface, state->context);
     assert(EGL_FALSE != result);
-
-    // Set background color and clear buffers
-    glClearColor(0.15f, 0.25f, 0.35f, 1.0f);
-    glClear( GL_COLOR_BUFFER_BIT );
-
 }
 
 void swap_ogl(GL_STATE_T *state)
