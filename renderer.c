@@ -24,7 +24,7 @@ void start_renderer()
     // Number of processes
     int num_compute_procs;
     int num_procs;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_compute_procs);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     num_compute_procs = num_procs - 1;
 
     // Allocate array of paramaters, render node space allocated
