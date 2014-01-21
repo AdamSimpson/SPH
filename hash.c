@@ -18,7 +18,6 @@ unsigned int hash_val(double x, double y, param *params)
 
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;
-    int num_y = params->grid_size_y;
 
     unsigned int grid_position = (grid_y * num_x + grid_x);
 
@@ -26,7 +25,6 @@ unsigned int hash_val(double x, double y, param *params)
 }
 
 // Add halo particles to neighbors array
-// Each halo particle looks at the 'behind' fluid particles and adds itself to any within h
 // We also calculate the density as it's convenient
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
 {
@@ -75,9 +73,10 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                      if (ne->number_fluid_neighbors < 300) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
                          calculate_density(p, h_p, params);
+//			 viscosity_impulse(h_p, p, params);
                      }
 		     else
-			printf("halo overflowing\n");
+			debug_print("halo overflowing\n");
 
                 }
 
@@ -95,7 +94,6 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 {
         int i,j,dx,dy,n,c;
         double x,y, px,py;
-        const double spacing = params->smoothing_radius;
 	const double h = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q, *q_neighbor;
@@ -121,7 +119,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                 hash[index].number_fluid++;
             }
 	    else
-		printf("first pass overflow\n");
+		debug_print("first pass overflow\n");
         }
 
         // Second pass - fill particle neighbors by processing grid of buckets
@@ -149,7 +147,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                        calculate_density(p, q, params);
                    }
                    else
-                      printf("self bucket overflow\n");
+                      debug_print("self bucket overflow\n");
                 }
             }
 
@@ -183,7 +181,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 			        calculate_density(q_neighbor, q, params);
 			   }
 			   else
-				printf("neighbor overflow\n");
+				debug_print("neighbor overflow\n");
 		        }
                      }
                       
