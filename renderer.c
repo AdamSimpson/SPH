@@ -22,8 +22,7 @@ void start_renderer()
     create_shaders(&state);
 
     // Number of processes
-    int num_compute_procs;
-    int num_procs;
+    int num_procs, num_compute_procs;
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     num_compute_procs = num_procs - 1;
 
@@ -34,6 +33,8 @@ void start_renderer()
 
     // Receive initial paramaters
     MPI_Gather(MPI_IN_PLACE, 0, Paramtype, params, 1, Paramtype, 0, MPI_COMM_WORLD);
+
+    printf("global on render: %d\n", compute_params[0].number_fluid_particles_global);
 
     // Allocate particle receive array
     int max_particles = compute_params[0].number_fluid_particles_global;
@@ -55,7 +56,7 @@ void start_renderer()
 
 	for(i=0; i<num_compute_procs; i++) {
 	    // receive particles
-	    MPI_Recv(positions, max_particles, MPI_FLOAT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
+	    MPI_Recv(positions, num_coords*max_particles, MPI_FLOAT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, MPI_FLOAT, &coords_recvd);
 	    coords_recvd/=2;
 

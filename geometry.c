@@ -122,7 +122,14 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
     if (rank == nprocs-1)
         params->node_end_x   = boundary_global->max_x;
 
-    free(particle_length_x);    
+    // Update requested number of particles with actual value used
+    int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
+    int total_x = 0;
+    for(i=0; i<nprocs; i++)
+        total_x += particle_length_x[i];
+    params->number_fluid_particles_global = total_x * num_y;
+
+    free(particle_length_x);
 
     debug_print("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, params->spacing_particle, *x_start, *length_x, params->node_start_x, params->node_end_x);
     
@@ -131,7 +138,6 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
 // Test if boundaries need to be adjusted
 void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, double *partition_time, param *params)
 {
-    
     int i;
     fluid_particle *p;
     int rank = params->rank;

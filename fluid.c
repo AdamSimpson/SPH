@@ -47,10 +47,11 @@ void start_simulation()
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 3.0;
+    params.g = 1.0;
     params.time_step = 0.03;
+    // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 3.0;
+    params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
