@@ -51,6 +51,14 @@ void start_renderer()
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     while(1){
 
+        // Recieve paramaters struct from all nodes
+        MPI_Gather(MPI_IN_PLACE, 0, Paramtype, params, 1, Paramtype, 0, MPI_COMM_WORLD);
+
+        // Update paramaters as needed
+
+        // Send updated paramaters to compute nodes
+        MPI_Scatter(params, 1, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 

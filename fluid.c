@@ -140,19 +140,22 @@ void start_simulation()
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Send intiial paramaters to render node
-    param tmp_param;
-    MPI_Gather(&params, 1, Paramtype, &tmp_param, 1, Paramtype, 0, MPI_COMM_WORLD);
+    param *null_param = NULL;
+    MPI_Gather(&params, 1, Paramtype, null_param, 0, Paramtype, 0, MPI_COMM_WORLD);
 
-    // Main loop
-    // In the current form the particles with be re-hashed and halos re-sent for step 0
     double start_time, end_time, partition_time;
-
     fluid_particle *p;
-
     unsigned int i;
     unsigned int n = 0;
 
+    // Main simulation loop
     while(1) {
+        // Send compute parameters to render node
+        MPI_Gather(&params, 1, Paramtype, null_param, 0, Paramtype, 0, MPI_COMM_WORLD);
+
+        // Receive updated paramaters from render nodes
+        MPI_Scatter(null_param, 0, Paramtype, &params, 1, Paramtype, 0, MPI_COMM_WORLD);
+
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);
 
