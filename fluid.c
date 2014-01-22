@@ -149,6 +149,7 @@ void start_simulation()
     fluid_particle *p;
     unsigned int i;
     unsigned int n = 0;
+    fluid_particle *null_particle;
 
     // Main simulation loop
     while(1) {
@@ -208,8 +209,10 @@ void start_simulation()
 	    fluid_particle_coords[i*2] = p->x;
 	    fluid_particle_coords[(i*2)+1] = p->y;
         }
+
         // Send particle positions to be rendered
-	MPI_Send(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT, 0, 1, MPI_COMM_WORLD);
+        MPI_Gatherv(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT,
+		    null_particle, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
  
        // iterate sim loop counter
 	n++;
