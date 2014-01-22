@@ -141,7 +141,9 @@ void start_simulation()
 
     // Send intiial paramaters to render node
     param *null_param = NULL;
-    MPI_Gather(&params, 1, Paramtype, null_param, 0, Paramtype, 0, MPI_COMM_WORLD);
+    int *null_recvcnts = NULL;
+    int *null_displs = NULL;
+    MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
 
     double start_time, end_time, partition_time;
     fluid_particle *p;
@@ -151,10 +153,10 @@ void start_simulation()
     // Main simulation loop
     while(1) {
         // Send compute parameters to render node
-        MPI_Gather(&params, 1, Paramtype, null_param, 0, Paramtype, 0, MPI_COMM_WORLD);
+        MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
 
         // Receive updated paramaters from render nodes
-        MPI_Scatter(null_param, 0, Paramtype, &params, 1, Paramtype, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);

@@ -26,18 +26,27 @@ void start_renderer()
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     num_compute_procs = num_procs - 1;
 
-    // Allocate array of paramaters, render node space allocated
+    // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
-    param *params = malloc(num_procs*sizeof(param));
-    param *compute_params = &params[1];
+    param *params = malloc(num_compute_procs*sizeof(param));
 
-    // Receive initial paramaters
-    MPI_Gather(MPI_IN_PLACE, 0, Paramtype, params, 1, Paramtype, 0, MPI_COMM_WORLD);
+    int i,j;
 
-    printf("global on render: %d\n", compute_params[0].number_fluid_particles_global);
+    // Gatherv values
+    int *param_counts = malloc(num_procs * sizeof(int));
+    int *param_displs = malloc(num_procs * sizeof(int));
+    for(i=0; i<num_procs; i++) {
+        param_counts[i] = i?1:0; // will not receive from rank 0
+        param_displs[i] = i?i-1:0;
+    }
+
+    // Initial gather
+    MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
+
+    printf("global on render: %d\n", params[0].number_fluid_particles_global);
 
     // Allocate particle receive array
-    int max_particles = compute_params[0].number_fluid_particles_global;
+    int max_particles = params[0].number_fluid_particles_global;
     int num_coords = 2;
     float *positions = (float*)malloc(num_coords * max_particles*sizeof(float));
 
@@ -45,19 +54,19 @@ void start_renderer()
     int point_size = 5 * sizeof(float);
     float *points = (float*)malloc(point_size*max_particles);
 
-    int i,j, coords_recvd, disp;
+    int coords_recvd, disp;
     MPI_Status status;
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     while(1){
 
         // Recieve paramaters struct from all nodes
-        MPI_Gather(MPI_IN_PLACE, 0, Paramtype, params, 1, Paramtype, 0, MPI_COMM_WORLD);
+        MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
         // Update paramaters as needed
 
         // Send updated paramaters to compute nodes
-        MPI_Scatter(params, 1, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
