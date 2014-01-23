@@ -50,14 +50,14 @@ void start_simulation()
     params.g = 1.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 3000;
     params.rest_density = 10.0;
 
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 20.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 20.0;
+    boundary_global.max_y = 10.0;
 
     // water volume
     water_volume_global.min_x = 0.0;

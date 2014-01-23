@@ -61,9 +61,14 @@ void start_renderer()
     // Set background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    // Create color index - hard coded for now to experiment
+    float colors_by_rank[9] = {1.0,0.0,0.0,
+	  	               0.0,1.0,0.0,
+		               0.0,0.0,1.0};
+
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
-    int total_coords;
+    int total_coords, current_rank;
     while(1){
 
         // Recieve paramaters struct from all nodes
@@ -86,12 +91,19 @@ void start_renderer()
         MPI_Gatherv(MPI_IN_PLACE, 0, MPI_FLOAT, particle_coords, particle_counts, particle_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
         // Create points array (x,y,r,g,b)
-        for(j=0; j<total_coords/2; j++) {
+	current_rank = 0;
+	int particle_count = 1;
+        for(j=0; j<total_coords/2; j++, particle_count+=2) {
+	    if ( particle_count > particle_counts[1+current_rank]){
+		 current_rank++;
+		 particle_count = 1;
+	    }
+
 	    points[j*5]   = particle_coords[j*2]/10.0 - 1.0; 
-            points[j*5+1] = particle_coords[j*2+1]/10.0 - 0.8;
-            points[j*5+2] = 0.0;
-	    points[j*5+3] = 0.0;
-            points[j*5+4] = 1.0;
+            points[j*5+1] = particle_coords[j*2+1]/5.0 - 0.8;
+            points[j*5+2] = colors_by_rank[3*current_rank];
+	    points[j*5+3] = colors_by_rank[3*current_rank+1];
+            points[j*5+4] = colors_by_rank[3*current_rank+2];
         }
 
 	// Clear background

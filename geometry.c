@@ -62,13 +62,11 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
     int num_initial = num_x * num_y;
     printf("initial number of particles %d\n", num_initial);
 
-    // Allow space for twice as many particles as initially have on processor
-    int num_extra = num_initial;
+    // Allow space for all particles if neccessary
+    int num_local_max = params->number_fluid_particles_global;
 
-    params->max_node_difference = num_extra/2;
- 
     // Add initial space, extra space for particle transfers, and left/right out of boudns/halo particles
-    params->max_fluid_particles_local = num_initial + num_extra + 2*out_of_bounds->max_oob_particles + 2*edges->max_edge_particles;
+    params->max_fluid_particles_local = num_local_max + 2*out_of_bounds->max_oob_particles + 2*edges->max_edge_particles;
 
     out_of_bounds->number_vacancies = 0.0;
     
@@ -183,8 +181,8 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double average_right = (seconds_self + seconds_right)/2.0;
 
     // Allow a 5% difference in the average time
-    double max_diff_left = average_left * 0.5;
-    double max_diff_right = average_right * 0.5;
+    double max_diff_left = average_left * 0.05;
+    double max_diff_right = average_right * 0.05;
 
     debug_print("max_diff_left %f, max_diff_right %f, diff_left: %f, diff_right %f\n",max_diff_left,max_diff_right,diff_left,diff_right);
 

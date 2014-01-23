@@ -58,7 +58,6 @@ struct PARAM {
     int max_fluid_particle_index;     // Max index used in actual particle array
     int max_fluid_particles_local;    // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles;        // Starting at max_fluid_particle_index
-    int max_node_difference;
     int length_hash;
     int rank;
     int nprocs;
