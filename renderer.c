@@ -54,12 +54,12 @@ void start_renderer()
     int point_size = 5 * sizeof(float);
     float *points = (float*)malloc(point_size*max_particles);
 
-    int coords_recvd, disp;
-    MPI_Status status;
-
     // Particle coordinate gather values
     int *particle_counts = malloc(num_procs * sizeof(int));
     int *particle_displs = malloc(num_procs * sizeof(int));
+
+    // Set background color
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
@@ -78,27 +78,27 @@ void start_renderer()
         num_coords_rank = 0;
         total_coords = 0;
 	for(i=0; i<num_procs; i++) {
-	    num_coords_rank = i?2*params[i-1]->number_fluid_particles_local:0;
-	    total_coords += i?num_coords_rank:0;
+	    num_coords_rank = i?2*params[i-1].number_fluid_particles_local:0;
             particle_counts[i] = i?num_coords_rank:0;
             particle_displs[i] = i?total_coords:0;
+	    total_coords += num_coords_rank;
         }
-        MPI_Gatherv(MPI_IN_PLACE, 0, MPI_FLOAT, particle_coords, particle_counts, particle displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+        MPI_Gatherv(MPI_IN_PLACE, 0, MPI_FLOAT, particle_coords, particle_counts, particle_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
-        // Create proper points array
-        for(j=0; j<coords_recvd; j++) {
-	    points[j*5]   = positions[j*2]/10.0 - 1.0; 
-            points[j*5+1] = positions[j*2+1]/10.0 - 0.8;
+        // Create points array (x,y,r,g,b)
+        for(j=0; j<total_coords/2; j++) {
+	    points[j*5]   = particle_coords[j*2]/10.0 - 1.0; 
+            points[j*5+1] = particle_coords[j*2+1]/10.0 - 0.8;
             points[j*5+2] = 0.0;
 	    points[j*5+3] = 0.0;
             points[j*5+4] = 1.0;
         }
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	// Clear background
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render particles
-        update_points(points, coords_recvd, &state);
+        update_points(points, total_coords/2, &state);
 
 	// Swap front/back buffers
         swap_ogl(&state.gl_state);

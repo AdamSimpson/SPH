@@ -153,12 +153,6 @@ void start_simulation()
 
     // Main simulation loop
     while(1) {
-        // Send compute parameters to render node
-        MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
-
-        // Receive updated paramaters from render nodes
-        MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
-
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);
 
@@ -171,6 +165,11 @@ void start_simulation()
 
         // Transfer particles that have left the processor bounds
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
+
+        // Send compute parameters to render node
+        MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
+        // Receive updated paramaters from render nodes
+        MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
         // Hash the non halo regions
 	// This will update the densities so when the halo is exchanged the halo particles are up to date
