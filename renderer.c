@@ -62,9 +62,9 @@ void start_renderer()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // Create color index - hard coded for now to experiment
-    float colors_by_rank[9] = {1.0,0.0,0.0,
-	  	               0.0,1.0,0.0,
-		               0.0,0.0,1.0};
+    float colors_by_rank[9] = {0.69,0.07,0.07,
+	  	               1.0,1.0,0.1,
+		               0.08,0.52,0.8};
 
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;

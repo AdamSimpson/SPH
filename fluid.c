@@ -50,7 +50,7 @@ void start_simulation()
     params.g = 1.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 3000;
+    params.number_fluid_particles_global = 5000;
     params.rest_density = 10.0;
 
     // Boundary box
