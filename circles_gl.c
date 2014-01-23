@@ -41,7 +41,8 @@ void compile_shader(GLuint shader, const char *file_name)
     shader_source[statbuf.st_size] = '\0';
 
     // Compile shader
-    glShaderSource(shader, 1, &shader_source, NULL);
+    const GLchar *gl_shader_source = shader_source;
+    glShaderSource(shader, 1, &gl_shader_source, NULL);
     glCompileShader(shader);
 
     showlog(shader);
