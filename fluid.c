@@ -252,21 +252,22 @@ void viscosity_impulse(fluid_particle *p, fluid_particle *q, param* params)
 
     static const double sigma = 0.5;
     static const double beta =  0.1;
-    double h = params->smoothing_radius;
+    double h_recip = 1.0/params->smoothing_radius;
     double dt = params->time_step;
 
-    double r, ratio, u, imp, imp_x, imp_y;
+    double r, r_recip, ratio, u, imp, imp_x, imp_y;
 
     r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-    ratio = r/h;
+    r_recip = 1.0/r;
+    ratio = r*h_recip;
 
     //Inward radial velocity
-    u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))/r;
+    u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))*r_recip;
     if(u>0.0)
     {
 	imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-	imp_x = imp*(q->x-p->x)/r;
-	imp_y = imp*(q->y-p->y)/r;
+	imp_x = imp*(q->x-p->x)*r_recip;
+	imp_y = imp*(q->y-p->y)*r_recip;
 	p->v_x -= imp_x/2.0;
 	p->v_y -= imp_y/2.0;
 	q->v_x += imp_x/2.0;
@@ -347,11 +348,13 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     static const double k = 0.2;
     static const double k_near = 2.0;
 
-    int i, j;
+    int i, j, num_fluid;
     fluid_particle *p, *q;
     neighbor* n;
-    double r,ratio,dt,h,u,dx_x,dx_y,D,D_x,D_y;
-    h = params->smoothing_radius;
+    double r,ratio,dt,h_recip,r_recip,D,D_x,D_y;
+
+    num_fluid = params->number_fluid_particles_local;
+    h_recip = 1.0/params->smoothing_radius;
     dt = params->time_step;
 
     // Calculate the pressure of all particles, including halo
@@ -362,9 +365,6 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p->pressure_near = k_near * p->density_near;
     }
 
-    // Relax particle positions
-//    for(i=0; i<params->number_fluid_particles_local; i++) {
-
     // Iterating through the array in reverse seems to have a noticable effect on stability
     for(i=params->number_fluid_particles_local; i-- > 0; ) {
         p = fluid_particle_pointers[i];
@@ -374,17 +374,18 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	    ratio = r/h;
-	    if(ratio < 1.0 && ratio > 0.0) {
+	    r_recip = 1/r;
+	    ratio = r*h_recip;
+	    if(ratio < 1.0 && r > 0.0) {
 		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
 	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
                 D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
-		D_x = D*(q->x-p->x)/r;
-                D_y = D*(q->y-p->y)/r;
+		D_x = D*(q->x-p->x)*r_recip;
+                D_y = D*(q->y-p->y)*r_recip;
 
 		// Do not move the halo particles full D
 		// Halo particles are missing D from their origin so I believe this is appropriate
-		if(q->id < params->number_fluid_particles_local) {
+		if(q->id < num_fluid) {
 	  	  q->x += D_x;
 	          q->y += D_y;
 		}	
