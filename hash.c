@@ -72,7 +72,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                      ne = &neighbors[p->id];
                      if (ne->number_fluid_neighbors < 300) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
-                         calculate_density(p, h_p, params);
+                         calculate_density(p, h_p, r, params);
 //			 viscosity_impulse(h_p, p, params);
                      }
 		     else
@@ -144,7 +144,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 
                    if(ne->number_fluid_neighbors <300) {
                        ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
-                       calculate_density(p, q, params);
+                       calculate_density(p, q, r, params);
                    }
                    else
                       debug_print("self bucket overflow\n");
@@ -178,7 +178,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 
 			    if(ne->number_fluid_neighbors <300) {
 		                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
-			        calculate_density(q_neighbor, q, params);
+			        calculate_density(q_neighbor, q, r, params);
 			   }
 			   else
 				debug_print("neighbor overflow\n");

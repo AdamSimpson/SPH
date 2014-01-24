@@ -50,7 +50,7 @@ void start_simulation()
     params.g = 1.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 5000;
     params.rest_density = 10.0;
 
     // Boundary box
@@ -325,10 +325,12 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
     }
 }
 
-void calculate_density(fluid_particle *p, fluid_particle *q, param *params)
+// Calculate the density contribution of p on q and q on p
+// r is passed in as this function is called in the hash which must also calculate r
+void calculate_density(fluid_particle *p, fluid_particle *q, double r, param *params)
 {
-    double ratio, r;
-    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
+    double ratio;
+
     ratio = r/params->smoothing_radius;
     if(ratio < 1.0) {
 	p->density += (1-ratio)*(1-ratio);
