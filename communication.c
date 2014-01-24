@@ -17,7 +17,7 @@ void create_communicators()
     // Add ranks > 0 to group_compute
     int exclude_rank = 0;
     MPI_Group_excl(group_world, 1, &exclude_rank, &group_compute);
-   
+
     // Create communicator from group_compute
     MPI_Comm_create(MPI_COMM_WORLD, group_compute, &MPI_COMM_COMPUTE);
 
@@ -155,7 +155,7 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     MPI_Type_commit(&LeftEdgetype);
     MPI_Type_indexed(num_moving_right,blocklens_right,indicies_right,Particletype,&RightEdgetype);
     MPI_Type_commit(&RightEdgetype);
-   
+
     debug_print("rank %d, prams->max_fluid_particle_index: %d\n", rank,  params->max_fluid_particle_index);
 
     //Index to start receiving halo particles
@@ -313,15 +313,15 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     int total_received = num_received_right + num_received_left;
 
     debug_print("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
-   
+
     // Update maximum particle index if neccessary
     int max_received_index = total_received?total_received-1:0;// If non received don't access indicies_recv[-1]...
     if (total_received && indicies_recv[max_received_index] > params->max_fluid_particle_index) {
         debug_print("rank %d increasing max index from: %d", rank, params->max_fluid_particle_index);
         params->max_fluid_particle_index = indicies_recv[max_received_index];
-	debug_print("to %d\n", params->max_fluid_particle_index);
+        debug_print("to %d\n", params->max_fluid_particle_index);
     }
-    
+
     // Update vacancy total for particles received
     if (total_received < out_of_bounds->number_vacancies )
         out_of_bounds->number_vacancies -= total_received;
@@ -347,7 +347,7 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
             recv_replaced++;
         }
         else
-	    fluid_particle_pointers[oob_pointer_index] = NULL;
+            fluid_particle_pointers[oob_pointer_index] = NULL;
     }
     for (i=0; i<num_moving_right; i++) {
         // Index of particle pointer that has left

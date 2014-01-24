@@ -2,10 +2,10 @@
 #define CIRCLES_GL_H
 
 #ifdef GLFW
-  #include "glfw_utils.h"
+    #include "glfw_utils.h"
 #else
-  #include "GLES2/gl2.h"
-  #include "egl_utils.h"
+    #include "GLES2/gl2.h"
+    #include "egl_utils.h"
 #endif
 
 typedef struct

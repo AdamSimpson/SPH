@@ -14,7 +14,7 @@ typedef struct PARAM param;
 #include "communication.h"
 
 // Debug print statement
-#define DEBUG 1
+#define DEBUG 0
 #define debug_print(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
