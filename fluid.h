@@ -72,7 +72,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
                    neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
 
 void start_simulation();
-void calculate_density(fluid_particle *p, fluid_particle *q, double r, param *params);
+void calculate_density(fluid_particle *p, fluid_particle *q, double ratio);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
 void viscosity_impulse(fluid_particle *p, fluid_particle *q, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);

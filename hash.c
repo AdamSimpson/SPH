@@ -35,6 +35,9 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
+    double h_recip = 1.0/h;
+    double ratio;
+
     double h2 = h*h;
     neighbor *ne;
 
@@ -70,11 +73,12 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                         continue;
 	
 		     r = sqrt(r2);
+		     ratio = r*h_recip;
                      // Get neighbor bucket for particle p and add halo particle to it
                      ne = &neighbors[p->id];
                      if (ne->number_fluid_neighbors < 300) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
-                         calculate_density(p, h_p, r, params);
+                         calculate_density(p, h_p, ratio);
 //			 viscosity_impulse(h_p, p, params);
                      }
 		     else
@@ -147,9 +151,10 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                         continue;
 
 		   r = sqrt(r2);
+                   ratio = r*h_recip;
                    if(ne->number_fluid_neighbors <300) {
                        ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
-                       calculate_density(p, q, r, params);
+                       calculate_density(p, q, ratio);
                    }
                    else
                       debug_print("self bucket overflow\n");
@@ -182,9 +187,10 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                                continue;
 
 			    r = sqrt(r2);
+                            ratio = r*h_recip;
 			    if(ne->number_fluid_neighbors <300) {
 		                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
-			        calculate_density(q_neighbor, q, r, params);
+			        calculate_density(q_neighbor, q, ratio);
 			   }
 			   else
 				debug_print("neighbor overflow\n");

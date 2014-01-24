@@ -328,17 +328,16 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
 
 // Calculate the density contribution of p on q and q on p
 // r is passed in as this function is called in the hash which must also calculate r
-void calculate_density(fluid_particle *p, fluid_particle *q, double r, param *params)
+void calculate_density(fluid_particle *p, fluid_particle *q, double ratio)
 {
-    double ratio;
 
-    ratio = r/params->smoothing_radius;
+    double 1mR2 = (1-ratio)*(1-ratio);
     if(ratio < 1.0) {
-	p->density += (1-ratio)*(1-ratio);
-	p->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+	p->density += 1mR2;
+	p->density_near += 1mR2*(1-ratio);
 
-	q->density += (1-ratio)*(1-ratio);
-	q->density_near += (1-ratio)*(1-ratio)*(1-ratio);
+	q->density += 1mR2;
+	q->density_near += 1mR2*(1-ratio);
     }
 
 }
