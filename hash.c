@@ -29,12 +29,13 @@ unsigned int hash_val(double x, double y, param *params)
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
 {
     int index,i,dx,dy,n, grid_x, grid_y;
-    double x,y,r;
+    double x,y,r2, r;
     fluid_particle *h_p, *p;
     int n_start = params->number_fluid_particles_local; // Start of halo particles
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
+    double h2 = h*h;
     neighbor *ne;
 
     // Loop over each halo particle
@@ -64,10 +65,11 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                     p = hash[index].fluid_particles[n];
 	
 		    // Enforce cutoff
-                    r = sqrt((h_p->x-p->x)*(h_p->x-p->x) + (h_p->y-p->y)*(h_p->y-p->y));
-                    if(r > h)
+                    r2 = (h_p->x-p->x)*(h_p->x-p->x) + (h_p->y-p->y)*(h_p->y-p->y);
+                    if(r2 > h2)
                         continue;
-
+	
+		     r = sqrt(r2);
                      // Get neighbor bucket for particle p and add halo particle to it
                      ne = &neighbors[p->id];
                      if (ne->number_fluid_neighbors < 300) {
@@ -94,11 +96,13 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 {
         int i,j,dx,dy,n,c;
         double x,y, px,py;
-	const double h = params->smoothing_radius;
+	double h = params->smoothing_radius;
+        double h2 = h*h;
+
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
-        double r; 
+        double r,r2; 
 	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket
@@ -138,10 +142,11 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                 for(n=c+1; n<hash[index].number_fluid; n++) {
                    q = hash[index].fluid_particles[n];
                    // Append q to p's neighbor list
-                    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-                    if(r > h)
+                    r2 = (p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y);
+                    if(r2 > h2)
                         continue;
 
+		   r = sqrt(r2);
                    if(ne->number_fluid_neighbors <300) {
                        ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
                        calculate_density(p, q, r, params);
@@ -172,10 +177,11 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                            // Append neighbor to q's neighbor list
 		           q_neighbor = hash[neighbor_index].fluid_particles[n];
 
-                           r = sqrt((q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y));
-                           if(r > h)
+                           r2 = (q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y);
+                           if(r2 > h2)
                                continue;
 
+			    r = sqrt(r2);
 			    if(ne->number_fluid_neighbors <300) {
 		                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
 			        calculate_density(q_neighbor, q, r, params);
