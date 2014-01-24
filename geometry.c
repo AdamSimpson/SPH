@@ -45,18 +45,22 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
 // These numbers are set judiciously for TitanTitan as the number of particles is always small
 void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, oob *out_of_bounds, int number_particles_x, param *params)
 {
-    int num_x;
-    int num_y;
+    int num_x, num_y, max_y;
     
     double spacing = params->spacing_particle;
 
     // Set fluid local
     num_x = number_particles_x;
     num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
+    max_y = floor((boundary_global->max_y - boundary_global->min_y ) / spacing);
 
     // Maximum edge particles is a set to 10 particle widths
-    edges->max_edge_particles = 10 * num_y;
-    out_of_bounds->max_oob_particles = 10 * num_y;
+    edges->max_edge_particles = 10 * max_y;
+
+    // The out of bounds particles can become quite large
+    // If a flood of particles flows into and then out of a node
+    // This will be large
+    out_of_bounds->max_oob_particles = params->number_fluid_particles_global;
 
     // Initial fluid particles
     int num_initial = num_x * num_y;

@@ -316,8 +316,11 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
    
     // Update maximum particle index if neccessary
     int max_received_index = total_received?total_received-1:0;// If non received don't access indicies_recv[-1]...
-    if (total_received && indicies_recv[max_received_index] > params->max_fluid_particle_index)
+    if (total_received && indicies_recv[max_received_index] > params->max_fluid_particle_index) {
+        debug_print("rank %d increasing max index from: %d", rank, params->max_fluid_particle_index);
         params->max_fluid_particle_index = indicies_recv[max_received_index];
+	debug_print("to %d\n", params->max_fluid_particle_index);
+    }
     
     // Update vacancy total for particles received
     if (total_received < out_of_bounds->number_vacancies )
@@ -364,6 +367,8 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
         else
             fluid_particle_pointers[oob_pointer_index] = NULL;
     }
+
+    debug_print("rank %d OOB: num vacant %d\n", rank, out_of_bounds->number_vacancies);
 
     // If more particles are received than sent add to end of pointer array
     remaining = total_received - recv_replaced;
