@@ -74,7 +74,6 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 void start_simulation();
 void calculate_density(fluid_particle *p, fluid_particle *q, double ratio);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
-void viscosity_impulse(fluid_particle *p, fluid_particle *q, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
 void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params);
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);

@@ -79,7 +79,6 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                      if (ne->number_fluid_neighbors < 300) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
                          calculate_density(p, h_p, ratio);
-//			 viscosity_impulse(h_p, p, params);
                      }
 		     else
 			debug_print("halo overflowing\n");
@@ -101,12 +100,13 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         int i,j,dx,dy,n,c;
         double x,y, px,py;
 	double h = params->smoothing_radius;
+        double h_recip = 1.0/h;
         double h2 = h*h;
 
         int n_f = params->number_fluid_particles_local;
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
-        double r,r2; 
+        double r,r2, ratio; 
 	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket

@@ -247,52 +247,51 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
      }
 }
 
-void viscosity_impulse(fluid_particle *p, fluid_particle *q, param* params)
-{
-
-    static const double sigma = 0.5;
-    static const double beta =  0.1;
-    double h_recip = 1.0/params->smoothing_radius;
-    double dt = params->time_step;
-
-    double r, r_recip, ratio, u, imp, imp_x, imp_y;
-
-    r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-    r_recip = 1.0/r;
-    ratio = r*h_recip;
-
-    //Inward radial velocity
-    u = ((p->v_x-q->v_x)*(q->x-p->x) + (p->v_y-q->v_y)*(q->y-p->y))*r_recip;
-    if(u>0.0)
-    {
-	imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-	imp_x = imp*(q->x-p->x)*r_recip;
-	imp_y = imp*(q->y-p->y)*r_recip;
-	p->v_x -= imp_x/2.0;
-	p->v_y -= imp_y/2.0;
-	q->v_x += imp_x/2.0;
-	q->v_y += imp_y/2.0;
-    }
-
-}
-
 // Add viscosity impluses
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
+
+    static const double sigma = 0.5;
+    static const double beta =  0.1;
+
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
-    double r,ratio,h,u,dt;
-    double imp, imp_x, imp_y;
-    static const double sigma = 0.5;
-    static const double beta =  0.1;
+    double r, r_recip, ratio, u, imp, imp_x, imp_y;
+    double p_x, p_y;
+    double QmP_x, QmP_y; // Qx - Px, Qy - Py
+    double h_recip = 1.0/params->smoothing_radius;
+    double dt = params->time_step;
+
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
+	p_x = p->x;
+	p_y = p->y;
+
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
-	    viscosity_impulse(p,q,params);
+	
+	    QmP_x = (q->x-p_x);
+	    QmP_y = (q->y-p_y);
+	    r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
+	    r_recip = 1.0/r;
+	    ratio = r*h_recip;
+
+	    //Inward radial velocity
+	    u = ((p->v_x-q->v_x)*QmP_x + (p->v_y-q->v_y)*QmP_y)*r_recip;
+	    if(u>0.0)
+	    {
+		imp = dt * (1-ratio)*(sigma * u + beta * u*u);
+		imp_x = imp*QmP_x*r_recip;
+		imp_y = imp*QmP_y*r_recip;
+		p->v_x -= imp_x/2.0;
+		p->v_y -= imp_y/2.0;
+		q->v_x += imp_x/2.0;
+		q->v_y += imp_y/2.0;
+	    }
+
         }
     }
 }
@@ -331,13 +330,13 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
 void calculate_density(fluid_particle *p, fluid_particle *q, double ratio)
 {
 
-    double 1mR2 = (1-ratio)*(1-ratio);
+    double OmR2 = (1-ratio)*(1-ratio); // (one - r)^2
     if(ratio < 1.0) {
-	p->density += 1mR2;
-	p->density_near += 1mR2*(1-ratio);
+	p->density += OmR2;
+	p->density_near += OmR2*(1-ratio);
 
-	q->density += 1mR2;
-	q->density_near += 1mR2*(1-ratio);
+	q->density += OmR2;
+	q->density_near += OmR2*(1-ratio);
     }
 
 }
@@ -351,6 +350,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     fluid_particle *p, *q;
     neighbor* n;
     double r,ratio,dt,h_recip,r_recip,D,D_x,D_y;
+    double p_pressure, p_pressure_near;
+    double OmR;
 
     num_fluid = params->number_fluid_particles_local;
     h_recip = 1.0/params->smoothing_radius;
@@ -368,17 +369,20 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     for(i=params->number_fluid_particles_local; i-- > 0; ) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
+        p_pressure = p->pressure;
+	p_pressure_near = p->pressure_near;
 
         for(j=0; j<n->number_fluid_neighbors; j++) {
 
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	    r_recip = 1/r;
+	    r_recip = 1.0/r;
 	    ratio = r*h_recip;
+	    OmR = 1.0 - ratio;
 	    if(ratio < 1.0 && r > 0.0) {
 		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
 	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
-                D = dt*dt*((p->pressure+q->pressure)*(1.0-ratio) + (p->pressure_near+q->pressure_near)*(1.0-ratio)*(1.0-ratio));
+                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR);
 		D_x = D*(q->x-p->x)*r_recip;
                 D_y = D*(q->y-p->y)*r_recip;
 
