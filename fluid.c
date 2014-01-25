@@ -50,7 +50,7 @@ void start_simulation()
     params.g = 1.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 5000;
+    params.number_fluid_particles_global = 10000;
     params.rest_density = 10.0;
 
     // Boundary box
@@ -168,6 +168,8 @@ void start_simulation()
 
         // Send compute parameters to render node
         MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
+
+        // This method is insanely expensive
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
@@ -211,7 +213,7 @@ void start_simulation()
 
         // Send particle positions to be rendered
         MPI_Gatherv(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT,
-		    null_particle, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		    MPI_FLOAT, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
  
        // iterate sim loop counter
 	n++;
