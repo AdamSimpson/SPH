@@ -76,7 +76,7 @@ void start_renderer()
 
         // Update paramaters as needed
 
-        // This method is insanely expensive
+        // Scatter can be insanely expensive with OpenMPI...try MPICH
         // Send updated paramaters to compute nodes
         MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 

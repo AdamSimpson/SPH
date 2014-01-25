@@ -149,7 +149,8 @@ void start_simulation()
     fluid_particle *p;
     unsigned int i;
     unsigned int n = 0;
-    fluid_particle *null_particle;
+    fluid_particle *null_particle = NULL;
+    float *null_float = NULL;
 
     // Main simulation loop
     while(1) {
@@ -169,7 +170,7 @@ void start_simulation()
         // Send compute parameters to render node
         MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
 
-        // This method is insanely expensive
+        // Scatter can be insanely expensive with OpenMPI...try MPICH
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
@@ -213,7 +214,7 @@ void start_simulation()
 
         // Send particle positions to be rendered
         MPI_Gatherv(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT,
-		    MPI_FLOAT, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+		    null_float, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
  
        // iterate sim loop counter
 	n++;
