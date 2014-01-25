@@ -76,6 +76,7 @@ void start_renderer()
 
         // Update paramaters as needed
 
+        // This method is insanely expensive
         // Send updated paramaters to compute nodes
         MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 
@@ -100,7 +101,7 @@ void start_renderer()
             }
 
             points[j*5]   = particle_coords[j*2]/10.0 - 1.0; 
-            points[j*5+1] = particle_coords[j*2+1]/2.5 - 0.8;
+            points[j*5+1] = particle_coords[j*2+1]/5.0 - 0.8;
             points[j*5+2] = colors_by_rank[3*current_rank];
             points[j*5+3] = colors_by_rank[3*current_rank+1];
             points[j*5+4] = colors_by_rank[3*current_rank+2];
