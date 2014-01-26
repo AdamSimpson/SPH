@@ -55,9 +55,9 @@ void createMpiTypes()
     MPI_Type_commit( &Particletype );
 
     // Create param type
-    for(i=0; i<7; i++) types[i] = MPI_DOUBLE;
-    for(i=7; i<17; i++) types[i] = MPI_INT;
-    for (i=0; i<17; i++) blocklens[i] = 1;
+    for(i=0; i<9; i++) types[i] = MPI_DOUBLE;
+    for(i=9; i<20; i++) types[i] = MPI_INT;
+    for (i=0; i<20; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( param, rest_density );
     disps[1] = offsetof( param, spacing_particle );
@@ -66,19 +66,22 @@ void createMpiTypes()
     disps[4] = offsetof( param, time_step );
     disps[5] = offsetof( param, node_start_x );
     disps[6] = offsetof( param, node_end_x );
-    disps[7] = offsetof( param, grid_size_x );
-    disps[8] = offsetof( param, grid_size_y );
-    disps[9] = offsetof( param, number_fluid_particles_global );
-    disps[10] = offsetof( param, number_fluid_particles_local );
-    disps[11] = offsetof( param, max_fluid_particle_index );
-    disps[12] = offsetof( param, max_fluid_particles_local );
-    disps[13] = offsetof( param, number_halo_particles );
-    disps[14] = offsetof( param, length_hash );
-    disps[15] = offsetof( param, rank );
-    disps[16] = offsetof( param, nprocs );
+    disps[7] = offsetof( param, circle_center_x );
+    disps[8] = offsetof( param, circle_center_y );
+    disps[9] = offsetof( param, max_neighbors ); 
+    disps[10] = offsetof( param, grid_size_x );
+    disps[11] = offsetof( param, grid_size_y );
+    disps[12] = offsetof( param, number_fluid_particles_global );
+    disps[13] = offsetof( param, number_fluid_particles_local );
+    disps[14] = offsetof( param, max_fluid_particle_index );
+    disps[15] = offsetof( param, max_fluid_particles_local );
+    disps[16] = offsetof( param, number_halo_particles );
+    disps[17] = offsetof( param, length_hash );
+    disps[18] = offsetof( param, rank );
+    disps[19] = offsetof( param, nprocs );
 
     // Commit type
-    MPI_Type_create_struct( 17, blocklens, disps, types, &Paramtype );
+    MPI_Type_create_struct( 20, blocklens, disps, types, &Paramtype );
     MPI_Type_commit( &Paramtype );
 }
 
