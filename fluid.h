@@ -39,7 +39,7 @@ struct FLUID_PARTICLE {
 };
 
 struct NEIGHBOR{
-    fluid_particle* fluid_neighbors[300];
+    fluid_particle **fluid_neighbors;
     int number_fluid_neighbors;
 };
 
@@ -51,6 +51,9 @@ struct PARAM {
     double time_step;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
+    double circle_center_x;
+    double circle_center_y;
+    int max_neighbors;
     int grid_size_x;
     int grid_size_y;
     int number_fluid_particles_global;
