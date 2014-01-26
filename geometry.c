@@ -138,7 +138,7 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
 }
 
 // Test if boundaries need to be adjusted
-void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, double *partition_time, param *params)
+void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, double partition_time, param *params)
 {
     int i;
     fluid_particle *p;
@@ -147,9 +147,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double h = params->spacing_particle;
 
     // Get elapsed time since last partition and set new partition time
-    double now = MPI_Wtime();
-    double seconds_self =  now - *partition_time;
-    *partition_time = now;
+    double seconds_self =  partition_time;
 
     double length = params->node_end_x - params->node_start_x;
 
