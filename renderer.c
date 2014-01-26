@@ -69,12 +69,18 @@ void start_renderer()
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
     int total_coords, current_rank;
+    double mouse_x, mouse_y;
     while(1){
 
         // Recieve paramaters struct from all nodes
         MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
         // Update paramaters as needed
+        get_mouse(&mouse_x, &mouse_y, &state.gl_state);
+        for(i=0; i< num_compute_procs; i++) {
+            params[i].circle_center_x = mouse_x/40.0;
+            params[i].circle_center_y = (800-mouse_y)/40.0;
+        }
 
         // Scatter can be insanely expensive with OpenMPI...try MPICH
         // Send updated paramaters to compute nodes
@@ -101,7 +107,7 @@ void start_renderer()
             }
 
             points[j*5]   = particle_coords[j*2]/10.0 - 1.0; 
-            points[j*5+1] = particle_coords[j*2+1]/5.0 - 0.8;
+            points[j*5+1] = particle_coords[j*2+1]/10.0 - 1.0;
             points[j*5+2] = colors_by_rank[3*current_rank];
             points[j*5+3] = colors_by_rank[3*current_rank+1];
             points[j*5+4] = colors_by_rank[3*current_rank+2];

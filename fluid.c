@@ -47,13 +47,15 @@ void start_simulation()
     edge edges;
     oob out_of_bounds;
 
+    unsigned int i;
+
     params.rank = rank;
     params.nprocs = nprocs;
 
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 10000;
+    params.number_fluid_particles_global = 4000;
     params.rest_density = 20.0;
     params.max_neighbors = 60*4;
 
