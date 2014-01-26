@@ -27,6 +27,9 @@ int main(int argc, char *argv[])
 	start_renderer();
     else
 	start_simulation();
+
+    MPI_Finalize();
+    return 0;
 }
 
 void start_simulation()
@@ -47,23 +50,24 @@ void start_simulation()
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 1.0;
+    params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 10000;
-    params.rest_density = 10.0;
+    params.rest_density = 20.0;
+    params.max_neighbors = 60*4;
 
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 20.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 10.0;
+    boundary_global.max_y = 20.0;
 
     // water volume
     water_volume_global.min_x = 0.0;
-    water_volume_global.max_x = 10.0;
-    water_volume_global.min_y = 0.0;
-    water_volume_global.max_y = 10.0;
+    water_volume_global.max_x = 20.0;
+    water_volume_global.min_y = 5.0;
+    water_volume_global.max_y = 20.0;
 
     // Fluid area in initial configuration
     double area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
@@ -85,7 +89,7 @@ void start_simulation()
     // Set local/global number of particles to allocate
     setParticleNumbers(&boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, &params);
 
-    long long total_bytes = 0;
+    size_t total_bytes = 0;
     size_t bytes;
     // Allocate fluid particles array
     bytes = params.max_fluid_particles_local * sizeof(fluid_particle);
@@ -108,10 +112,15 @@ void start_simulation()
     if(fluid_particle_pointers == NULL)
         printf("Could not allocate fluid_particle_pointers\n");
 
-    // Allocate neighbors array
+    // Allocate neighbor bucket array
     neighbor *neighbors = calloc(params.max_fluid_particles_local, sizeof(neighbor));
-    total_bytes+=params.max_fluid_particles_local*sizeof(neighbor);
-    if(neighbors == NULL)
+    fluid_particle **fluid_neighbors = calloc(params.max_fluid_particles_local * params.max_neighbors, sizeof(fluid_particle *));
+    // Set pointer in each bucket
+    for(i=0; i< params.max_fluid_particles_local; i++ )
+        neighbors[i].fluid_neighbors = &(fluid_neighbors[i*params.max_neighbors]);
+
+    total_bytes+= (params.max_fluid_particles_local*sizeof(neighbor) + params.max_neighbors*sizeof(fluid_particle *));
+    if(neighbors || fluid_neighbors == NULL)
         printf("Could not allocate neighbors\n");
 
     // UNIFORM GRID HASH
@@ -131,7 +140,7 @@ void start_simulation()
     out_of_bounds.oob_pointer_indicies_right = malloc(out_of_bounds.max_oob_particles * sizeof(int));
     out_of_bounds.vacant_indicies = malloc(2*out_of_bounds.max_oob_particles * sizeof(int));
 
-    printf("bytes allocated: %lld\n", total_bytes);
+    printf("bytes allocated: %lu\n", total_bytes);
 
     // Initialize particles
     initParticles(fluid_particle_pointers, fluid_particles, neighbors, hash, &water_volume_global, start_x, number_particles_x, &edges, &params);
@@ -145,15 +154,24 @@ void start_simulation()
     int *null_displs = NULL;
     MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
 
-    double start_time, end_time, partition_time;
     fluid_particle *p;
-    unsigned int i;
     unsigned int n = 0;
     fluid_particle *null_particle = NULL;
     float *null_float = NULL;
 
+    bool check_time = false;
+    double time_before, time_after;
+    int steps_before_check = 50;
+
     // Main simulation loop
     while(1) {
+
+        // Time calculations
+        if(n%steps_before_check) {
+            check_time = true;
+            time_before = MPI_Wtime();
+        }
+
         // Initialize velocities
 	apply_gravity(fluid_particle_pointers, &params);
 
@@ -163,6 +181,10 @@ void start_simulation()
 
         // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
+
+        // Stop time before blocking MPI calls
+        if(check_time)
+            time_before = MPI_Wtime() - time_before;
 
         // Transfer particles that have left the processor bounds
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
@@ -177,19 +199,19 @@ void start_simulation()
         // Hash the non halo regions
 	// This will update the densities so when the halo is exchanged the halo particles are up to date
 	// This works well on the raspi's but destroys communication/computation overlap
-        hash_fluid(fluid_particle_pointers, neighbors, hash, &params);
+        hash_fluid(fluid_particle_pointers, neighbors, hash, &params, true);
 
 	// Exchange halo particles
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-	// Every 10 steps start the timer used to determine if the partition needs to be modified
-	if(n % 10 == 0)
-	    partition_time = MPI_Wtime();
+        // Start time_after(after mpi calls)
+        if(check_time)
+            time_after = MPI_Wtime();
 
 	// Add the halo particles to neighbor buckets
 	// Also update density
-        hash_halo(fluid_particle_pointers, neighbors, hash, &params);
+        hash_halo(fluid_particle_pointers, neighbors, hash, &params, true);
 
         // double density relaxation
 	// halo particles will be missing origin contributions to density/pressure
@@ -198,12 +220,25 @@ void start_simulation()
         // update velocity
         updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
 
-	// Check for a balanced particle load between MPI tasks
-        if (n % 10 == 0) {
-            checkPartition(fluid_particle_pointers, &out_of_bounds, &partition_time, &params);
+        // Check for a balanced particle load between MPI tasks
+        if (check_time) {
+            time_after = MPI_Wtime() - time_after;
+            checkPartition(fluid_particle_pointers, &out_of_bounds, time_before + time_after, &params);
             // reset loop count
-	    n = 0;
+            n = 0;
         }
+
+        // Exchange halo particles from relaxed positions
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+
+        // We can hash during exchange as the density is not needed
+        hash_fluid(fluid_particle_pointers, neighbors, hash, &params, false);
+
+	// Finish asynch halo exchange
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+
+        // Update hash with relaxed positions
+        hash_halo(fluid_particle_pointers, neighbors, hash, &params, false);
 
         // Pack fluid_particle_coords
 	for(i=0; i<params.number_fluid_particles_local; i++) {
@@ -254,8 +289,8 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
 
-    static const double sigma = 0.5;
-    static const double beta =  0.1;
+    static const double sigma = 20.0;//0.5;
+    static const double beta =  2.0;//0.1;
 
     int i, j;
     fluid_particle *p, *q;
@@ -368,7 +403,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p->pressure_near = k_near * p->density_near;
     }
 
-    // Iterating through the array in reverse seems to have a noticable effect on stability
+    // Iterating through the array in reverse reduces biased particle movement
     for(i=params->number_fluid_particles_local; i-- > 0; ) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
@@ -431,10 +466,10 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AAB
     }
 }
 
-void collisionImpulse(fluid_particle *p, int norm_x, int norm_y, param *params)
+void collisionImpulse(fluid_particle *p, double norm_x, double norm_y, param *params)
 {
     // Boundary friction
-    const static double mu = 0.0;
+    const static double mu = 1.0;
     double dt = params->time_step;
 
     double v_dot_n, vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
@@ -454,44 +489,94 @@ void collisionImpulse(fluid_particle *p, int norm_x, int norm_y, param *params)
     I_x = vx_norm - mu*vx_tan;
     I_y = vy_norm - mu*vy_tan;
 
-    p->x += I_x * dt;
-    p->y += I_y * dt;
+//    printf("pos(%f,%f) norm(%f,%f) V(%f,%f) I(%f,%f)\n", p->x, p->y, norm_x, norm_y, p->v_x, p->v_y,I_x, I_y);
+
+    // Modify particle position
+
+    if(signbit(p->v_x) ==  signbit(norm_x))
+        I_x = -I_x;
+    if(signbit(p->v_y) ==  signbit(norm_y))
+        I_y = -I_y;
+
+    p->x_prev = p->x;
+    p->y_prev = p->y;
+
+/*
+    p->v_x -= I_x;
+    p->v_y -= I_y;
+
+    p->x += p->v_x * dt;
+    p->y += p->v_y * dt;
+*/
+
+    p->x -= I_x * dt;
+    p->y -= I_y * dt;
+
+//   printf("after pos(%f,%f)\n", p->x, p->y);
 }
 
 // Assume AABB with min point being axis origin
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
+
+    // Circle test
+    double center_x = params->circle_center_x;
+    double center_y = params->circle_center_y;
+
+    double radius = 1.0;
+    double norm_x;
+    double norm_y;
+
+    // Both circle tests can be combined if no impulse is used
+
+    // Test if inside of circle
+    double d;
+    double d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
+    if(d2 <= radius*radius && d2 > 0.0) {
+        norm_x = (center_x-p->x)/sqrt(d2);
+        norm_y = (center_y-p->y)/sqrt(d2);
+
+//        collisionImpulse(p, norm_x, norm_y, params);
+    }
+
+    // Make sure particle is outside of circle
+    d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
+    if(d2 <= radius*radius) {
+        double pen_dist = radius - sqrt(d2);
+        p->x -= pen_dist * norm_x;
+        p->y -= pen_dist * norm_y;
+    }
+
+    // Boundary seems more stable without collision impulse
+/*
     // Update velocity
-    if(p->x < boundary->min_x) {
-	collisionImpulse(p,1,0,params);
+    if(p->x <= boundary->min_x) {
+        collisionImpulse(p,1.0,0.0,params);
     }
-    else if(p->x > boundary->max_x){
-        collisionImpulse(p, -1, 0, params);
+    else if(p->x >= boundary->max_x){
+        collisionImpulse(p, -1.0, 0.0, params);
     }
-    if(p->y < boundary->min_y) {
-        collisionImpulse(p,0,1,params);
+    if(p->y <= boundary->min_y) {
+        collisionImpulse(p,0.0,1.0,params);
     }
-    else if(p->y > boundary->max_y){
-        collisionImpulse(p,0,-1,params);
+    else if(p->y >= boundary->max_y){
+        collisionImpulse(p,0.0,-1.0,params);
     }
+*/
 
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash won't pick it up
     // as the particle will in the 'next' after last x direction bin
-    if(p->x < boundary->min_x) {
-//        p->x_prev = p->x;
+    if(p->x <= boundary->min_x) {
         p->x = boundary->min_x;
     }
-    else if(p->x > boundary->max_x){
-//        p->x_prev = p->x;
+    else if(p->x >= boundary->max_x){
         p->x = boundary->max_x-0.001;
     }
-    if(p->y < boundary->min_y) {
-//        p->y_prev = p->y;
+    if(p->y <= boundary->min_y) {
         p->y = boundary->min_y;
     }
-    else if(p->y > boundary->max_y){
-//        p->y_prev = p->y;
+    else if(p->y >= boundary->max_y){
         p->y = boundary->max_y-0.001;
     }
 
