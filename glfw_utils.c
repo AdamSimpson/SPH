@@ -15,6 +15,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
+void get_mouse(double *x, double *y, GL_STATE_T *state)
+{
+    glfwGetCursorPos(state->window, x, y);
+}
+
 // Description: Sets the display, OpenGL context and screen stuff
 void init_ogl(GL_STATE_T *state)
 {

@@ -26,13 +26,14 @@ unsigned int hash_val(double x, double y, param *params)
 
 // Add halo particles to neighbors array
 // We also calculate the density as it's convenient
-void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params)
+void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params, bool compute_density)
 {
     int index,i,dx,dy,n, grid_x, grid_y;
     double x,y,r2, r;
     fluid_particle *h_p, *p;
     int n_start = params->number_fluid_particles_local; // Start of halo particles
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
+    int max_neighbors = params->max_neighbors;
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
     double h_recip = 1.0/h;
@@ -72,13 +73,15 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
                     if(r2 > h2)
                         continue;
 	
-		     r = sqrt(r2);
-		     ratio = r*h_recip;
                      // Get neighbor bucket for particle p and add halo particle to it
                      ne = &neighbors[p->id];
-                     if (ne->number_fluid_neighbors < 300) {
+                     if (ne->number_fluid_neighbors < max_neighbors) {
                          ne->fluid_neighbors[ne->number_fluid_neighbors++] = h_p;
-                         calculate_density(p, h_p, ratio);
+			 if(compute_density) {
+			    r = sqrt(r2);
+                            ratio = r*h_recip;
+                            calculate_density(p, h_p, ratio);
+		  	  }
                      }
 		     else
 			debug_print("halo overflowing\n");
@@ -95,7 +98,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
 // The following function will fill the i'th neighbor bucket with the i'th fluid_particle_pointers particle neighbors
 // Only the forward half of the neighbors are added as the forces are symmetrized.
 // We also calculate the density as it's convenient
-void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params)
+void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params, bool compute_density)
 {
         int i,j,dx,dy,n,c;
         double x,y, px,py;
@@ -104,6 +107,8 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         double h2 = h*h;
 
         int n_f = params->number_fluid_particles_local;
+        int max_neighbors = params->max_neighbors;
+
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
         double r,r2, ratio; 
@@ -150,11 +155,13 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                     if(r2 > h2)
                         continue;
 
-		   r = sqrt(r2);
-                   ratio = r*h_recip;
-                   if(ne->number_fluid_neighbors <300) {
+                   if(ne->number_fluid_neighbors < max_neighbors) {
                        ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
-                       calculate_density(p, q, ratio);
+                       if(compute_density) {
+                           r = sqrt(r2);
+                           ratio = r*h_recip;
+                           calculate_density(p, q, ratio);
+		       }
                    }
                    else
                       debug_print("self bucket overflow\n");
@@ -186,14 +193,16 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
                            if(r2 > h2)
                                continue;
 
-			    r = sqrt(r2);
-                            ratio = r*h_recip;
-			    if(ne->number_fluid_neighbors <300) {
+			    if(ne->number_fluid_neighbors < max_neighbors) {
 		                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
-			        calculate_density(q_neighbor, q, ratio);
+		                if(compute_density) {
+                                    r = sqrt(r2);
+                                    ratio = r*h_recip;
+			            calculate_density(q_neighbor, q, ratio);
+				}
 			   }
 			   else
-				debug_print("neighbor overflow\n");
+			       debug_print("neighbor overflow\n");
 		        }
                      }
                       

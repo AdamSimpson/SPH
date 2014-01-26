@@ -13,9 +13,8 @@ struct N_BUCKET {
 }; // neighbor 'bucket' for hash value
 
 unsigned int hash_val(double x, double y, param *params);
-//unsigned int hash_val(double x, double y, double z, double h, int hash_size);
-void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params);
-void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params);
+void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params, bool compute_density);
+void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params, bool compute_density);
 
 #endif
 
