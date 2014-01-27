@@ -55,7 +55,7 @@ void start_simulation()
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 4000;
+    params.number_fluid_particles_global = 2000;
     params.rest_density = 20.0;
     params.max_neighbors = 60*4;
 
@@ -122,7 +122,7 @@ void start_simulation()
         neighbors[i].fluid_neighbors = &(fluid_neighbors[i*params.max_neighbors]);
 
     total_bytes+= (params.max_fluid_particles_local*sizeof(neighbor) + params.max_neighbors*sizeof(fluid_particle *));
-    if(neighbors || fluid_neighbors == NULL)
+    if(neighbors == NULL || fluid_neighbors == NULL)
         printf("Could not allocate neighbors\n");
 
     // UNIFORM GRID HASH
