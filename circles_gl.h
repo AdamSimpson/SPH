@@ -19,6 +19,7 @@ typedef struct
     // Locations
     GLint position_location;
     GLint color_location;
+    GLint radius_location;
 
     // buffers
     GLuint vbo;
@@ -27,8 +28,10 @@ typedef struct
 inline void check();
 void showlog(GLint shader);
 void update_points(float *points, int num_points, STATE_T *state);
+void update_mover_point(float *point, float radius, STATE_T *state);
 void create_shaders(STATE_T *state);
 void draw_circles(STATE_T *state, int num_points);
+void draw_circle_mover(STATE_T *state, float radius);
 void create_buffers(STATE_T *state);
 
 #endif

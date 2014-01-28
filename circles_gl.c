@@ -50,10 +50,27 @@ void compile_shader(GLuint shader, const char *file_name)
     free(shader_source);
 }
 
+// Update coordinates of point mover
+void update_mover_point(float *point, float radius, STATE_T *state)
+{
+     // Set buffer
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+
+    // Fill buffer
+    glBufferData(GL_ARRAY_BUFFER, 5*sizeof(GLfloat), point, GL_STREAM_DRAW);
+
+    // Unbind buffer
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    draw_circle_mover(state, radius);
+}
+
+// Update coordinate of fluid points
 void update_points(float *points, int num_points, STATE_T *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+
     // Fill buffer
     glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
 
@@ -98,7 +115,7 @@ void create_shaders(STATE_T *state)
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
-//    check();  
+//    check(); // GLEW experimental causes check to fail I believe 
 
     // Link and use program
     glLinkProgram(state->program);
@@ -109,6 +126,9 @@ void create_shaders(STATE_T *state)
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get tex_coord location
     state->color_location = glGetAttribLocation(state->program, "color");
+    // Get radius location
+    state->radius_location = glGetUniformLocation(state->program, "radius");
+
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
@@ -118,10 +138,35 @@ void create_shaders(STATE_T *state)
     #ifndef GLES
     glEnable(GL_PROGRAM_POINT_SIZE);
     #endif
+
+}
+void draw_circle_mover(STATE_T *state, float radius)
+{
+    // Assumes circle program is bound
+
+    // set radius uniform
+    glUniform1f(state->radius_location, (GLfloat)radius);
+
+    // Set buffer
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), 0);
+    glEnableVertexAttribArray(state->position_location);
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT),(void*)(2*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->color_location);
+
+    // Draw
+    glDrawArrays(GL_POINTS, 0, 1);
+
 }
 
 void draw_circles(STATE_T *state, int num_points)
 {
+    // Assumes circle program is bound
+
+    // set radius uniform
+    glUniform1f(state->radius_location, (GLfloat)5.0);
+
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 

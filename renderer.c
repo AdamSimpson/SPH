@@ -50,9 +50,12 @@ void start_renderer()
     int num_coords = 2;
     float *particle_coords = (float*)malloc(num_coords * max_particles*sizeof(float));
 
-    // Allocate points array(position + color);
+    // Allocate points array(position + color)
     int point_size = 5 * sizeof(float);
     float *points = (float*)malloc(point_size*max_particles);
+
+    // Allocate mover point array(position + color)
+    float mover_point[5];
 
     // Particle coordinate gather values
     int *particle_counts = malloc(num_procs * sizeof(int));
@@ -69,7 +72,8 @@ void start_renderer()
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
     int total_coords, current_rank;
-    double mouse_x, mouse_y;
+    double mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
+    double mover_radius, mover_radius_scaled;
     while(1){
 
         // Recieve paramaters struct from all nodes
@@ -77,12 +81,15 @@ void start_renderer()
 
         // Update paramaters as needed
         get_mouse(&mouse_x, &mouse_y, &state.gl_state);
+        mouse_x_scaled = mouse_x*10.0 + 10.0;
+        mouse_y_scaled = mouse_y*10.0 + 10.0;
+        mover_radius = 1.0;
         for(i=0; i< num_compute_procs; i++) {
-            params[i].circle_center_x = mouse_x/40.0;
-            params[i].circle_center_y = (800-mouse_y)/40.0;
+            params[i].mover_center_x = mouse_x_scaled;
+            params[i].mover_center_y = mouse_y_scaled;
+            params[i].mover_radius = mover_radius;
         }
 
-        // Scatter can be insanely expensive with OpenMPI...try MPICH
         // Send updated paramaters to compute nodes
         MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 
@@ -119,10 +126,19 @@ void start_renderer()
         // Render particles
         update_points(points, total_coords/2, &state);
 
+        // Render mover
+        mover_point[0] = mouse_x_scaled/10.0 - 1.0;
+        mover_point[1] = mouse_y_scaled/10.0 - 1.0;
+        mover_point[2] = 0.0;
+        mover_point[3] = 1.0;
+        mover_point[4] = 1.0;
+        mover_radius_scaled = mover_radius*100.0;
+        update_mover_point(mover_point, mover_radius_scaled, &state);
+
         // Swap front/back buffers
         swap_ogl(&state.gl_state);
     }
 
-    exit_ogl(&state.gl_state);
+//    exit_ogl(&state.gl_state);
 
 }

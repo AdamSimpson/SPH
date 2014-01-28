@@ -13,6 +13,7 @@ void init_ogl(GL_STATE_T *state)
     // Initialize struct
     memset(state, 0, sizeof(GL_STATE_T));
     state->keyboard_fd = -1;
+    state->mouse_fd = -1;
 
     int32_t success = 0;
     EGLBoolean result;
@@ -120,6 +121,65 @@ void exit_ogl(GL_STATE_T *state)
    close(state->keyboard_fd);
 
    printf("close\n");
+}
+
+// Return mouse position in OpenGL coordinates
+// This is different than default GLFW coordinates
+void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
+{
+    // Screen dimensions in pixels
+    const int width = state->screen_width;
+    const int height = state->screen_height;
+
+    // Used to determine what direction dx,dy is in
+    const int XSIGN = 1<<4;
+    const int YSIGN = 1<<5;
+
+    // Initialize coordinates
+    static int x = 400;
+    static int y = 400;
+
+    double x_scaled, y_scaled;
+
+    // Open file containing mouse events
+    if (state->mouse_fd < 0)
+        state->mouse_fd = open("/dev/input/mouse0", O_RDONLY|O_NONBLOCK);
+    if (state->mouse_fd >= 0) {
+        MOUSE_INPUT event;
+        read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
+
+ //       debug_print("dx: %d, dy: %d\n", event.dx, event.dy);
+
+        int speed_multiplier = 2;
+
+        // Increment pixel positions
+        x+=speed_multiplier*event.dx;
+        y+=speed_multiplier*event.dy;
+
+        if(event.button&XSIGN)
+            x -= speed_multiplier*256;
+        if(event.button&YSIGN)
+            y -= speed_multiplier*256;
+
+        // Make sure not to go out of bounds
+        if(x < 0)
+            x = 0.0;
+        else if(x > width)
+            x = width;
+        if(y < 0)
+            y = 0.0;
+        else if(y > height)
+            y = height;
+
+        // convert to OpenGL screen coordinates from pixels
+        x_scaled = (double)x/(0.5*width) - 1.0;
+        y_scaled = (double)y/(0.5*height) - 1.0;
+
+//        debug_print("pixels(%d,%d) scaled(%f,%f)\n", x,y,x_scaled,y_scaled);
+    }
+
+    *x_pos = x_scaled;
+    *y_pos = y_scaled;
 }
 
 int get_key_press(GL_STATE_T *state)

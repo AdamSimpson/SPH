@@ -182,9 +182,9 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double average_left = (seconds_self + seconds_left)/2.0;
     double average_right = (seconds_self + seconds_right)/2.0;
 
-    // Allow a 5% difference in the average time
-    double max_diff_left = average_left * 0.05;
-    double max_diff_right = average_right * 0.05;
+    // Allow a 10% difference in the average time
+    double max_diff_left = average_left * 0.1;
+    double max_diff_right = average_right * 0.1;
 
     debug_print("max_diff_left %f, max_diff_right %f, diff_left: %f, diff_right %f\n",max_diff_left,max_diff_right,diff_left,diff_right);
 

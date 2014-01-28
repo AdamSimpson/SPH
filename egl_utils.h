@@ -19,12 +19,19 @@ typedef struct {
     EGLContext context;
 
     int keyboard_fd;
+    int mouse_fd;
 } GL_STATE_T;
 
+typedef struct {
+    char button;
+    char dx;
+    char dy;
+} MOUSE_INPUT;
 
 void init_ogl(GL_STATE_T *state);
 void exit_ogl(GL_STATE_T *state);
 void swap_ogl(GL_STATE_T *state);
 int get_key_press(GL_STATE_T *state);
+void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state);
 
 #endif

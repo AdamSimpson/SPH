@@ -7,6 +7,9 @@ CFLAGS= -DGLES -mfloat-abi=hard -mfpu=vfp -O3 -lm -ffast-math
 all:
 	mkdir -p bin
 	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) egl_utils.c circles_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+debug:
+	mkdir -p bin
+	mpecc -mpilog -g $(CFLAGS) $(INCLUDES) $(LDFLAGS) egl_utils.c circles_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 clean:
 	rm -f ./bin/sph.out
 	rm -f ./*.o

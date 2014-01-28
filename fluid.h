@@ -51,8 +51,9 @@ struct PARAM {
     double time_step;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
-    double circle_center_x;
-    double circle_center_y;
+    double mover_center_x;
+    double mover_center_y;
+    double mover_radius;
     int max_neighbors;
     int grid_size_x;
     int grid_size_y;

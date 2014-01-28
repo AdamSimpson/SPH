@@ -24,10 +24,11 @@ int main(int argc, char *argv[])
 
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0)
-	start_renderer();
+  	    start_renderer();
     else
-	start_simulation();
+	    start_simulation();
 
+    printf("Global rank %d\n", rank);
     MPI_Finalize();
     return 0;
 }
@@ -56,7 +57,7 @@ void start_simulation()
     params.time_step = 0.03;
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 20.0;
+    params.rest_density = 30.0;
     params.max_neighbors = 60*4;
 
     // Boundary box
@@ -163,7 +164,7 @@ void start_simulation()
 
     bool check_time = false;
     double time_before, time_after;
-    int steps_before_check = 50;
+    int steps_before_check = 200;
 
     // Main simulation loop
     while(1) {
@@ -175,7 +176,7 @@ void start_simulation()
         }
 
         // Initialize velocities
-	apply_gravity(fluid_particle_pointers, &params);
+   	    apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
         // This is missing halo particle contribution
@@ -194,16 +195,15 @@ void start_simulation()
         // Send compute parameters to render node
         MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
 
-        // Scatter can be insanely expensive with OpenMPI...try MPICH
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
         // Hash the non halo regions
-	// This will update the densities so when the halo is exchanged the halo particles are up to date
-	// This works well on the raspi's but destroys communication/computation overlap
+  	    // This will update the densities so when the halo is exchanged the halo particles are up to date
+	    // This works well on the raspi's but destroys communication/computation overlap
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params, true);
 
-	// Exchange halo particles
+	    // Exchange halo particles
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
@@ -211,12 +211,12 @@ void start_simulation()
         if(check_time)
             time_after = MPI_Wtime();
 
-	// Add the halo particles to neighbor buckets
-	// Also update density
+	    // Add the halo particles to neighbor buckets
+	    // Also update density
         hash_halo(fluid_particle_pointers, neighbors, hash, &params, true);
 
         // double density relaxation
-	// halo particles will be missing origin contributions to density/pressure
+	    // halo particles will be missing origin contributions to density/pressure
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
@@ -236,28 +236,32 @@ void start_simulation()
         // We can hash during exchange as the density is not needed
         hash_fluid(fluid_particle_pointers, neighbors, hash, &params, false);
 
-	// Finish asynch halo exchange
+        // Finish asynch halo exchange
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
         hash_halo(fluid_particle_pointers, neighbors, hash, &params, false);
 
+        // We do not transfer particles that have gone OOB since relaxation
+        // to reduce communication cost
+
         // Pack fluid_particle_coords
-	for(i=0; i<params.number_fluid_particles_local; i++) {
-	    p = fluid_particle_pointers[i];
-	    fluid_particle_coords[i*2] = p->x;
-	    fluid_particle_coords[(i*2)+1] = p->y;
+        for(i=0; i<params.number_fluid_particles_local; i++) {
+            p = fluid_particle_pointers[i];
+            fluid_particle_coords[i*2] = p->x;
+            fluid_particle_coords[(i*2)+1] = p->y;
         }
 
         // Send particle positions to be rendered
         MPI_Gatherv(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT,
-		    null_float, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
- 
-       // iterate sim loop counter
-	n++;
+                null_float, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+        // iterate sim loop counter
+        n++;
     }
 
     // Release memory
+/*
     free(fluid_particle_pointers);
     free(fluid_particles);
     free(neighbors);
@@ -265,8 +269,7 @@ void start_simulation()
 
     // Close MPI
     freeMpiTypes();
-    MPI_Finalize();
-
+*/
 }
 
 // This should go into the hash, perhaps with the viscocity?
@@ -432,7 +435,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	  	  q->x += D_x;
 	          q->y += D_y;
 		}	
-		else { // Not even sure what i'm doing anymore
+		else { // Move the halo particles only half way to account for other sides missing contribution
                   q->x += D_x/2.0;
                   q->y += D_y/2.0;
 		}
@@ -522,8 +525,8 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
 
     // Circle test
-    double center_x = params->circle_center_x;
-    double center_y = params->circle_center_y;
+    double center_x = params->mover_center_x;
+    double center_y = params->mover_center_y;
 
     double radius = 1.0;
     double norm_x;
