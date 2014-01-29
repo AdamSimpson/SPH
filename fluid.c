@@ -57,7 +57,7 @@ void start_simulation()
     params.time_step = 0.03;
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 30.0;
+    params.rest_density = 100.0;
     params.max_neighbors = 60*4;
 
     // Boundary box
@@ -388,16 +388,18 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 {
     static const double k = 0.2;
     static const double k_near = 2.0;
+    static const double k_spring = 50;
 
     int i, j, num_fluid;
     fluid_particle *p, *q;
     neighbor* n;
-    double r,ratio,dt,h_recip,r_recip,D,D_x,D_y;
+    double r,ratio,dt,h,h_recip,r_recip,D,D_x,D_y;
     double p_pressure, p_pressure_near;
     double OmR;
 
     num_fluid = params->number_fluid_particles_local;
-    h_recip = 1.0/params->smoothing_radius;
+    h = params->smoothing_radius;
+    h_recip = 1.0/h;
     dt = params->time_step;
 
     // Calculate the pressure of all particles, including halo
@@ -425,7 +427,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	    if(ratio < 1.0 && r > 0.0) {
 		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
 	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
-                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR);
+                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
 		D_x = D*(q->x-p->x)*r_recip;
                 D_y = D*(q->y-p->y)*r_recip;
 
@@ -541,7 +543,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         norm_x = (center_x-p->x)/sqrt(d2);
         norm_y = (center_y-p->y)/sqrt(d2);
 
-//        collisionImpulse(p, norm_x, norm_y, params);
+        collisionImpulse(p, norm_x, norm_y, params);
     }
 
     // Make sure particle is outside of circle
