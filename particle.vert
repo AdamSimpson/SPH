@@ -1,7 +1,7 @@
 #version 150 core
 in vec2 position;
 in vec3 color;
-in float radius;
+uniform float radius;
 out vec3 frag_color;
 
 void main() {

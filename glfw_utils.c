@@ -15,9 +15,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
+// Return mouse position in OpenGL screen coordinates
+// x,y [-1, 1], center of screen is origin
 void get_mouse(double *x, double *y, GL_STATE_T *state)
 {
     glfwGetCursorPos(state->window, x, y);
+    *y = (state->screen_height - *y); // Flip y = 0
+    *y = *y/(0.5*state->screen_height) - 1.0;
+    *x = *x/(0.5*state->screen_width) - 1.0;
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
@@ -38,7 +43,9 @@ void init_ogl(GL_STATE_T *state)
 
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-    state->window = glfwCreateWindow(800, 800, "SPH", NULL, NULL);
+    state->screen_width = 800;
+    state->screen_height = 800;
+    state->window = glfwCreateWindow(state->screen_width, state->screen_height, "SPH", NULL, NULL);
     if(!state->window)
 	exit(EXIT_FAILURE);
 
