@@ -1,10 +1,11 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "circles_gl.h"
-#include "stdio.h"
 #include "mpi.h"
 #include "communication.h"
 #include "fluid.h"
-#include <string.h> 
-#include <stdlib.h>
+#include "font_gl.h"
 
 void start_renderer()
 {
@@ -20,6 +21,10 @@ void start_renderer()
 
     // Create and set shaders
     create_shaders(&state);
+
+    // Initialize font atlas
+    FONT_T font_state;
+    init_font(&font_state);
 
     // Number of processes
     int num_procs, num_compute_procs;
@@ -123,6 +128,7 @@ void start_renderer()
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
 
+
         // Render particles
         update_points(points, total_coords/2, &state);
 
@@ -134,6 +140,9 @@ void start_renderer()
         mover_point[4] = 1.0;
         mover_radius_scaled = mover_radius*100.0;
         update_mover_point(mover_point, mover_radius_scaled, &state);
+
+        render_font(&font_state);
+
 
         // Swap front/back buffers
         swap_ogl(&state.gl_state);

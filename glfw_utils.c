@@ -35,6 +35,7 @@ void init_ogl(GL_STATE_T *state)
     if(!glfwInit())
         exit(EXIT_FAILURE);
 
+
     // Create window
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -46,6 +47,7 @@ void init_ogl(GL_STATE_T *state)
     state->screen_width = 800;
     state->screen_height = 800;
     state->window = glfwCreateWindow(state->screen_width, state->screen_height, "SPH", NULL, NULL);
+
     if(!state->window)
 	exit(EXIT_FAILURE);
 

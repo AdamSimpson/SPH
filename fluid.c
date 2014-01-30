@@ -56,7 +56,7 @@ void start_simulation()
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 3000;
     params.rest_density = 100.0;
     params.max_neighbors = 60*4;
 
@@ -453,10 +453,20 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 
 void updateVelocity(fluid_particle *p, param *params)
 {
+    const double v_max = 5.0;
     double dt = params->time_step;
+    double v_x, v_y;
 
-    p->v_x = (p->x-p->x_prev)/dt;
-    p->v_y = (p->y-p->y_prev)/dt;
+    v_x = (p->x-p->x_prev)/dt;
+    v_y = (p->y-p->y_prev)/dt;
+
+    if(v_x > v_max)
+	v_x = v_max;
+    if(v_y > v_max)
+	v_y = v_max;
+
+    p->v_x = v_x;
+    p->v_y = v_y;
 }
 
 // Update particle position and check boundary
@@ -543,7 +553,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         norm_x = (center_x-p->x)/sqrt(d2);
         norm_y = (center_y-p->y)/sqrt(d2);
 
-        collisionImpulse(p, norm_x, norm_y, params);
+//        collisionImpulse(p, norm_x, norm_y, params);
     }
 
     // Make sure particle is outside of circle

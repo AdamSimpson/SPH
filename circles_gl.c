@@ -129,7 +129,6 @@ void create_shaders(STATE_T *state)
     // Get radius location
     state->radius_location = glGetUniformLocation(state->program, "radius");
 
-
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -140,9 +139,11 @@ void create_shaders(STATE_T *state)
     #endif
 
 }
+
 void draw_circle_mover(STATE_T *state, float radius)
 {
-    // Assumes circle program is bound
+    // Bind circle shader program
+    glUseProgram(state->program);
 
     // set radius uniform
     glUniform1f(state->radius_location, (GLfloat)radius);
@@ -162,7 +163,8 @@ void draw_circle_mover(STATE_T *state, float radius)
 
 void draw_circles(STATE_T *state, int num_points)
 {
-    // Assumes circle program is bound
+    // Bind circle shader program
+    glUseProgram(state->program);
 
     // set radius uniform
     glUniform1f(state->radius_location, (GLfloat)5.0);

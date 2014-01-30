@@ -4,7 +4,7 @@ CFLAGS= -DGLFW -std=gnu99 -O3 -ffast-math -lm
 
 all:
 	mkdir -p bin
-	$(CC) $(CFLAGS) $(CLIBS) glfw_utils.c circles_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+	$(CC) $(CINCLUDES) $(CFLAGS) $(CLIBS) glfw_utils.c circles_gl.c font_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 clean:
 	rm -f ./sph.out
 	rm -f ./*.o
