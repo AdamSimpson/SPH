@@ -59,7 +59,7 @@ void create_shaders(STATE_T *state)
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
-      compile_shader(vertexShader, "/home/pi/SPH/particle_es.vert");
+      compile_shader(vertexShader, "particle_es.vert");
     #else
       compile_shader(vertexShader, "particle.vert");
     #endif
@@ -67,7 +67,7 @@ void create_shaders(STATE_T *state)
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-      compile_shader(fragmentShader, "/home/pi/SPH/particle_es.frag");
+      compile_shader(fragmentShader, "particle_es.frag");
     #else
       compile_shader(fragmentShader, "particle.frag");
     #endif
@@ -80,7 +80,7 @@ void create_shaders(STATE_T *state)
 
     // Link and use program
     glLinkProgram(state->program);
-    glUseProgram(state->program);
+//    glUseProgram(state->program);
 //    check();
 
     // Get position location

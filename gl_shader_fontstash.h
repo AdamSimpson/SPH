@@ -1,6 +1,8 @@
 #ifndef GL_SHADER_FONTSTASH_H
 #define GL_SHADER_FONTSTASH_H
 
+#include "ogl_utils.h"
+
 struct FONScontext* gl_shader_fonsCreate(int width, int height, int flags);
 void gl_shader_fonsDelete(struct FONScontext* ctx);
 
@@ -30,34 +32,21 @@ static void glfons__create_shaders(void * userPtr)
 {
     struct GLFONScontext* gl = (struct GLFONScontext*)userPtr;
 
-    const GLchar* vertexSource =
-	"#version 150 core\n"
-	"in vec2 position;"
-	"in vec2 tex_coord;"
-	"out vec2 frag_tex_coord;"
-	"void main() {"
-	"   frag_tex_coord = tex_coord;"
-	"   gl_Position = vec4(position.x/800, position.y/-800, 0.0, 1.0);"
-	"}";
-    const GLchar* fragmentSource =
-	"#version 150 core\n"
-	"in vec2 frag_tex_coord;"
-	"out vec4 outColor;"
-	"uniform sampler2D tex;"
-	"void main() {"
-	"   float alpha = texture(tex, frag_tex_coord).r;"
-	"   outColor = vec4(1.0, 1.0, 1.0, alpha);"
-	"}";
-
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
+    #ifdef GLES
+      compile_shader(vertexShader, "font_es.vert");
+    #else
+      compile_shader(vertexShader, "font.vert");
+    #endif
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-    glCompileShader(fragmentShader);
+    #ifdef GLES
+      compile_shader(fragmentShader, "font_es.frag");
+    #else
+      compile_shader(fragmentShader, "font.frag");
+    #endif
 
     // Create shader program
     gl->program = glCreateProgram();
@@ -66,7 +55,6 @@ static void glfons__create_shaders(void * userPtr)
    
     // Link and use program
     glLinkProgram(gl->program);
-//    glUseProgram(gl->program);
 
     // Get position location
     gl->position_location = glGetAttribLocation(gl->program, "position");
@@ -80,11 +68,13 @@ static void glfons__create_buffers(void * userPtr)
 {
     struct GLFONScontext* gl = (struct GLFONScontext*)userPtr;
 
-    // Set vertex array object
     // Must use VAO with VBO
+    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
+    #ifndef GLES
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+    #endif
 
     glGenBuffers(1, &gl->vbo_vert);
     glGenBuffers(1, &gl->vbo_tex);
