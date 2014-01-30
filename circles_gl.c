@@ -3,52 +3,13 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include "circles_gl.h"
+#include "ogl_utils.h"
 
 #ifdef GLFW
   #include "glfw_utils.h"
 #else
   #include "egl_utils.h"
 #endif
-
-inline void check()
-{
-    GLenum err = glGetError();
-    if(err != GL_NO_ERROR) {
-        printf("GL Error: %d\n", err);
-        exit(EXIT_FAILURE);
-    }
-}
-
-void showlog(GLint shader)
-{
-   // Prints the compile log for a shader
-   char log[1024];
-   glGetShaderInfoLog(shader,sizeof log,NULL,log);
-   printf("%d:shader:\n%s\n", shader, log);
-}
-
-void compile_shader(GLuint shader, const char *file_name)
-{
-    // Read shader source from file_name
-    FILE *fh = fopen(file_name, "r");
-    if(!fh) {
-        printf("Error: Failed to open shader\n");
-    }
-    struct stat statbuf;
-    stat(file_name, &statbuf);
-    char *shader_source = (char *) malloc(statbuf.st_size + 1);
-    fread(shader_source, statbuf.st_size, 1, fh);
-    shader_source[statbuf.st_size] = '\0';
-
-    // Compile shader
-    const GLchar *gl_shader_source = shader_source;
-    glShaderSource(shader, 1, &gl_shader_source, NULL);
-    glCompileShader(shader);
-
-    showlog(shader);
-
-    free(shader_source);
-}
 
 // Update coordinates of point mover
 void update_mover_point(float *point, float radius, STATE_T *state)
@@ -115,7 +76,7 @@ void create_shaders(STATE_T *state)
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
-//    check(); // GLEW experimental causes check to fail I believe 
+//    check(); // GLEW experimental causes check to fail, fix
 
     // Link and use program
     glLinkProgram(state->program);
