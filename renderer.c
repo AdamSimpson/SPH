@@ -160,7 +160,6 @@ void start_renderer()
         // Draw FPS
 	render_fps(&font_state, fps);
 
-
         // Swap front/back buffers
         swap_ogl(&gl_state);
 

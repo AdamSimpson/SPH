@@ -56,7 +56,7 @@ void start_simulation()
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 5000;
     params.rest_density = 30.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
@@ -168,11 +168,10 @@ void start_simulation()
 
     bool check_time = false;
     double time_before, time_after;
-    int steps_before_check = 200;
+    unsigned int steps_before_check = 10;
 
     // Main simulation loop
     while(1) {
-
         // Time calculations
         if(n%steps_before_check == 0) {
             check_time = true;
@@ -180,7 +179,7 @@ void start_simulation()
         }
 
         // Initialize velocities
-   	    apply_gravity(fluid_particle_pointers, &params);
+   	apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
         // This is missing halo particle contribution
@@ -230,8 +229,9 @@ void start_simulation()
         if (check_time) {
             time_after = MPI_Wtime() - time_after;
             checkPartition(fluid_particle_pointers, &out_of_bounds, time_before + time_after, &params);
-            // reset loop count
+            // reset
             n = 0;
+	    check_time = false;
         }
 
         // Exchange halo particles from relaxed positions
