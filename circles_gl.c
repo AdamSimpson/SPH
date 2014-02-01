@@ -11,8 +11,18 @@
   #include "egl_utils.h"
 #endif
 
+void init_circles(CIRCLE_T *state)
+{
+    // Create circle buffers
+    create_buffers(state);
+
+    // Create and set circle shaders
+    // Also links circle program
+    create_shaders(state);
+}
+
 // Update coordinates of point mover
-void update_mover_point(float *point, float radius, STATE_T *state)
+void update_mover_point(float *point, float radius, CIRCLE_T *state)
 {
      // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -27,7 +37,7 @@ void update_mover_point(float *point, float radius, STATE_T *state)
 }
 
 // Update coordinate of fluid points
-void update_points(float *points, int num_points, STATE_T *state)
+void update_points(float *points, int num_points, CIRCLE_T *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -41,7 +51,7 @@ void update_points(float *points, int num_points, STATE_T *state)
     draw_circles(state, num_points);
 }
 
-void create_buffers(STATE_T *state)
+void create_buffers(CIRCLE_T *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
     #ifndef GLES
@@ -54,7 +64,7 @@ void create_buffers(STATE_T *state)
     glGenBuffers(1, &state->vbo);
 }
 
-void create_shaders(STATE_T *state)
+void create_shaders(CIRCLE_T *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -101,7 +111,7 @@ void create_shaders(STATE_T *state)
 
 }
 
-void draw_circle_mover(STATE_T *state, float radius)
+void draw_circle_mover(CIRCLE_T *state, float radius)
 {
     // Bind circle shader program
     glUseProgram(state->program);
@@ -122,7 +132,7 @@ void draw_circle_mover(STATE_T *state, float radius)
 
 }
 
-void draw_circles(STATE_T *state, int num_points)
+void draw_circles(CIRCLE_T *state, int num_points)
 {
     // Bind circle shader program
     glUseProgram(state->program);

@@ -14,7 +14,7 @@ typedef struct
 
 } FONT_T;
 
-void init_font(FONT_T *font_state);
+void init_font(FONT_T *font_state, int screen_width, int screen_height);
 void render_font(FONT_T *font_state);
 void remove_font(FONT_T *font_state);
 

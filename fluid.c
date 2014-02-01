@@ -57,7 +57,7 @@ void start_simulation()
     params.time_step = 0.03;
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 3000;
-    params.rest_density = 100.0;
+    params.rest_density = 30.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
 
@@ -392,7 +392,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 {
     static const double k = 0.2;
     static const double k_near = 2.0;
-    static const double k_spring = 50;
+    static const double k_spring = 0.0;//50;
 
     int i, j, num_fluid;
     fluid_particle *p, *q;

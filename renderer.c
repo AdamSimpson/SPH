@@ -10,21 +10,20 @@
 void start_renderer()
 {
     // Setup initial OpenGL ES state
-    STATE_T state;
-    memset(&state, 0, sizeof(STATE_T));
+    // OpenGL state
+    GL_STATE_T gl_state;
+    memset(&gl_state, 0, sizeof(GL_STATE_T));
 
     // Start OpenGL
-    init_ogl(&state.gl_state);
+    init_ogl(&gl_state);
 
-    // Create OpenGL buffers
-    create_buffers(&state);
-
-    // Create and set shaders
-    create_shaders(&state);
+    // Initialize circle OpenGL state
+    CIRCLE_T circle_state;
+    init_circles(&circle_state);
 
     // Initialize font atlas
     FONT_T font_state;
-    init_font(&font_state);
+    init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
     // Number of processes
     int num_procs, num_compute_procs;
@@ -67,7 +66,7 @@ void start_renderer()
     int *particle_displs = malloc(num_procs * sizeof(int));
 
     // Set background color
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.121f, 0.243f, 0.423f, 1.0f);
 
     // Create color index - hard coded for now to experiment
     float colors_by_rank[9] = {0.69,0.07,0.07,
@@ -85,7 +84,7 @@ void start_renderer()
         MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
         // Update paramaters as needed
-        get_mouse(&mouse_x, &mouse_y, &state.gl_state);
+        get_mouse(&mouse_x, &mouse_y, &gl_state);
         mouse_x_scaled = mouse_x*10.0 + 10.0;
         mouse_y_scaled = mouse_y*10.0 + 10.0;
         mover_radius = 1.0;
@@ -130,7 +129,7 @@ void start_renderer()
 
 
         // Render particles
-        update_points(points, total_coords/2, &state);
+        update_points(points, total_coords/2, &circle_state);
 
         // Render mover
         mover_point[0] = mouse_x_scaled/10.0 - 1.0;
@@ -138,14 +137,14 @@ void start_renderer()
         mover_point[2] = 0.0;
         mover_point[3] = 1.0;
         mover_point[4] = 1.0;
-        mover_radius_scaled = mover_radius*100.0;
-        update_mover_point(mover_point, mover_radius_scaled, &state);
+        mover_radius_scaled = mover_radius*70.0;
+        update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         render_font(&font_state);
 
 
         // Swap front/back buffers
-        swap_ogl(&state.gl_state);
+        swap_ogl(&gl_state);
     }
 
 //    exit_ogl(&state.gl_state);

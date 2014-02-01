@@ -10,9 +10,6 @@
 
 typedef struct
 {
-    // OpenGL state
-    GL_STATE_T gl_state;
-
     // Program handle
     GLuint program;
 
@@ -23,15 +20,14 @@ typedef struct
 
     // buffers
     GLuint vbo;
-} STATE_T;
+} CIRCLE_T;
 
-inline void check();
-void showlog(GLint shader);
-void update_points(float *points, int num_points, STATE_T *state);
-void update_mover_point(float *point, float radius, STATE_T *state);
-void create_shaders(STATE_T *state);
-void draw_circles(STATE_T *state, int num_points);
-void draw_circle_mover(STATE_T *state, float radius);
-void create_buffers(STATE_T *state);
+void init_circles(CIRCLE_T *state);
+void update_points(float *points, int num_points, CIRCLE_T *state);
+void update_mover_point(float *point, float radius, CIRCLE_T *state);
+void create_shaders(CIRCLE_T *state);
+void draw_circles(CIRCLE_T *state, int num_points);
+void draw_circle_mover(CIRCLE_T *state, float radius);
+void create_buffers(CIRCLE_T *state);
 
 #endif

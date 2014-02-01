@@ -7,7 +7,7 @@ const float radius = 0.5;
 
 void main() {
     float distance_from_center = distance(center, gl_PointCoord);
-    float in_radius = smoothstep(radius, 0.0, distance_from_center);
+    float in_radius = step(distance_from_center, radius);
     out_color = vec4(frag_color, in_radius);
 }
 

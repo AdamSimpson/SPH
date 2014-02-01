@@ -3,7 +3,7 @@
 
 #include "ogl_utils.h"
 
-struct FONScontext* gl_shader_fonsCreate(int width, int height, int flags);
+struct FONScontext* gl_shader_fonsCreate(int width, int height, int screen_width, int screen_height, int flags);
 void gl_shader_fonsDelete(struct FONScontext* ctx);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
@@ -20,12 +20,21 @@ struct GLFONScontext {
     GLint position_location;
     GLint tex_coord_location;
     GLint tex_location;
+    GLint screen_dims_location;
+    GLint color_location;
 
     // Required to have seperate buffers for verticies and tex coords
-    GLuint vbo_vert, vbo_tex;
+    GLuint vbo_vert, vbo_tex, vbo_color;
 
+    // Uniforms
     GLuint tex;
+    GLuint screen_dims;
+
+    // ATLAS width and height
     int width, height;
+
+    // Screen pixel dimensions
+    int screen_width, screen_height;
 };
 
 static void glfons__create_shaders(void * userPtr)
@@ -60,8 +69,12 @@ static void glfons__create_shaders(void * userPtr)
     gl->position_location = glGetAttribLocation(gl->program, "position");
     // Get tex_coord location
     gl->tex_coord_location = glGetAttribLocation(gl->program, "tex_coord");
+    // Get color location
+    gl->color_location = glGetAttribLocation(gl->program, "color");
     // Get tex uniform location
     gl->tex_location = glGetUniformLocation(gl->program, "tex");
+    // Get screen dims uniform location
+    gl->screen_dims_location = glGetUniformLocation(gl->program, "screen_dims");
 }
 
 static void glfons__create_buffers(void * userPtr)
@@ -78,6 +91,7 @@ static void glfons__create_buffers(void * userPtr)
 
     glGenBuffers(1, &gl->vbo_vert);
     glGenBuffers(1, &gl->vbo_tex);
+    glGenBuffers(1, &gl->vbo_color);
 }
 
 static int glfons__renderCreate(void* userPtr, int width, int height)
@@ -122,7 +136,7 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 
 }
 
-static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
+static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const int* colors, int nverts)
 {
 	struct GLFONScontext* gl = (struct GLFONScontext*)userPtr;
 	if (gl->tex == 0) return;
@@ -131,7 +145,6 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
         size_t vert_size = 2*sizeof(GL_FLOAT);
 
         // Draw texture
-	// TO DO - add color
         glUseProgram(gl->program);
 
         // Bind vert buffer
@@ -150,8 +163,22 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
         glVertexAttribPointer(gl->tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(gl->tex_coord_location);
 
+        // Bind color buffer
+        glBindBuffer(GL_ARRAY_BUFFER, gl->vbo_color);
+        // Fill color buffer
+        glBufferData(GL_ARRAY_BUFFER, 4*nverts, colors, GL_DYNAMIC_DRAW);
+        // Get and enable color pointer
+        glVertexAttribPointer(gl->color_location, 4, GL_UNSIGNED_BYTE, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(gl->color_location);
+
+	// Bind tex
         glBindTexture(GL_TEXTURE_2D, gl->tex);
+	//Set tex uniform
         glUniform1i(gl->tex_location, 0);
+
+	// Set screen dimension uniform
+        glUniform2i(gl->screen_dims_location, gl->screen_width, gl->screen_height);
+
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 }
 
@@ -166,7 +193,7 @@ static void glfons__renderDelete(void* userPtr)
         // Need to cleanup here....
 }
 
-struct FONScontext* gl_shader_fonsCreate(int width, int height, int flags)
+struct FONScontext* gl_shader_fonsCreate(int width, int height, int screen_width, int screen_height, int flags)
 {
 	struct FONSparams params;
 	struct GLFONScontext* gl;
@@ -184,6 +211,9 @@ struct FONScontext* gl_shader_fonsCreate(int width, int height, int flags)
 	params.renderDraw = glfons__renderDraw; 
 	params.renderDelete = glfons__renderDelete;
 	params.userPtr = gl;
+
+        gl->screen_width = screen_width;
+        gl->screen_height = screen_height;
 
 	return fonsCreateInternal(&params);
 
