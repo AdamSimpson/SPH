@@ -138,7 +138,7 @@ void draw_circles(CIRCLE_T *state, int num_points)
     glUseProgram(state->program);
 
     // set radius uniform
-    glUniform1f(state->radius_location, (GLfloat)5.0);
+    glUniform1f(state->radius_location, (GLfloat)3.0);
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

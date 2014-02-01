@@ -56,7 +56,7 @@ void start_simulation()
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 3000;
+    params.number_fluid_particles_global = 2000;
     params.rest_density = 30.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
@@ -174,7 +174,7 @@ void start_simulation()
     while(1) {
 
         // Time calculations
-        if(n%steps_before_check) {
+        if(n%steps_before_check == 0) {
             check_time = true;
             time_before = MPI_Wtime();
         }
