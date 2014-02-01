@@ -107,10 +107,19 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 	if (gl->tex == 0) return;
 	glBindTexture(GL_TEXTURE_2D, gl->tex);
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+
+	#ifdef GLES
+        for(int y=0; y<h; y++) {
+	    unsigned char *row = data + (rect[1]+y)*gl->width + rect[0];
+	    glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1]+y, w, 1, GL_ALPHA, GL_UNSIGNED_BYTE, row);
+        }
+	#else
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, gl->width);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, rect[0]);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, rect[1]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1], w, h, GL_RED,GL_UNSIGNED_BYTE, data);
+	#endif
+
 }
 
 static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
