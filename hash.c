@@ -11,13 +11,12 @@
 unsigned int hash_val(double x, double y, param *params)
 {
     const double spacing = params->smoothing_radius;
+    const int num_x = params->grid_size_x;
+
     // Calculate grid coordinates
     unsigned int grid_x,grid_y;
     grid_x = floor(x/spacing);
     grid_y = floor(y/spacing);
-
-    // If using glboal boundary size this can be static
-    int num_x = params->grid_size_x;
 
     unsigned int grid_position = (grid_y * num_x + grid_x);
 
@@ -108,7 +107,8 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 
         int n_f = params->number_fluid_particles_local;
         int max_neighbors = params->max_neighbors;
-
+        int max_bucket_size = params->max_bucket_size;
+ 
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
         double r,r2, ratio; 
@@ -127,7 +127,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             
             index = hash_val(p->x, p->y, params);
 
-            if (hash[index].number_fluid < 60) {
+            if (hash[index].number_fluid < max_bucket_size) {
                 hash[index].fluid_particles[hash[index].number_fluid] = p;
                 hash[index].number_fluid++;
             }

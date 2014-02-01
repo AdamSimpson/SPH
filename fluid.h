@@ -54,7 +54,8 @@ struct PARAM {
     double mover_center_x;
     double mover_center_y;
     double mover_radius;
-    int max_neighbors;
+    int max_bucket_size; // Maximum particles in hash bucket
+    int max_neighbors;   // Maximum number of neighbor particles per particle
     int grid_size_x;
     int grid_size_y;
     int number_fluid_particles_global;

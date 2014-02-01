@@ -8,7 +8,7 @@ typedef struct N_BUCKET n_bucket;
 #include "fluid.h"
 
 struct N_BUCKET {
-    fluid_particle *fluid_particles[60];
+    fluid_particle **fluid_particles;
     unsigned int number_fluid;
 }; // neighbor 'bucket' for hash value
 
