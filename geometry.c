@@ -54,8 +54,8 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
     num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
     max_y = floor((boundary_global->max_y - boundary_global->min_y ) / spacing);
 
-    // Maximum edge particles is a set to 10 particle widths
-    edges->max_edge_particles = 10 * max_y;
+    // Maximum edge(halo) particles
+    edges->max_edge_particles = params->number_fluid_particles_global;
 
     // The out of bounds particles can become quite large
     // If a flood of particles flows into and then out of a node

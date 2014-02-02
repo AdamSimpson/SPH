@@ -56,7 +56,7 @@ void start_simulation()
     params.g = 3.0;
     params.time_step = 0.03;
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 5000;
+    params.number_fluid_particles_global = 2000;
     params.rest_density = 30.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
@@ -428,6 +428,15 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	    r_recip = 1.0/r;
 	    ratio = r*h_recip;
 	    OmR = 1.0 - ratio;
+
+            // Attempt to move clustered particles apart
+	    // Particles really love to gather at (0,0)
+	    // Particularly when hash buckets overflow
+            if(r <= 0.0000001) {
+                p->x += h*0.1;
+                p->y += h*0.1;
+            }
+
 	    if(ratio < 1.0 && r > 0.0) {
 		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
 	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
