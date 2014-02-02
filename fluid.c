@@ -55,6 +55,12 @@ void start_simulation()
 
     params.g = 3.0;
     params.time_step = 0.03;
+    params.k = 0.2;
+    params.k_near = 2.0;
+    params.k_spring = 20.0;
+    params.sigma = 20.0;
+    params.beta = 2.0;
+
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
     params.rest_density = 30.0;
@@ -297,18 +303,18 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 // Add viscosity impluses
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
-
-    static const double sigma = 20.0;//0.5;
-    static const double beta =  2.0;//0.1;
-
     int i, j;
     fluid_particle *p, *q;
     neighbor* n;
     double r, r_recip, ratio, u, imp, imp_x, imp_y;
     double p_x, p_y;
-    double QmP_x, QmP_y; // Qx - Px, Qy - Py
-    double h_recip = 1.0/params->smoothing_radius;
-    double dt = params->time_step;
+    double QmP_x, QmP_y;
+    double h_recip, sigma, beta, dt;
+
+    h_recip = 1.0/params->smoothing_radius;
+    sigma = params->sigma;
+    beta = params->beta;
+    dt = params->time_step;
 
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
@@ -390,18 +396,17 @@ void calculate_density(fluid_particle *p, fluid_particle *q, double ratio)
 
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
-    static const double k = 0.2;
-    static const double k_near = 2.0;
-    static const double k_spring = 0.0;//50;
-
     int i, j, num_fluid;
     fluid_particle *p, *q;
     neighbor* n;
     double r,ratio,dt,h,h_recip,r_recip,D,D_x,D_y;
-    double p_pressure, p_pressure_near;
+    double k, k_near, k_spring, p_pressure, p_pressure_near;
     double OmR;
 
     num_fluid = params->number_fluid_particles_local;
+    k = params->k;
+    k_near = params->k_near;
+    k_spring = params->k_spring;
     h = params->smoothing_radius;
     h_recip = 1.0/h;
     dt = params->time_step;
@@ -633,5 +638,4 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
         fluid_particle_pointers[i]->v_x = 0.0;
         fluid_particle_pointers[i]->v_y = 0.0;
     }
-
 }

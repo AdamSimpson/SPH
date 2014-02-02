@@ -27,9 +27,9 @@ void create_communicators()
 
 void createMpiTypes()
 {
-    MPI_Datatype types[21];
-    MPI_Aint disps[21];
-    int blocklens[21];
+    MPI_Datatype types[30];
+    MPI_Aint disps[30];
+    int blocklens[30];
     int i; 
 
     // Create fluid particle type;
@@ -55,34 +55,39 @@ void createMpiTypes()
     MPI_Type_commit( &Particletype );
 
     // Create param type
-    for(i=0; i<10; i++) types[i] = MPI_DOUBLE;
-    for(i=10; i<21; i++) types[i] = MPI_INT;
-    for (i=0; i<21; i++) blocklens[i] = 1;
+    for(i=0; i<15; i++) types[i] = MPI_DOUBLE;
+    for(i=15; i<26; i++) types[i] = MPI_INT;
+    for (i=0; i<26; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( param, rest_density );
     disps[1] = offsetof( param, spacing_particle );
     disps[2] = offsetof( param, smoothing_radius );
     disps[3] = offsetof( param, g );
-    disps[4] = offsetof( param, time_step );
-    disps[5] = offsetof( param, node_start_x );
-    disps[6] = offsetof( param, node_end_x );
-    disps[7] = offsetof( param, mover_center_x );
-    disps[8] = offsetof( param, mover_center_y );
-    disps[9] = offsetof( param, mover_radius );
-    disps[10] = offsetof( param, max_neighbors ); 
-    disps[11] = offsetof( param, grid_size_x );
-    disps[12] = offsetof( param, grid_size_y );
-    disps[13] = offsetof( param, number_fluid_particles_global );
-    disps[14] = offsetof( param, number_fluid_particles_local );
-    disps[15] = offsetof( param, max_fluid_particle_index );
-    disps[16] = offsetof( param, max_fluid_particles_local );
-    disps[17] = offsetof( param, number_halo_particles );
-    disps[18] = offsetof( param, length_hash );
-    disps[19] = offsetof( param, rank );
-    disps[20] = offsetof( param, nprocs );
+    disps[4] = offsetof( param, k );
+    disps[5] = offsetof( param, k_near );
+    disps[6] = offsetof( param, k_spring );
+    disps[7] = offsetof( param, sigma );
+    disps[8] = offsetof( param, beta );
+    disps[9] = offsetof( param, time_step );
+    disps[10] = offsetof( param, node_start_x );
+    disps[11] = offsetof( param, node_end_x );
+    disps[12] = offsetof( param, mover_center_x );
+    disps[13] = offsetof( param, mover_center_y );
+    disps[14] = offsetof( param, mover_radius );
+    disps[15] = offsetof( param, max_neighbors ); 
+    disps[16] = offsetof( param, grid_size_x );
+    disps[17] = offsetof( param, grid_size_y );
+    disps[18] = offsetof( param, number_fluid_particles_global );
+    disps[19] = offsetof( param, number_fluid_particles_local );
+    disps[20] = offsetof( param, max_fluid_particle_index );
+    disps[21] = offsetof( param, max_fluid_particles_local );
+    disps[22] = offsetof( param, number_halo_particles );
+    disps[23] = offsetof( param, length_hash );
+    disps[24] = offsetof( param, rank );
+    disps[25] = offsetof( param, nprocs );
 
     // Commit type
-    MPI_Type_create_struct( 21, blocklens, disps, types, &Paramtype );
+    MPI_Type_create_struct( 26, blocklens, disps, types, &Paramtype );
     MPI_Type_commit( &Paramtype );
 }
 

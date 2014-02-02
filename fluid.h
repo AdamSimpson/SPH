@@ -48,6 +48,11 @@ struct PARAM {
     double spacing_particle;
     double smoothing_radius;
     double g;
+    double k; // Pressure constant
+    double k_near; // Near pressure constant
+    double k_spring; // Spring constant
+    double sigma; // linear velocity viscocity term
+    double beta;  // quadratic velocity viscocity term
     double time_step;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
