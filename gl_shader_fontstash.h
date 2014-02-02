@@ -136,7 +136,7 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 
 }
 
-static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const int* colors, int nverts)
+static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
 {
 	struct GLFONScontext* gl = (struct GLFONScontext*)userPtr;
 	if (gl->tex == 0) return;
