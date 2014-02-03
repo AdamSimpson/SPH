@@ -45,7 +45,6 @@ static void glfons__create_shaders(void * userPtr)
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
       compile_shader(vertexShader, "SPH/font_es.vert");
-      check();
     #else
       compile_shader(vertexShader, "font.vert");
     #endif
@@ -54,7 +53,6 @@ static void glfons__create_shaders(void * userPtr)
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
       compile_shader(fragmentShader, "SPH/font_es.frag");
-      check();
     #else
       compile_shader(fragmentShader, "font.frag");
     #endif
@@ -189,7 +187,6 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
 
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
-        check();
 }
 
 static void glfons__renderDelete(void* userPtr)
