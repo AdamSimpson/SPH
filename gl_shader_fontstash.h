@@ -44,7 +44,8 @@ static void glfons__create_shaders(void * userPtr)
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
-      compile_shader(vertexShader, "font_es.vert");
+      compile_shader(vertexShader, "SPH/font_es.vert");
+      check();
     #else
       compile_shader(vertexShader, "font.vert");
     #endif
@@ -52,7 +53,8 @@ static void glfons__create_shaders(void * userPtr)
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-      compile_shader(fragmentShader, "font_es.frag");
+      compile_shader(fragmentShader, "SPH/font_es.frag");
+      check();
     #else
       compile_shader(fragmentShader, "font.frag");
     #endif
@@ -102,7 +104,12 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
 	gl->width = width;
 	gl->height = width;
 	glBindTexture(GL_TEXTURE_2D, gl->tex);
+    #ifdef GLES
+ 	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, gl->width, gl->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, 0);
+	#else
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, gl->width, gl->height, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+    #endif
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	// Programable pipeline requires explicit buffer and shader managmement
@@ -123,10 +130,11 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 
 	#ifdef GLES
-        for(int y=0; y<h; y++) {
-	    unsigned char *row = data + (rect[1]+y)*gl->width + rect[0];
+    int y;
+    for(y=0; y<h; y++) {
+	    const unsigned char *row = data + (rect[1]+y)*gl->width + rect[0];
 	    glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1]+y, w, 1, GL_ALPHA, GL_UNSIGNED_BYTE, row);
-        }
+    }
 	#else
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, gl->width);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, rect[0]);
@@ -151,7 +159,7 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
         glBindBuffer(GL_ARRAY_BUFFER, gl->vbo_vert);
         // Fill vert buffer
         glBufferData(GL_ARRAY_BUFFER, nverts*vert_size, verts, GL_DYNAMIC_DRAW);
-	// Get and enable vertex pointer
+	    // Get and enable vertex pointer
         glVertexAttribPointer(gl->position_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(gl->position_location);
 
@@ -159,7 +167,7 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
         glBindBuffer(GL_ARRAY_BUFFER, gl->vbo_tex);
         // Fill tex coord buffer
         glBufferData(GL_ARRAY_BUFFER, nverts*vert_size, tcoords, GL_DYNAMIC_DRAW);
-	// Get and enable tex coord pointer
+  	    // Get and enable tex coord pointer
         glVertexAttribPointer(gl->tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(gl->tex_coord_location);
 
@@ -171,15 +179,17 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
         glVertexAttribPointer(gl->color_location, 4, GL_UNSIGNED_BYTE, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(gl->color_location);
 
-	// Bind tex
+ 	    // Bind tex
         glBindTexture(GL_TEXTURE_2D, gl->tex);
-	//Set tex uniform
+	    //Set tex uniform
         glUniform1i(gl->tex_location, 0);
 
-	// Set screen dimension uniform
+	    // Set screen dimension uniform
         glUniform2i(gl->screen_dims_location, gl->screen_width, gl->screen_height);
 
         glDrawArrays(GL_TRIANGLES, 0, nverts);
+
+        check();
 }
 
 static void glfons__renderDelete(void* userPtr)

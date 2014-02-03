@@ -136,14 +136,16 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
     const int YSIGN = 1<<5;
 
     // Initialize coordinates
-    static int x = 400;
-    static int y = 400;
+    static int x = 0;
+    static int y = 0;
 
-    double x_scaled, y_scaled;
+    double x_scaled = 0.0;
+    double y_scaled = 0.0;
 
     // Open file containing mouse events
     if (state->mouse_fd < 0)
         state->mouse_fd = open("/dev/input/mouse0", O_RDONLY|O_NONBLOCK);
+
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
         read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
@@ -180,6 +182,12 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
 
     *x_pos = x_scaled;
     *y_pos = y_scaled;
+}
+
+
+void check_key_press(GL_STATE_T *state)
+{
+
 }
 
 int get_key_press(GL_STATE_T *state)

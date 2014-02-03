@@ -19,8 +19,14 @@ void init_font(FONT_T *font_state, int screen_width, int screen_height)
     // Create GL stash for 512x512 texture, our coordinate system has zero at bottom-left.
     font_state->fs = gl_shader_fonsCreate(512, 512, screen_width, screen_height, FONS_ZERO_BOTTOMLEFT);
 
-    // Add font to stash.
-    font_state->font_normal = fonsAddFont(font_state->fs, "sans", "DroidSerif-Regular.ttf");
+    // Add font to stash
+    font_state->font_normal = fonsAddFont(font_state->fs, "sans", "SPH/DroidSerif-Regular.ttf");
+    if(!font_state->font_normal == FONS_INVALID) {
+        printf("Font not found!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set default font style and size
     fonsSetFont(font_state->fs, font_state->font_normal);
     fonsSetSize(font_state->fs, 24.0f);
 }
