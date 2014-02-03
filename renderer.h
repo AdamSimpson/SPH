@@ -3,4 +3,13 @@
 
 void start_renderer();
 
+// enum of displayed parameter values
+typedef enum { 
+    GRAVITY,
+    VISCOSITY,
+    DENSITY,
+    PRESSURE,
+    ELASTICITY   
+ } parameters;
+
 #endif

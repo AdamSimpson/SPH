@@ -13,8 +13,9 @@ typedef struct {
 
 } GL_STATE_T;
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void error_callback(int error, const char* description);
+void check_key_press(GL_STATE_T *state);
 void get_mouse(double *x, double *y, GL_STATE_T *state);
 void init_ogl(GL_STATE_T *state);
 void exit_ogl(GL_STATE_T *state);

@@ -25,6 +25,11 @@ void start_renderer()
     FONT_T font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
+    // enum to handle currently selected parameter
+    parameters selected_param;
+    // Set to first parameter
+    selected_param = 0;
+
     // Number of processes
     int num_procs, num_compute_procs;
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -95,6 +100,10 @@ void start_renderer()
 	    wall_time = current_time;
 	}	    
 
+	// Get keyboard key press
+	// process appropriately
+	check_key_press(&gl_state);	
+
         // Recieve paramaters struct from all nodes
         MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
@@ -155,7 +164,7 @@ void start_renderer()
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
 	// Draw font parameters
-        render_parameters(&font_state, params[0].g, 1.0, 1.0, 1.0, 1.0);
+        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
 
         // Draw FPS
 	render_fps(&font_state, fps);

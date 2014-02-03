@@ -5,6 +5,7 @@
 #include "fontstash.h"
 
 #include "fluid.h"
+#include "renderer.h"
 #include "font_gl.h"
 
 #define GL_SHADER_FONTSTASH_IMPLEMENTATION
@@ -45,7 +46,7 @@ void render_fps(FONT_T *font_state, double fps)
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL); 
 }
 
-void render_parameters(FONT_T *font_state, double gravity, double viscocity, double density, double pressure, double elasticity)
+void render_parameters(FONT_T *font_state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity)
 {
     // Render some text
     float dx, dy, lh;
@@ -53,7 +54,6 @@ void render_parameters(FONT_T *font_state, double gravity, double viscocity, dou
 
     // Get font height
     fonsVertMetrics(font_state->fs, NULL, NULL, &lh);
-    fonsSetColor(font_state->fs, color);
 
     // dx,dy,lh is internally handled by fontstash in pixels...arg
     dx = -font_state->screen_width/2.0 + 10.0f;
@@ -62,30 +62,51 @@ void render_parameters(FONT_T *font_state, double gravity, double viscocity, dou
     // Buffer to create strings in
     char buffer[100];
 
+    // Add blur to parameters
+    //unblur selected parameter below
+    fonsSetBlur(font_state->fs, 2.0f);
+
     // Gravity
+    if(selected_param == GRAVITY)
+        fonsSetBlur(font_state->fs, 0);
     sprintf( buffer, "Gravity: %.1f", gravity);
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
+    fonsSetBlur(font_state->fs, 2.0f);
 
     // Viscocity
-    sprintf( buffer, "Viscocity: %.1f", viscocity);
+    if(selected_param == VISCOSITY)
+        fonsSetBlur(font_state->fs, 0);
+    sprintf( buffer, "Viscosity: %.1f", viscosity);
     dy -= lh;
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
+    fonsSetBlur(font_state->fs, 2.0f);
 
     // Density
+    if(selected_param == DENSITY)
+        fonsSetBlur(font_state->fs, 0);
     sprintf( buffer, "Density: %.1f", density);
     dy -= lh;
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
+    fonsSetBlur(font_state->fs, 2.0f);
 
     // Pressure
+    if(selected_param == PRESSURE)
+        fonsSetBlur(font_state->fs, 0);
     sprintf( buffer, "Pressure: %.1f", pressure);
     dy -= lh;
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
+    fonsSetBlur(font_state->fs, 2.0f);
 
     // Elasticity
+    if(selected_param == ELASTICITY)
+        fonsSetBlur(font_state->fs, 0);
     sprintf( buffer, "Elasticity: %.1f", elasticity);
     dy -= lh;
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
 
+
+    // Unset blur
+    fonsSetBlur(font_state->fs, 0);  
 }
 
 void remove_font(FONT_T *font_state)

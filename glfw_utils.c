@@ -4,15 +4,29 @@
 
 #include "glfw_utils.h"
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void check_key_press(GL_STATE_T *state)
 {
-    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+    // Poll GLFW for key press
+    // If key has been pressed key_callback should be called
+    glfwPollEvents();
 }
 
 void error_callback(int error, const char* description)
 {
     fputs(description, stderr);
+}
+
+
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+
+    if(action == GLFW_PRESS)
+        switch(key)
+        {
+            case GLFW_KEY_ESCAPE:
+                glfwSetWindowShouldClose(window, GL_TRUE);
+	        break;
+        }
 }
 
 // Return mouse position in OpenGL screen coordinates
@@ -35,7 +49,6 @@ void init_ogl(GL_STATE_T *state)
     if(!glfwInit())
         exit(EXIT_FAILURE);
 
-
     // Create window
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -53,8 +66,6 @@ void init_ogl(GL_STATE_T *state)
 
     // Set current context to window
     glfwMakeContextCurrent(state->window);
-    // Set key callback
-    glfwSetKeyCallback(state->window, key_callback);
 
     // Initialize GLEW
     glewExperimental = GL_TRUE;
