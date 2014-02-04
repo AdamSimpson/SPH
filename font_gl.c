@@ -41,7 +41,6 @@ void create_shaders(FONT_T *state)
 
 void create_buffers(FONT_T *state)
 {
-{
     // VAO is required for OpenGL 3+ when using VBO I believe
     #ifndef GLES
     GLuint vao;
