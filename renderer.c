@@ -54,6 +54,8 @@ void start_renderer()
 
     printf("global on render: %d\n", params[0].number_fluid_particles_global);
 
+    printf("nprocs %d\n", params[0].nprocs);
+
     // Allocate particle receive array
     int max_particles = params[0].number_fluid_particles_global;
     int num_coords = 2;

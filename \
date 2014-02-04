@@ -81,6 +81,7 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
     glBindTexture(GL_TEXTURE_2D, state->tex);
     glUniformli(state->tex_uniform, 0)
 
+
     // Render text
     const char *p;
 
@@ -93,20 +94,7 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
         float x2 = x + g->bitmap_left * sx;
         float y2 = -y - g->bitmap_top * sy;
         float w = g->bitmap.width * sx;
-        float h = g->bitmap.rows * sy;
-
-        GLfloat box[4][4] = {
-        {x2,   -y2,    0, 0},
-        {x2+w, -y2,    1, 0},
-        {x2,   -y2-h,  0, 1},
-        {x2+w, -y2-h,  1, 1}
-        };
-  
-        glBufferData(GL_ARRAY_BUFFER, sizeof(box), box, GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        x+=(g->advance.x >> 6) * sx;
-        y+=(g->advance.y >> 6) * sy;
+        float h = g->bitmap.rows *sy;
     }
 }
 
@@ -135,11 +123,12 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
 
 void render_fps(FONT_T *font_state, double fps)
 {
-    float dx, dy, lh;
+/*    float dx, dy, lh;
 
     // Set font color
-    GLfloat black[4] = {0, 0, 0, 1};
-    glUniform4fv(state->color_uniform, 1, black);
+    unsigned int color = glfonsRGBA(255,255,100,255);
+    fonsSetColor(font_state->fs, color);
+    fonsVertMetrics(font_state->fs, NULL, NULL, &lh);
 
     // dx,dy,lh is internally handled by fontstash in pixels...arg
     dx = font_state->screen_width/2.0 - 5.0*lh;
@@ -151,7 +140,7 @@ void render_fps(FONT_T *font_state, double fps)
     // Gravity
     sprintf( buffer, "FPS: %.2f", fps);
     fonsDrawText(font_state->fs, dx, dy, buffer, NULL); 
-
+*/
 }
 
 void render_parameters(FONT_T *font_state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity)

@@ -185,7 +185,7 @@ void start_simulation()
         }
 
         // Initialize velocities
-   	apply_gravity(fluid_particle_pointers, &params);
+   	    apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
         // This is missing halo particle contribution

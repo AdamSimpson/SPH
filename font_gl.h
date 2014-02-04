@@ -9,19 +9,33 @@
   #include "egl_utils.h"
 #endif
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 typedef struct
 {
-    struct FONScontext* fs;
-    int font_normal;
+    FT_Library ft;
+    FT_Face face;
+    FT_GlyphSlot g;
+
+    // Font shader program
+    GLuint program;
+
+    // Coordinate location
+    GLint coord_location;
+
+    // texture uniform
+    GLuint tex_uniform;
+
+    // VBO
+    GLuint vbo;
 
     int screen_width;
     int screen_height;
 } FONT_T;
 
-void init_font(FONT_T *font_state, int screen_width, int screen_height);
-void render_parameters(FONT_T *font_state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity);
-void render_fps(FONT_T *font_state, double fps);
-void remove_font(FONT_T *font_state);
+void create_shaders(FONT_T *state);
+void create_buffers(FONT_T *state);
 
 
 #endif
