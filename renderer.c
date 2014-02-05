@@ -165,14 +165,14 @@ void start_renderer()
         mover_radius_scaled = mover_radius*70.0;
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
-	    // Draw font parameters
-//        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
-
         // Draw FPS
   	    render_fps(&font_state, fps);
-/*	    if(num_steps%frames_per_fps == 0)
+	    if(num_steps%frames_per_fps == 0)
         printf("FPS: %f\n", fps);
-*/
+
+	    // Draw font parameters
+        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
+
         // Swap front/back buffers
         swap_ogl(&gl_state);
 

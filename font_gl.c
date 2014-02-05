@@ -49,6 +49,7 @@ void create_font_program(FONT_T *state)
     // Enable blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 }
 
 void create_font_buffers(FONT_T *state)
@@ -66,6 +67,7 @@ void create_font_buffers(FONT_T *state)
 
 void create_font_atlas(FONT_T *state)
 {
+    glUseProgram(state->program);
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &state->tex_uniform);
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
@@ -161,19 +163,6 @@ void create_font_atlas(FONT_T *state)
 
 void render_text(FONT_T *state, const char *text, float x, float y, float sx, float sy)
 {
-    // Setup environment
-    glUseProgram(state->program);
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(state->coord_location);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
-    glUniform1i(state->tex_location, 0);
-
-    // Set font color
-    GLfloat black[4] = {1, 1, 1, 1};
-    glUniform4fv(state->color_location, 1, black);
-
     struct point {
         GLfloat x;
         GLfloat y;
@@ -206,10 +195,10 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
         coords[n++] = (struct point){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty};
         coords[n++] = (struct point){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
         coords[n++] = (struct point){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height};
-
+    }
         glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_TRIANGLES, 0, n);
-    }
+ 
 }
 
 void init_font(FONT_T *state, int screen_width, int screen_height)
@@ -240,7 +229,19 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
 
 void render_fps(FONT_T *state, double fps)
 {
-    float dx, dy, lh;
+    // Setup environment
+    glUseProgram(state->program);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(state->coord_location);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_location, 0);
+
+    // Set font color
+    GLfloat black[4] = {1, 1, 1, 1};
+    glUniform4fv(state->color_location, 1, black);
+
 
     // Font start
     float sx = 2.0 / state->screen_width;
@@ -251,73 +252,55 @@ void render_fps(FONT_T *state, double fps)
     sprintf( buffer, "FPS: %.2f", fps);
    
     // Render text
-    render_text(state, buffer, -1 + 8 * sx, 1 - 50 * sy, sx, sy);
-
+    render_text(state, buffer, 1 - 200 * sx, 1 - 50 * sy, sx, sy);
 }
 
-void render_parameters(FONT_T *font_state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity)
+void render_parameters(FONT_T *state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity)
 {
-/*
-    // Render some text
-    float dx, dy, lh;
-    unsigned int color = glfonsRGBA(255,255,100,255);
+    // Setup environment
+    glUseProgram(state->program);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(state->coord_location);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_location, 0);
 
-    // Get font height
-    fonsVertMetrics(font_state->fs, NULL, NULL, &lh);
-
-    // dx,dy,lh is internally handled by fontstash in pixels...arg
-    dx = -font_state->screen_width/2.0 + 10.0f;
-    dy = font_state->screen_height/2.0 - lh;
+    // Set font color
+    GLfloat black[4] = {1, 1, 1, 1};
+    glUniform4fv(state->color_location, 1, black);
 
     // Buffer to create strings in
     char buffer[100];
 
-    // Add blur to parameters
-    //unblur selected parameter below
-    fonsSetBlur(font_state->fs, 2.0f);
+    // Font start
+    float sx = 2.0 / state->screen_width;
+    float sy = 2.0 / state->screen_height;
 
     // Gravity
-    if(selected_param == GRAVITY)
-        fonsSetBlur(font_state->fs, 0);
+//    if(selected_param == GRAVITY)      
     sprintf( buffer, "Gravity: %.1f", gravity);
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
-    fonsSetBlur(font_state->fs, 2.0f);
+    render_text(state, buffer, -1 + 8 * sx, 1 - 50 * sy, sx, sy);
 
     // Viscocity
-    if(selected_param == VISCOSITY)
-        fonsSetBlur(font_state->fs, 0);
+//    if(selected_param == VISCOSITY)
     sprintf( buffer, "Viscosity: %.1f", viscosity);
-    dy -= lh;
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
-    fonsSetBlur(font_state->fs, 2.0f);
+    render_text(state, buffer, -1 + 8 * sx, 1 - 100 * sy, sx, sy);
 
     // Density
-    if(selected_param == DENSITY)
-        fonsSetBlur(font_state->fs, 0);
+//    if(selected_param == DENSITY)
     sprintf( buffer, "Density: %.1f", density);
-    dy -= lh;
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
-    fonsSetBlur(font_state->fs, 2.0f);
+    render_text(state, buffer, -1 + 8 * sx, 1 - 150 * sy, sx, sy);
 
     // Pressure
-    if(selected_param == PRESSURE)
-        fonsSetBlur(font_state->fs, 0);
+//    if(selected_param == PRESSURE)
     sprintf( buffer, "Pressure: %.1f", pressure);
-    dy -= lh;
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
-    fonsSetBlur(font_state->fs, 2.0f);
+    render_text(state, buffer, -1 + 8 * sx, 1 - 200 * sy, sx, sy);
 
     // Elasticity
-    if(selected_param == ELASTICITY)
-        fonsSetBlur(font_state->fs, 0);
+//    if(selected_param == ELASTICITY)
     sprintf( buffer, "Elasticity: %.1f", elasticity);
-    dy -= lh;
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL);
-
-
-    // Unset blur
-    fonsSetBlur(font_state->fs, 0);  
-*/
+    render_text(state, buffer, -1 + 8 * sx, 1 - 250 * sy, sx, sy);
 }
 
 void remove_font(FONT_T *font_state)
