@@ -57,13 +57,13 @@ void start_simulation()
     params.time_step = 0.03;
     params.k = 0.2;
     params.k_near = 2.0;
-    params.k_spring = 20.0;
+    params.k_spring = 100.0;
     params.sigma = 20.0;
     params.beta = 2.0;
 
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 30.0;
+    params.rest_density = 150.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
 

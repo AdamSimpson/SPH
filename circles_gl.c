@@ -86,12 +86,10 @@ void create_shaders(CIRCLE_T *state)
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
-//    check(); // GLEW experimental causes check to fail, fix
 
     // Link and use program
     glLinkProgram(state->program);
-//    glUseProgram(state->program);
-//    check();
+    show_program_log(state->program);
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");

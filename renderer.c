@@ -170,7 +170,9 @@ void start_renderer()
 
         // Draw FPS
   	    render_fps(&font_state, fps);
-
+/*	    if(num_steps%frames_per_fps == 0)
+        printf("FPS: %f\n", fps);
+*/
         // Swap front/back buffers
         swap_ogl(&gl_state);
 
