@@ -13,11 +13,19 @@ inline void check()
     }
 }
 
+void show_program_log(GLuint program)
+{
+    char log[1024];
+    glGetProgramInfoLog(program, sizeof(log), NULL, log);
+    printf("%d:program:\n%s\n", program, log);
+
+}
+
 void showlog(GLint shader)
 {
    // Prints the compile log for a shader
    char log[1024];
-   glGetShaderInfoLog(shader,sizeof log,NULL,log);
+   glGetShaderInfoLog(shader,sizeof(log), NULL, log);
    printf("%d:shader:\n%s\n", shader, log);
 }
 

@@ -35,12 +35,20 @@ void create_font_program(FONT_T *state)
     // Link  program
     glLinkProgram(state->program);
 
+    show_program_log(state->program);
+
+    printf("after link\n");
+    check();
+
     // Get coord attribute location
     state->coord_location = glGetAttribLocation(state->program, "coord");
     // Get tex uniform location
     state->tex_location = glGetUniformLocation(state->program, "tex");
     // Get color uniform location
     state->color_location = glGetUniformLocation(state->program, "color");
+
+    printf("after locations\n");
+    check();
 
     // Enable blend
     glEnable(GL_BLEND);
@@ -138,7 +146,7 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Load font face
-    if(FT_New_Face(state->ft, "DroidSerif-Regular.ttf", 0, &state->face)) {
+    if(FT_New_Face(state->ft, "SPH/DroidSerif-Regular.ttf", 0, &state->face)) {
         printf("Error loading font face\n");
         exit(EXIT_FAILURE);
     }

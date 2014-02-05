@@ -1,4 +1,4 @@
-attribute vec2 coord;
+attribute vec4 coord;
 varying vec2 frag_tex_coord;
 
 void main() {
