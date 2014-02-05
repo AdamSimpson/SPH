@@ -3,10 +3,13 @@
 #include "fluid.h"
 #include "renderer.h"
 #include "font_gl.h"
+
+#include "ogl_utils.h"
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-void create_shaders(FONT_T *state)
+void create_font_program(FONT_T *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -27,19 +30,24 @@ void create_shaders(FONT_T *state)
     // Create shader program
     state->program = glCreateProgram();
     glAttachShader(state->program, vertex_shader);
-    glAttachShader(state->program ,fragment_shader);
+    glAttachShader(state->program, frag_shader);
 
-    // Link and use program
+    // Link  program
     glLinkProgram(state->program);
 
+    // Get coord attribute location
     state->coord_location = glGetAttribLocation(state->program, "coord");
+    // Get tex uniform location
+    state->tex_location = glGetUniformLocation(state->program, "tex");
+    // Get color uniform location
+    state->color_location = glGetUniformLocation(state->program, "color");
 
     // Enable blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void create_buffers(FONT_T *state)
+void create_font_buffers(FONT_T *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
     #ifndef GLES
@@ -49,16 +57,15 @@ void create_buffers(FONT_T *state)
     #endif
 
     // Generate vertex buffer
-    glGenBuffers(1, &state->vbo)
-
+    glGenBuffers(1, &state->vbo);
 }
 
-void create_texture(FONT_T *state)
+void create_font_textures(FONT_T *state)
 {
     glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &state->tex);
-    glBindTexture(GL_TEXTURE_2D, state->tex);
-    glUniform1i(uniform_tex, 0);
+    glGenTextures(1, &state->tex_uniform);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_uniform, 0);
 
     // Set texture parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -68,26 +75,36 @@ void create_texture(FONT_T *state)
 
     // Set single byte alignment
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
 } 
 
 void render_text(FONT_T *state, const char *text, float x, float y, float sx, float sy)
 {
     // Setup environment
+    glUseProgram(state->program);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(state->coord_location);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->tex);
-    glUniformli(state->tex_uniform, 0)
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_location, 0);
+
+    // Set font color
+    GLfloat black[4] = {1, 1, 1, 1};
+    glUniform4fv(state->color_location, 1, black);
 
     // Render text
+    FT_GlyphSlot g = state->face->glyph;
     const char *p;
 
     for(p = text; *p; p++) {
         if(FT_Load_Char(state->face, *p, FT_LOAD_RENDER))
             continue;
 
+	#ifdef GLES
         glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, g->bitmap.width, g->bitmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, g->bitmap.buffer);
+	#else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, g->bitmap.width, g->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer);
+	#endif
 
         float x2 = x + g->bitmap_left * sx;
         float y2 = -y - g->bitmap_top * sy;
@@ -100,7 +117,7 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
         {x2,   -y2-h,  0, 1},
         {x2+w, -y2-h,  1, 1}
         };
-  
+
         glBufferData(GL_ARRAY_BUFFER, sizeof(box), box, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -121,35 +138,34 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Load font face
-    if(FT_New_Face(state->ft, "SPH/DroidSerif-Regular.tff", 0, &state->face)) {
+    if(FT_New_Face(state->ft, "DroidSerif-Regular.ttf", 0, &state->face)) {
         printf("Error loading font face\n");
         exit(EXIT_FAILURE);
     }
 
     // Set pixel size
-    FT_Set_Pixel_Sizes(state->face, 0, 48);
+    FT_Set_Pixel_Sizes(state->face, 0, 24);
 
-    state->g = state->face->glyph;
+    // Setup OpenGL
+    create_font_program(state);
+    create_font_buffers(state);
+    create_font_textures(state);
 }
 
-void render_fps(FONT_T *font_state, double fps)
+void render_fps(FONT_T *state, double fps)
 {
     float dx, dy, lh;
 
-    // Set font color
-    GLfloat black[4] = {0, 0, 0, 1};
-    glUniform4fv(state->color_uniform, 1, black);
-
-    // dx,dy,lh is internally handled by fontstash in pixels...arg
-    dx = font_state->screen_width/2.0 - 5.0*lh;
-    dy = font_state->screen_height/2.0 - lh;
+    // Font start
+    float sx = 2.0 / state->screen_width;
+    float sy = 2.0 / state->screen_height;
 
     // Buffer to create strings in
     char buffer[64];
-
-    // Gravity
     sprintf( buffer, "FPS: %.2f", fps);
-    fonsDrawText(font_state->fs, dx, dy, buffer, NULL); 
+   
+    // Render text
+    render_text(state, buffer, -1 + 8 * sx, 1 - 50 * sy, sx, sy);
 
 }
 

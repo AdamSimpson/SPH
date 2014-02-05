@@ -16,16 +16,18 @@ typedef struct
 {
     FT_Library ft;
     FT_Face face;
-    FT_GlyphSlot g;
 
     // Font shader program
     GLuint program;
 
-    // Coordinate location
+    // Program locations
     GLint coord_location;
-
-    // texture uniform
+    GLint tex_location;
+    GLint color_location;
+    
+    // Uniforms
     GLuint tex_uniform;
+    GLuint color_uniform;
 
     // VBO
     GLuint vbo;
@@ -34,8 +36,10 @@ typedef struct
     int screen_height;
 } FONT_T;
 
-void create_shaders(FONT_T *state);
-void create_buffers(FONT_T *state);
-
+void create_font_program(FONT_T *state);
+void create_font_buffers(FONT_T *state);
+void create_font_textures(FONT_T *state);
+void init_font(FONT_T *state, int screen_width, int screen_height);
+void render_fps(FONT_T *state, double fps);
 
 #endif

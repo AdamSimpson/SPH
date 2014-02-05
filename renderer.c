@@ -166,7 +166,7 @@ void start_renderer()
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
 	    // Draw font parameters
-        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
+//        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
 
         // Draw FPS
   	    render_fps(&font_state, fps);
