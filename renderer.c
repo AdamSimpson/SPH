@@ -90,7 +90,7 @@ void start_renderer()
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
-    double fps;
+    double fps=0.0;
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -167,8 +167,8 @@ void start_renderer()
 
         // Draw FPS
   	    render_fps(&font_state, fps);
-	    if(num_steps%frames_per_fps == 0)
-        printf("FPS: %f\n", fps);
+//	    if(num_steps%frames_per_fps == 0)
+//        printf("FPS: %f\n", fps);
 
 	    // Draw font parameters
         render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
