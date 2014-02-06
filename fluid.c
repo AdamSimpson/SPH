@@ -79,6 +79,8 @@ void start_simulation()
     water_volume_global.min_y = 5.0;
     water_volume_global.max_y = 20.0;
 
+    params.number_halo_particles = 0;
+
     // Fluid area in initial configuration
     double area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
 
@@ -188,7 +190,6 @@ void start_simulation()
    	    apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
-        // This is missing halo particle contribution
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position and set OOB particles
@@ -237,8 +238,11 @@ void start_simulation()
             checkPartition(fluid_particle_pointers, &out_of_bounds, time_before + time_after, &params);
             // reset
             n = 0;
-	    check_time = false;
+  	        check_time = false;
         }
+
+        // Not updating halo particles and hash after relax can be used to speed things up
+        // Not updating these can cause unstable behavior
 
         // Exchange halo particles from relaxed positions
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
@@ -290,7 +294,7 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
     double dt = params->time_step;
     double g = -params->g;
 
-    for(i=0; i<params->number_fluid_particles_local; i++) {
+    for(i=0; i<(params->number_fluid_particles_local + params->number_halo_particles); i++) {
         p = fluid_particle_pointers[i];
         p->v_y += g*dt;
 
@@ -301,9 +305,10 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 }
 
 // Add viscosity impluses
+// TODO: GUARD AGAINST IMPULSE BLOWING UP
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
-    int i, j;
+    int i, j, num_fluid;
     fluid_particle *p, *q;
     neighbor* n;
     double r, r_recip, ratio, u, imp, imp_x, imp_y;
@@ -311,6 +316,7 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     double QmP_x, QmP_y;
     double h_recip, sigma, beta, dt;
 
+    num_fluid = params->number_fluid_particles_local;
     h_recip = 1.0/params->smoothing_radius;
     sigma = params->sigma;
     beta = params->beta;
@@ -320,30 +326,39 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
-	p_x = p->x;
-	p_y = p->y;
+ 	    p_x = p->x;
+	    p_y = p->y;
 
         for(j=0; j<n->number_fluid_neighbors; j++) {
             q = n->fluid_neighbors[j];
 	
-	    QmP_x = (q->x-p_x);
-	    QmP_y = (q->y-p_y);
-	    r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
-	    r_recip = 1.0/r;
-	    ratio = r*h_recip;
+            QmP_x = (q->x-p_x);
+            QmP_y = (q->y-p_y);
+            r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
 
-	    //Inward radial velocity
-	    u = ((p->v_x-q->v_x)*QmP_x + (p->v_y-q->v_y)*QmP_y)*r_recip;
-	    if(u>0.0)
-	    {
-		imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-		imp_x = imp*QmP_x*r_recip;
-		imp_y = imp*QmP_y*r_recip;
-		p->v_x -= imp_x/2.0;
-		p->v_y -= imp_y/2.0;
-		q->v_x += imp_x/2.0;
-		q->v_y += imp_y/2.0;
-	    }
+            r_recip = 1.0/r;
+            ratio = r*h_recip;
+
+            //Inward radial velocity
+            u = ((p->v_x-q->v_x)*QmP_x + (p->v_y-q->v_y)*QmP_y)*r_recip;
+            if(u>0.0)
+            {
+                imp = dt * (1-ratio)*(sigma * u + beta * u*u);
+                imp_x = imp*QmP_x*r_recip;
+                imp_y = imp*QmP_y*r_recip;
+                p->v_x -= imp_x*0.5;
+                p->v_y -= imp_y*0.5;
+                if(q->id < num_fluid) {
+                    q->v_x += imp_x*0.5;
+                    q->v_y += imp_y*0.5;
+
+                }
+                else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
+                    q->v_x += imp_x*0.25;
+                    q->v_y += imp_y*0.25;
+                }
+                
+            }
 
         }
     }
@@ -443,28 +458,27 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
             }
 
 	    if(ratio < 1.0 && r > 0.0) {
-		// Updating both neighbor pairs at the same time, slightly different than the paper but quicker
-	        // Also the running sum of D for particle p seems to produce more bias/instability so is removed
-                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
-		D_x = D*(q->x-p->x)*r_recip;
-                D_y = D*(q->y-p->y)*r_recip;
+            // Updating both neighbor pairs at the same time, slightly different than the paper but quicker
+            // Also the running sum of D for particle p seems to produce more bias/instability so is removed
+            D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
+            D_x = D*(q->x-p->x)*r_recip;
+            D_y = D*(q->y-p->y)*r_recip;
 
-		// Do not move the halo particles full D
-		// Halo particles are missing D from their origin so I believe this is appropriate
-		if(q->id < num_fluid) {
-	  	  q->x += D_x;
-	          q->y += D_y;
-		}	
-		else { // Move the halo particles only half way to account for other sides missing contribution
-                  q->x += D_x/2.0;
-                  q->y += D_y/2.0;
-		}
-		    
-
-		p->x -= D_x;
-                p->y -= D_y;
+            // Do not move the halo particles full D
+            // Halo particles are missing D from their origin so I believe this is appropriate
+            if(q->id < num_fluid) {
+                q->x += D_x;
+                q->y += D_y;
+            }	
+            else { // Move the halo particles only half way to account for other sides missing contribution
+                q->x += D_x/2.0;
+                q->y += D_y/2.0;
             }
-        }
+                
+               p->x -= D_x;
+               p->y -= D_y;
+           }
+       }
 
     }
 }
