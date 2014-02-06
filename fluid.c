@@ -68,16 +68,29 @@ void start_simulation()
     params.max_neighbors = params.max_bucket_size*4;
 
     // Boundary box
+    // This simulation assumes in various spots min is 0.0
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 20.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 20.0;
+
+    // Receive aspect ratio to scale world y max
+    double aspect_ratio;
+    MPI_Bcast(&aspect_ratio, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    boundary_global.max_y = boundary_global.max_x / aspect_ratio;
+    
+    // Send initial world dimensions to render node
+    if(rank == 0) {
+        double world_dims[2];
+        world_dims[0] = boundary_global.max_x;
+        world_dims[1] = boundary_global.max_y;
+        MPI_Send(world_dims, 2, MPI_DOUBLE, 0, 8, MPI_COMM_WORLD);
+    }
 
     // water volume
     water_volume_global.min_x = 0.0;
-    water_volume_global.max_x = 20.0;
-    water_volume_global.min_y = 5.0;
-    water_volume_global.max_y = 20.0;
+    water_volume_global.max_x = boundary_global.max_x;
+    water_volume_global.min_y = 0.0;
+    water_volume_global.max_y = boundary_global.max_y;
 
     params.number_halo_particles = 0;
 
@@ -439,19 +452,19 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
         p_pressure = p->pressure;
-	p_pressure_near = p->pressure_near;
+	    p_pressure_near = p->pressure_near;
 
         for(j=0; j<n->number_fluid_neighbors; j++) {
 
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	    r_recip = 1.0/r;
-	    ratio = r*h_recip;
-	    OmR = 1.0 - ratio;
+	        r_recip = 1.0/r;
+	        ratio = r*h_recip;
+	        OmR = 1.0 - ratio;
 
             // Attempt to move clustered particles apart
-	    // Particles really love to gather at (0,0)
-	    // Particularly when hash buckets overflow
+	        // Particles really love to gather at (0,0)
+	        // Particularly when hash buckets overflow
             if(r <= 0.0000001) {
                 p->x += h*0.1;
                 p->y += h*0.1;
