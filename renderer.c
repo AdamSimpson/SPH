@@ -69,6 +69,9 @@ void start_renderer()
     double world_dims[2];
     MPI_Recv(world_dims, 2, MPI_DOUBLE, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+    // Calculate world unit to pixel
+    double world_to_pix_scale = gl_state.screen_width/world_dims[0];
+
     // Gatherv values
     int *param_counts = malloc(num_procs * sizeof(int));
     int *param_displs = malloc(num_procs * sizeof(int));
@@ -191,7 +194,7 @@ void start_renderer()
         mover_point[2] = 1.0;
         mover_point[3] = 1.0;
         mover_point[4] = 1.0;
-        mover_radius_scaled = mover_radius*70.0;
+        mover_radius_scaled = mover_radius*world_to_pix_scale;
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Draw FPS
