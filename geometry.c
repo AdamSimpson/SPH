@@ -4,7 +4,7 @@
 
 void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB* fluid, int start_x, int number_particles_x, edge *edges, param *params)
 {
-    double spacing;
+    float spacing;
     int num_y;
     
     spacing = params->spacing_particle;
@@ -16,7 +16,7 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
     edges->number_edge_particles_right = 0;
     
     // Place particles inside bounding volume
-    double x,y;
+    float x,y;
     int nx,ny;
     int i = 0;
     fluid_particle *p;
@@ -47,7 +47,7 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 {
     int num_x, num_y, max_y;
     
-    double spacing = params->spacing_particle;
+    float spacing = params->spacing_particle;
 
     // Set fluid local
     num_x = number_particles_x;
@@ -82,7 +82,7 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
     int i;
     int nprocs = params->nprocs;
     int rank = params->rank;
-    double spacing = params->spacing_particle;
+    float spacing = params->spacing_particle;
         
     // number of fluid particles in x direction
     // +1 added for zeroth particle
@@ -144,12 +144,12 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     fluid_particle *p;
     int rank = params->rank;
     int nprocs = params->nprocs;
-    double h = params->spacing_particle;
+    float h = params->spacing_particle;
 
     // Get elapsed time since last partition and set new partition time
     double seconds_self =  partition_time;
 
-    double length = params->node_end_x - params->node_start_x;
+    float length = params->node_end_x - params->node_start_x;
 
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
@@ -171,8 +171,8 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     double seconds_right = right[0];
 
     // Partition length of left/right ranks
-    double length_left = left[1];
-    double length_right = right[1];
+    float length_left = left[1];
+    float length_right = right[1];
 
     // Difference in time since last partitioning between self and left/right ranks
     double diff_left = seconds_self - seconds_left;
@@ -212,19 +212,19 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
 ////////////////////////////////////////////////
 // Utility Functions
 ////////////////////////////////////////////////
-double min(double a, double b){
-    double min = a;
+float min(float a, float b){
+    float min = a;
     min = b < min ? b : min;
     return min;
 }
 
-double max(double a, double b){
-    double max = a;
+float max(float a, float b){
+    float max = a;
     max = b > max ? b : max;
     return max;
 }
 
-int sgn(double x) {
+int sgn(float x) {
     int val = 0;
     if (x < 0.0)
         val = -1;

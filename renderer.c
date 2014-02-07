@@ -9,19 +9,19 @@
 
 // Translate between pixel coordinates with origin at screen center
 // to simulation coordinates
-inline void pixel_to_sim(double *world_dims, double x, double y, double *sim_x, double *sim_y)
+inline void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
 {
-    double half_width = world_dims[0]*0.5;
-    double half_height = world_dims[1]*0.5;
+    float half_width = world_dims[0]*0.5;
+    float half_height = world_dims[1]*0.5;
 
     *sim_x = x*half_width + half_width;
     *sim_y = y*half_height + half_height;
 }
 
-inline void sim_to_opengl(double *world_dims, double x, double y, double *gl_x, double *gl_y)
+inline void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
 {
-    double half_width = world_dims[0]*0.5;
-    double half_height = world_dims[1]*0.5;
+    float half_width = world_dims[0]*0.5;
+    float half_height = world_dims[1]*0.5;
 
     *gl_x = x/half_width - 1.0;
     *gl_y = y/half_height - 1.0;
@@ -62,15 +62,15 @@ void start_renderer()
     int i,j;
 
     // Broadcast aspect ratio
-    double aspect_ratio = (double)gl_state.screen_width/(double)gl_state.screen_height;
-    MPI_Bcast(&aspect_ratio, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    float aspect_ratio = (float)gl_state.screen_width/(float)gl_state.screen_height;
+    MPI_Bcast(&aspect_ratio, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
  
     // Recv world dimensions from global rank 1
-    double world_dims[2];
-    MPI_Recv(world_dims, 2, MPI_DOUBLE, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    float world_dims[2];
+    MPI_Recv(world_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     // Calculate world unit to pixel
-    double world_to_pix_scale = gl_state.screen_width/world_dims[0];
+    float world_to_pix_scale = gl_state.screen_width/world_dims[0];
 
     // Gatherv values
     int *param_counts = malloc(num_procs * sizeof(int));
@@ -114,14 +114,14 @@ void start_renderer()
     // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
     int total_coords, current_rank;
-    double mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
-    double mover_radius, mover_radius_scaled;
+    float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
+    float mover_radius, mover_radius_scaled;
 
     int frames_per_fps = 30;
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
-    double fps=0.0;
+    float fps=0.0;
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -167,7 +167,7 @@ void start_renderer()
         // Create points array (x,y,r,g,b)
         current_rank = 0;
         int particle_count = 1;
-        double gl_x, gl_y;
+        float gl_x, gl_y;
         for(j=0; j<total_coords/2; j++, particle_count+=2) {
             if ( particle_count > particle_counts[1+current_rank]){
                 current_rank++;

@@ -12,7 +12,7 @@ struct N_BUCKET {
     unsigned int number_fluid;
 }; // neighbor 'bucket' for hash value
 
-unsigned int hash_val(double x, double y, param *params);
+unsigned int hash_val(float x, float y, param *params);
 void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params, bool compute_density);
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params, bool compute_density);
 

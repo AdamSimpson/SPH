@@ -8,9 +8,9 @@
 
 // Uniform grid hash, this prevents having to check duplicates when inserting
 // Fabs needed as neighbor search can go out of bounds
-unsigned int hash_val(double x, double y, param *params)
+unsigned int hash_val(float x, float y, param *params)
 {
-    const double spacing = params->smoothing_radius;
+    const float spacing = params->smoothing_radius;
     const int num_x = params->grid_size_x;
 
     // Calculate grid coordinates
@@ -28,17 +28,17 @@ unsigned int hash_val(double x, double y, param *params)
 void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket *hash, param *params, bool compute_density)
 {
     int index,i,dx,dy,n, grid_x, grid_y;
-    double x,y,r2, r;
+    float x,y,r2, r;
     fluid_particle *h_p, *p;
     int n_start = params->number_fluid_particles_local; // Start of halo particles
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
     int max_neighbors = params->max_neighbors;
-    double spacing = params->smoothing_radius;
-    double h = params->smoothing_radius;
-    double h_recip = 1.0/h;
-    double ratio;
+    float spacing = params->smoothing_radius;
+    float h = params->smoothing_radius;
+    float h_recip = 1.0/h;
+    float ratio;
 
-    double h2 = h*h;
+    float h2 = h*h;
     neighbor *ne;
 
     // Loop over each halo particle
@@ -100,10 +100,10 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
 void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_bucket * hash, param *params, bool compute_density)
 {
         int i,j,dx,dy,n,c;
-        double x,y, px,py;
-	double h = params->smoothing_radius;
-        double h_recip = 1.0/h;
-        double h2 = h*h;
+        float x,y, px,py;
+	float h = params->smoothing_radius;
+        float h_recip = 1.0/h;
+        float h2 = h*h;
 
         int n_f = params->number_fluid_particles_local;
         int max_neighbors = params->max_neighbors;
@@ -111,7 +111,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
  
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
-        double r,r2, ratio; 
+        float r,r2, ratio; 
 	unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket

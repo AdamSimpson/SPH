@@ -227,7 +227,7 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
     create_font_atlas(state);
 }
 
-void render_fps(FONT_T *state, double fps)
+void render_fps(FONT_T *state, float fps)
 {
     // Setup environment
     glUseProgram(state->program);
@@ -255,7 +255,7 @@ void render_fps(FONT_T *state, double fps)
     render_text(state, buffer, 1 - 200 * sx, 1 - 50 * sy, sx, sy);
 }
 
-void render_parameters(FONT_T *state, parameters selected_param, double gravity, double viscosity, double density, double pressure, double elasticity)
+void render_parameters(FONT_T *state, parameters selected_param, float gravity, float viscosity, float density, float pressure, float elasticity)
 {
     // Setup environment
     glUseProgram(state->program);

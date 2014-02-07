@@ -32,7 +32,7 @@ void createMpiTypes()
     int i; 
 
     // Create fluid particle type;
-    for (i=0; i<12; i++) types[i] = MPI_DOUBLE;
+    for (i=0; i<12; i++) types[i] = MPI_FLOAT;
     types[12] = MPI_INT;
     for (i=0; i<13; i++) blocklens[i] = 1;
     // Get displacement of each struct member
@@ -54,7 +54,7 @@ void createMpiTypes()
     MPI_Type_commit( &Particletype );
 
     // Create param type
-    for(i=0; i<15; i++) types[i] = MPI_DOUBLE;
+    for(i=0; i<15; i++) types[i] = MPI_FLOAT;
     for(i=15; i<27; i++) types[i] = MPI_INT;
     for (i=0; i<27; i++) blocklens[i] = 1;
     // Get displacement of each struct member
@@ -107,7 +107,7 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     int nprocs = params->nprocs;
 
     fluid_particle *p;
-    double h = params->smoothing_radius;
+    float h = params->smoothing_radius;
 
     // Set edge particle indicies and update number
     edges->number_edge_particles_left = 0;

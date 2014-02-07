@@ -33,6 +33,6 @@ void exit_ogl(GL_STATE_T *state);
 void swap_ogl(GL_STATE_T *state);
 void check_key_press(GL_STATE_T *state);
 int get_key_press(GL_STATE_T *state);
-void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state);
+void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state);
 
 #endif

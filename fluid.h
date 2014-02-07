@@ -23,18 +23,18 @@ typedef struct PARAM param;
 ////////////////////////////////////////////////
 
 struct FLUID_PARTICLE {
-    double x_prev;
-    double y_prev;
-    double x;
-    double y;
-    double v_x;
-    double v_y;
-    double a_x;
-    double a_y;
-    double density;
-    double density_near;
-    double pressure;
-    double pressure_near;
+    float x_prev;
+    float y_prev;
+    float x;
+    float y;
+    float v_x;
+    float v_y;
+    float a_x;
+    float a_y;
+    float density;
+    float density_near;
+    float pressure;
+    float pressure_near;
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
@@ -44,21 +44,21 @@ struct NEIGHBOR{
 };
 
 struct PARAM {
-    double rest_density;
-    double spacing_particle;
-    double smoothing_radius;
-    double g;
-    double k; // Pressure constant
-    double k_near; // Near pressure constant
-    double k_spring; // Spring constant
-    double sigma; // linear velocity viscocity term
-    double beta;  // quadratic velocity viscocity term
-    double time_step;
-    double node_start_x; // left x position of node partition
-    double node_end_x;   // right x position of node partition
-    double mover_center_x;
-    double mover_center_y;
-    double mover_radius;
+    float rest_density;
+    float spacing_particle;
+    float smoothing_radius;
+    float g;
+    float k; // Pressure constant
+    float k_near; // Near pressure constant
+    float k_spring; // Spring constant
+    float sigma; // linear velocity viscocity term
+    float beta;  // quadratic velocity viscocity term
+    float time_step;
+    float node_start_x; // left x position of node partition
+    float node_end_x;   // right x position of node partition
+    float mover_center_x;
+    float mover_center_y;
+    float mover_radius;
     int max_bucket_size; // Maximum particles in hash bucket
     int max_neighbors;   // Maximum number of neighbor particles per particle
     int grid_size_x;
@@ -76,13 +76,13 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-void collisionImpulse(fluid_particle *p, double norm_x, double norm_y, param *params);
+void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
 
 void start_simulation();
-void calculate_density(fluid_particle *p, fluid_particle *q, double ratio);
+void calculate_density(fluid_particle *p, fluid_particle *q, float ratio);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
 void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params);

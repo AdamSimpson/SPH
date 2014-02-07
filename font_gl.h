@@ -60,6 +60,6 @@ void create_font_program(FONT_T *state);
 void create_font_buffers(FONT_T *state);
 void create_font_atlas(FONT_T *state);
 void init_font(FONT_T *state, int screen_width, int screen_height);
-void render_fps(FONT_T *state, double fps);
+void render_fps(FONT_T *state, float fps);
 
 #endif

@@ -125,7 +125,7 @@ void exit_ogl(GL_STATE_T *state)
 
 // Return mouse position in OpenGL coordinates
 // This is different than default GLFW coordinates
-void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
+void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 {
     // Screen dimensions in pixels
     const int width = state->screen_width;
@@ -139,8 +139,8 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
     static int x = 0;
     static int y = 0;
 
-    double x_scaled = 0.0;
-    double y_scaled = 0.0;
+    float x_scaled = 0.0;
+    float y_scaled = 0.0;
 
     ssize_t bytes_read;
 
@@ -154,8 +154,6 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
 
         if(bytes_read != sizeof(MOUSE_INPUT))
             return;
-
-        printf("read %d \n", bytes_read );
 
         int speed_multiplier = 2;
 
@@ -179,8 +177,8 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
             y = height;
 
         // convert to OpenGL screen coordinates from pixels
-        x_scaled = (double)x/(0.5*width) - 1.0;
-        y_scaled = (double)y/(0.5*height) - 1.0;
+        x_scaled = (float)x/(0.5*width) - 1.0;
+        y_scaled = (float)y/(0.5*height) - 1.0;
 
 //        debug_print("pixels(%d,%d) scaled(%f,%f)\n", x,y,x_scaled,y_scaled);
     }

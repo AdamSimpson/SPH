@@ -31,7 +31,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 // Return mouse position in OpenGL screen coordinates
 // x,y [-1, 1], center of screen is origin
-void get_mouse(double *x, double *y, GL_STATE_T *state)
+void get_mouse(float *x, float *y, GL_STATE_T *state)
 {
     glfwGetCursorPos(state->window, x, y);
     *y = (state->screen_height - *y); // Flip y = 0
