@@ -12,6 +12,9 @@ MPI_Datatype Paramtype;
 MPI_Datatype LeftEdgetype;
 MPI_Datatype RightEdgetype;
 MPI_Comm MPI_COMM_COMPUTE;
+MPI_Group group_world;
+MPI_Group group_compute;
+MPI_Group group_render;
 
 // Particles that are within 2*h distance of node edge
 struct EDGES {

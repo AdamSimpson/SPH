@@ -142,15 +142,20 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
     double x_scaled = 0.0;
     double y_scaled = 0.0;
 
+    ssize_t bytes_read;
+
     // Open file containing mouse events
     if (state->mouse_fd < 0)
         state->mouse_fd = open("/dev/input/mouse0", O_RDONLY|O_NONBLOCK);
 
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
-        read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
+        bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
 
- //       debug_print("dx: %d, dy: %d\n", event.dx, event.dy);
+        if(bytes_read != sizeof(MOUSE_INPUT))
+            return;
+
+        printf("read %d \n", bytes_read );
 
         int speed_multiplier = 2;
 

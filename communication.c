@@ -8,9 +8,6 @@
 // This will create appropriate MPI communicators
 void create_communicators()
 {
-    MPI_Group group_world;
-    MPI_Group group_compute;
-
     // Extract group handle
     MPI_Comm_group(MPI_COMM_WORLD, &group_world);    
 
@@ -18,11 +15,13 @@ void create_communicators()
     int exclude_rank = 0;
     MPI_Group_excl(group_world, 1, &exclude_rank, &group_compute);
 
+    // Create render group
+    int include_rank = 0;
+    MPI_Group_incl(group_world, 1, &include_rank, &group_render);
+
     // Create communicator from group_compute
     MPI_Comm_create(MPI_COMM_WORLD, group_compute, &MPI_COMM_COMPUTE);
 
-    MPI_Group_free(&group_world);
-    MPI_Group_free(&group_compute);
 }
 
 void createMpiTypes()
@@ -96,6 +95,9 @@ void freeMpiTypes()
 {
     MPI_Type_free(&Particletype);
     MPI_Type_free(&Paramtype);
+
+    MPI_Group_free(&group_world);
+    MPI_Group_free(&group_compute);
 }
 
 void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
