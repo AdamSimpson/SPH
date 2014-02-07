@@ -189,7 +189,7 @@ void start_simulation()
 
     bool check_time = false;
     double time_before, time_after;
-    unsigned int steps_before_check = 10;
+    unsigned int steps_before_check = 5;
 
     // Main simulation loop
     while(1) {

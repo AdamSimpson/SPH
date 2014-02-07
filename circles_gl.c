@@ -37,7 +37,7 @@ void update_mover_point(float *point, float radius, CIRCLE_T *state)
 }
 
 // Update coordinate of fluid points
-void update_points(float *points, int num_points, CIRCLE_T *state)
+void update_points(float *points, float radius, int num_points, CIRCLE_T *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -48,7 +48,7 @@ void update_points(float *points, int num_points, CIRCLE_T *state)
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    draw_circles(state, num_points);
+    draw_circles(state, radius, num_points);
 }
 
 void create_buffers(CIRCLE_T *state)
@@ -130,13 +130,13 @@ void draw_circle_mover(CIRCLE_T *state, float radius)
 
 }
 
-void draw_circles(CIRCLE_T *state, int num_points)
+void draw_circles(CIRCLE_T *state, float radius, int num_points)
 {
     // Bind circle shader program
     glUseProgram(state->program);
 
     // set radius uniform
-    glUniform1f(state->radius_location, (GLfloat)3.0);
+    glUniform1f(state->radius_location, (GLfloat)radius);
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

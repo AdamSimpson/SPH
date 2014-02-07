@@ -139,8 +139,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
     static int x = 0;
     static int y = 0;
 
-    float x_scaled = 0.0;
-    float y_scaled = 0.0;
+    float x_scaled;
+    float y_scaled;
 
     ssize_t bytes_read;
 
@@ -152,8 +152,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
         MOUSE_INPUT event;
         bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
 
-        if(bytes_read != sizeof(MOUSE_INPUT))
-            return;
+//        if(bytes_read != sizeof(MOUSE_INPUT))
+//            return;
 
         int speed_multiplier = 2;
 

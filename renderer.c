@@ -185,7 +185,8 @@ void start_renderer()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render particles
-        update_points(points, total_coords/2, &circle_state);
+        float particle_radius = 3.0;
+        update_points(points, particle_radius, total_coords/2, &circle_state);
 
         // Render mover
         sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
@@ -194,7 +195,7 @@ void start_renderer()
         mover_point[2] = 1.0;
         mover_point[3] = 1.0;
         mover_point[4] = 1.0;
-        mover_radius_scaled = mover_radius*world_to_pix_scale;
+        mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Draw FPS
