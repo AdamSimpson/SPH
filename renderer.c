@@ -121,7 +121,7 @@ void start_renderer()
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
-    float fps=0.0;
+    float fps=0.0f;
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -143,7 +143,7 @@ void start_renderer()
         // Update paramaters as needed
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
-        mover_radius = 1.0;
+        mover_radius = 1.0f;
         for(i=0; i< num_compute_procs; i++) {
             params[i].mover_center_x = mouse_x_scaled;
             params[i].mover_center_y = mouse_y_scaled;
@@ -185,16 +185,16 @@ void start_renderer()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render particles
-        float particle_radius = 3.0;
+        float particle_radius = 3.0f;
         update_points(points, particle_radius, total_coords/2, &circle_state);
 
         // Render mover
         sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
         mover_point[0] = gl_x;
         mover_point[1] = gl_y;
-        mover_point[2] = 1.0;
-        mover_point[3] = 1.0;
-        mover_point[4] = 1.0;
+        mover_point[2] = 1.0f;
+        mover_point[3] = 1.0f;
+        mover_point[4] = 1.0f;
         mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
@@ -204,7 +204,7 @@ void start_renderer()
 //        printf("FPS: %f\n", fps);
 
 	    // Draw font parameters
-        render_parameters(&font_state, selected_param, params[0].g, 1.0, 1.0, 1.0, 1.0);
+        render_parameters(&font_state, selected_param, params[0].g, 1.0f, 1.0f, 1.0f, 1.0f);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);

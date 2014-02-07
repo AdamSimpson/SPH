@@ -53,25 +53,25 @@ void start_simulation()
     params.rank = rank;
     params.nprocs = nprocs;
 
-    params.g = 3.0;
-    params.time_step = 0.03;
-    params.k = 0.2;
-    params.k_near = 2.0;
-    params.k_spring = 10.0;
-    params.sigma = 20.0;
-    params.beta = 2.0;
-
+    params.g = 3.0f;
+    params.time_step = 0.03f;
+    params.k = 0.2f;
+    params.k_near = 2.0f;
+    params.k_spring = 10.0f;
+    params.sigma = 20.0f;
+    params.beta = 2.0f;
+    params.rest_density = 30.0f;
+ 
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.rest_density = 30.0;
     params.max_bucket_size = 100;
     params.max_neighbors = params.max_bucket_size*4;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
-    boundary_global.min_x = 0.0;
-    boundary_global.max_x = 20.0;
-    boundary_global.min_y = 0.0;
+    boundary_global.min_x = 0.0f;
+    boundary_global.max_x = 20.0f;
+    boundary_global.min_y = 0.0f;
 
     // Receive aspect ratio to scale world y max
     float aspect_ratio;
@@ -87,9 +87,9 @@ void start_simulation()
     }
 
     // water volume
-    water_volume_global.min_x = 0.0;
+    water_volume_global.min_x = 0.0f;
     water_volume_global.max_x = boundary_global.max_x;
-    water_volume_global.min_y = 0.0;
+    water_volume_global.min_y = 0.0f;
     water_volume_global.max_y = boundary_global.max_y;
 
     params.number_halo_particles = 0;
@@ -101,7 +101,7 @@ void start_simulation()
     params.spacing_particle = pow(area/params.number_fluid_particles_global,1.0/2.0);
 
     // Smoothing radius, h
-    params.smoothing_radius = 2.0*params.spacing_particle;
+    params.smoothing_radius = 2.0f*params.spacing_particle;
 
     printf("smoothing radius: %f\n", params.smoothing_radius);
 
@@ -312,8 +312,8 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
         p->v_y += g*dt;
 
         // Zero out density as well
-        p->density = 0.0;
-        p->density_near = 0.0;
+        p->density = 0.0f;
+        p->density_near = 0.0f;
      }
 }
 
@@ -330,7 +330,7 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     float h_recip, sigma, beta, dt;
 
     num_fluid = params->number_fluid_particles_local;
-    h_recip = 1.0/params->smoothing_radius;
+    h_recip = 1.0f/params->smoothing_radius;
     sigma = params->sigma;
     beta = params->beta;
     dt = params->time_step;
@@ -349,26 +349,26 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
             QmP_y = (q->y-p_y);
             r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
 
-            r_recip = 1.0/r;
+            r_recip = 1.0f/r;
             ratio = r*h_recip;
 
             //Inward radial velocity
             u = ((p->v_x-q->v_x)*QmP_x + (p->v_y-q->v_y)*QmP_y)*r_recip;
-            if(u>0.0)
+            if(u>0.0f)
             {
                 imp = dt * (1-ratio)*(sigma * u + beta * u*u);
                 imp_x = imp*QmP_x*r_recip;
                 imp_y = imp*QmP_y*r_recip;
-                p->v_x -= imp_x*0.5;
-                p->v_y -= imp_y*0.5;
+                p->v_x -= imp_x*0.5f;
+                p->v_y -= imp_y*0.5f;
                 if(q->id < num_fluid) {
-                    q->v_x += imp_x*0.5;
-                    q->v_y += imp_y*0.5;
+                    q->v_x += imp_x*0.5f;
+                    q->v_y += imp_y*0.5f;
 
                 }
                 else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
-                    q->v_x += imp_x*0.25;
-                    q->v_y += imp_y*0.25;
+                    q->v_x += imp_x*0.25f;
+                    q->v_y += imp_y*0.25f;
                 }
                 
             }
@@ -411,13 +411,13 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
 void calculate_density(fluid_particle *p, fluid_particle *q, float ratio)
 {
 
-    float OmR2 = (1-ratio)*(1-ratio); // (one - r)^2
-    if(ratio < 1.0) {
+    float OmR2 = (1.0f-ratio)*(1.0f-ratio); // (one - r)^2
+    if(ratio < 1.0f) {
 	p->density += OmR2;
-	p->density_near += OmR2*(1-ratio);
+	p->density_near += OmR2*(1.0f-ratio);
 
 	q->density += OmR2;
-	q->density_near += OmR2*(1-ratio);
+	q->density_near += OmR2*(1.0f-ratio);
     }
 
 }
@@ -436,7 +436,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     k_near = params->k_near;
     k_spring = params->k_spring;
     h = params->smoothing_radius;
-    h_recip = 1.0/h;
+    h_recip = 1.0f/h;
     dt = params->time_step;
 
     // Calculate the pressure of all particles, including halo
@@ -458,19 +458,19 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 
             q = n->fluid_neighbors[j];
             r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	        r_recip = 1.0/r;
+	        r_recip = 1.0f/r;
 	        ratio = r*h_recip;
-	        OmR = 1.0 - ratio;
+	        OmR = 1.0f - ratio;
 
             // Attempt to move clustered particles apart
 	        // Particles really love to gather at (0,0)
 	        // Particularly when hash buckets overflow
-            if(r <= 0.0000001) {
-                p->x += h*0.1;
-                p->y += h*0.1;
+            if(r <= 0.000001) {
+                p->x += h*0.1f;
+                p->y += h*0.1f;
             }
 
-	    if(ratio < 1.0 && r > 0.0) {
+	    if(ratio < 1.0f && r > 0.0f) {
             // Updating both neighbor pairs at the same time, slightly different than the paper but quicker
             // Also the running sum of D for particle p seems to produce more bias/instability so is removed
             D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
@@ -484,8 +484,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
                 q->y += D_y;
             }	
             else { // Move the halo particles only half way to account for other sides missing contribution
-                q->x += D_x/2.0;
-                q->y += D_y/2.0;
+                q->x += D_x/2.0f;
+                q->y += D_y/2.0f;
             }
                 
                p->x -= D_x;
@@ -498,7 +498,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 
 void updateVelocity(fluid_particle *p, param *params)
 {
-    const float v_max = 5.0;
+    const float v_max = 5.0f;
     float dt = params->time_step;
     float v_x, v_y;
 
@@ -531,7 +531,7 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AAB
 void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params)
 {
     // Boundary friction
-    const static float mu = 1.0;
+    const static float mu = 1.0f;
     float dt = params->time_step;
 
     float v_dot_n, vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
@@ -585,7 +585,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     float center_x = params->mover_center_x;
     float center_y = params->mover_center_y;
 
-    float radius = 1.0;
+    float radius = 1.0f;
     float norm_x;
     float norm_y;
 
@@ -594,7 +594,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     // Test if inside of circle
     float d;
     float d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
-    if(d2 <= radius*radius && d2 > 0.0) {
+    if(d2 <= radius*radius && d2 > 0.0f) {
         norm_x = (center_x-p->x)/sqrt(d2);
         norm_y = (center_y-p->y)/sqrt(d2);
 
@@ -633,13 +633,13 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         p->x = boundary->min_x;
     }
     else if(p->x > boundary->max_x){
-        p->x = boundary->max_x-0.001;
+        p->x = boundary->max_x-0.001f;
     }
     if(p->y < boundary->min_y) {
         p->y = boundary->min_y;
     }
     else if(p->y > boundary->max_y){
-        p->y = boundary->max_y-0.001;
+        p->y = boundary->max_y-0.001f;
     }
 
 }
@@ -660,9 +660,9 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 
     // Initialize particle values
     for(i=0; i<params->number_fluid_particles_local; i++) {
-        fluid_particle_pointers[i]->a_x = 0.0;
-        fluid_particle_pointers[i]->a_y = 0.0;
-        fluid_particle_pointers[i]->v_x = 0.0;
-        fluid_particle_pointers[i]->v_y = 0.0;
+        fluid_particle_pointers[i]->a_x = 0.0f;
+        fluid_particle_pointers[i]->a_y = 0.0f;
+        fluid_particle_pointers[i]->v_x = 0.0f;
+        fluid_particle_pointers[i]->v_y = 0.0f;
     }
 }

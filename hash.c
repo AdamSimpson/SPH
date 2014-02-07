@@ -35,7 +35,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n_
     int max_neighbors = params->max_neighbors;
     float spacing = params->smoothing_radius;
     float h = params->smoothing_radius;
-    float h_recip = 1.0/h;
+    float h_recip = 1.0f/h;
     float ratio;
 
     float h2 = h*h;
@@ -101,8 +101,8 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
 {
         int i,j,dx,dy,n,c;
         float x,y, px,py;
-	float h = params->smoothing_radius;
-        float h_recip = 1.0/h;
+        float h = params->smoothing_radius;
+        float h_recip = 1.0f/h;
         float h2 = h*h;
 
         int n_f = params->number_fluid_particles_local;
@@ -112,7 +112,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
         fluid_particle *p, *q, *q_neighbor;
         neighbor *ne;
         float r,r2, ratio; 
-	unsigned int index, neighbor_index;
+        unsigned int index, neighbor_index;
 
         // zero out number of particles in bucket
         for (index=0; index<params->length_hash; index++){
@@ -169,42 +169,40 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor *neighbors, n
             }
 
             // Check neighbors of current bucket
-	    // This only checks "forward" neighbors
+            // This only checks "forward" neighbors
             for (dx=0; dx<=1; dx++) {
                 for (dy=(dx?-1:1); dy<=1; dy++) {
 		
-	  	    // If the neighbor is outside of the grid we don't process it
-		    if ( j+dy < 0 || i+dx < 0 || (i+dx) >= params->grid_size_x || (j+dy) >= params->grid_size_y)
-		        continue;
+	  	            // If the neighbor is outside of the grid we don't process it
+		            if ( j+dy < 0 || i+dx < 0 || (i+dx) >= params->grid_size_x || (j+dy) >= params->grid_size_y)
+		                continue;
 
-		    neighbor_index = (j+dy)*params->grid_size_x + (i+dx);
+		            neighbor_index = (j+dy)*params->grid_size_x + (i+dx);
 
 			
                     // Add neighbor particles to particles in current bucket
                     for (c=0; c<hash[index].number_fluid; c++) {
-		        // Particle in currently being worked on buccket
+		            // Particle in currently being worked on buccket
                         q = hash[index].fluid_particles[c];
                         ne = &neighbors[q->id];
-	                for(n=0; n<hash[neighbor_index].number_fluid; n++){
+	                    for(n=0; n<hash[neighbor_index].number_fluid; n++){
                            // Append neighbor to q's neighbor list
-		           q_neighbor = hash[neighbor_index].fluid_particles[n];
-
+		                   q_neighbor = hash[neighbor_index].fluid_particles[n];
                            r2 = (q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y);
                            if(r2 > h2)
                                continue;
-
-			    if(ne->number_fluid_neighbors < max_neighbors) {
-		                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
-		                if(compute_density) {
-                                    r = sqrt(r2);
-                                    ratio = r*h_recip;
-			            calculate_density(q_neighbor, q, ratio);
-				}
-			   }
-			   else
-			       debug_print("neighbor overflow\n");
-		        }
-                     }
+			               if(ne->number_fluid_neighbors < max_neighbors) {
+		                       ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
+		                       if(compute_density) {
+                                   r = sqrt(r2);
+                                   ratio = r*h_recip;
+			                       calculate_density(q_neighbor, q, ratio);
+				               }
+			               }
+			               else
+			                   debug_print("neighbor overflow\n");
+		               }
+                   }
                       
                 } // end dy
              }  // end dx
