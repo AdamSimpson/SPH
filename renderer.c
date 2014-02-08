@@ -9,7 +9,7 @@
 
 // Translate between pixel coordinates with origin at screen center
 // to simulation coordinates
-inline void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
+void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
 {
     float half_width = world_dims[0]*0.5;
     float half_height = world_dims[1]*0.5;
@@ -18,7 +18,7 @@ inline void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, floa
     *sim_y = y*half_height + half_height;
 }
 
-inline void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
+void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
 {
     float half_width = world_dims[0]*0.5;
     float half_height = world_dims[1]*0.5;

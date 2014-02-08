@@ -59,16 +59,10 @@ struct PARAM {
     float mover_center_x;
     float mover_center_y;
     float mover_radius;
-    int max_bucket_size; // Maximum particles in hash bucket
-    int max_neighbors;   // Maximum number of neighbor particles per particle
-    int grid_size_x;
-    int grid_size_y;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles not including halo
     int max_fluid_particle_index;     // Max index used in actual particle array
-    int max_fluid_particles_local;    // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles;        // Starting at max_fluid_particle_index
-    int length_hash;
 }; // Simulation paramaters
 
 ////////////////////////////////////////////////
@@ -77,7 +71,8 @@ struct PARAM {
 void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                   neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
+                   AABB* water, int start_x, int number_particles_x, 
+		   edge *edges, int max_fluid_particles_local, param* params);
 
 void start_simulation();
 void calculate_density(fluid_particle *p, fluid_particle *q, float ratio);

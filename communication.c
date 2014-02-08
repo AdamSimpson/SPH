@@ -55,8 +55,8 @@ void createMpiTypes()
 
     // Create param type
     for(i=0; i<15; i++) types[i] = MPI_FLOAT;
-    for(i=15; i<25; i++) types[i] = MPI_INT;
-    for (i=0; i<25; i++) blocklens[i] = 1;
+    for(i=15; i<19; i++) types[i] = MPI_INT;
+    for (i=0; i<19; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( param, rest_density );
     disps[1] = offsetof( param, spacing_particle );
@@ -73,19 +73,13 @@ void createMpiTypes()
     disps[12] = offsetof( param, mover_center_x );
     disps[13] = offsetof( param, mover_center_y );
     disps[14] = offsetof( param, mover_radius );
-    disps[15] = offsetof( param, max_bucket_size );
-    disps[16] = offsetof( param, max_neighbors ); 
-    disps[17] = offsetof( param, grid_size_x );
-    disps[18] = offsetof( param, grid_size_y );
-    disps[19] = offsetof( param, number_fluid_particles_global );
-    disps[20] = offsetof( param, number_fluid_particles_local );
-    disps[21] = offsetof( param, max_fluid_particle_index );
-    disps[22] = offsetof( param, max_fluid_particles_local );
-    disps[23] = offsetof( param, number_halo_particles );
-    disps[24] = offsetof( param, length_hash );
+    disps[15] = offsetof( param, number_fluid_particles_global );
+    disps[16] = offsetof( param, number_fluid_particles_local );
+    disps[17] = offsetof( param, max_fluid_particle_index );
+    disps[18] = offsetof( param, number_halo_particles );
 
     // Commit type
-    MPI_Type_create_struct( 25, blocklens, disps, types, &Paramtype );
+    MPI_Type_create_struct( 19, blocklens, disps, types, &Paramtype );
     MPI_Type_commit( &Paramtype );
 }
 

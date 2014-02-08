@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "mpi.h"
 
+#include "mpi.h"
 #include "hash.h"
 #include "renderer.h"
 #include "geometry.h"
@@ -61,8 +61,6 @@ void start_simulation()
  
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 2000;
-    params.max_bucket_size = 100;
-    params.max_neighbors = params.max_bucket_size*4;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -91,19 +89,14 @@ void start_simulation()
 
     params.number_halo_particles = 0;
 
+    int start_x;  // where in x direction this nodes particles start
+    int number_particles_x; // number of particles in x direction for this node
+
     // Fluid area in initial configuration
     float area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
 
     // Initial spacing between particles
     params.spacing_particle = pow(area/params.number_fluid_particles_global,1.0/2.0);
-
-    // Smoothing radius, h
-    params.smoothing_radius = 2.0f*params.spacing_particle;
-
-    printf("smoothing radius: %f\n", params.smoothing_radius);
-
-    int start_x;  // where in x direction this nodes particles start
-    int number_particles_x; // number of particles in x direction for this node
 
     // Divide problem set amongst nodes
     partitionProblem(&boundary_global, &water_volume_global, &start_x, &number_particles_x, &params);
@@ -111,50 +104,67 @@ void start_simulation()
     // Set local/global number of particles to allocate
     setParticleNumbers(&boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, &params);
 
+    // We will allocate enough room for all particles on single node
+    int max_fluid_particles_local = params.number_fluid_particles_global;
+
+    // Smoothing radius, h
+    params.smoothing_radius = 2.0f*params.spacing_particle;
+
+    printf("smoothing radius: %f\n", params.smoothing_radius);
+
+    // Neighbor grid setup
+    neighbor_grid_t neighbor_grid;
+    neighbor_grid.max_bucket_size = 100;
+    neighbor_grid.max_neighbors = neighbor_grid.max_bucket_size*4;
+    neighbor_grid.spacing = params.smoothing_radius;
+
     size_t total_bytes = 0;
     size_t bytes;
     // Allocate fluid particles array
-    bytes = params.max_fluid_particles_local * sizeof(fluid_particle);
+    bytes = max_fluid_particles_local * sizeof(fluid_particle);
     total_bytes+=bytes;
     fluid_particle *fluid_particles = malloc(bytes);
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
     // Allocate (x,y) coordinate array
-    bytes = 2 * params.max_fluid_particles_local * sizeof(float);
+    bytes = 2 * max_fluid_particles_local * sizeof(float);
     total_bytes+=bytes;
     float *fluid_particle_coords = malloc(bytes);
     if(fluid_particle_coords == NULL)
         printf("Could not allocate fluid_particle coords\n");
 
     // Allocate pointer array used to traverse non vacant particles
-    bytes = params.max_fluid_particles_local * sizeof(fluid_particle*);
+    bytes = max_fluid_particles_local * sizeof(fluid_particle*);
     total_bytes+=bytes;
     fluid_particle **fluid_particle_pointers = malloc(bytes);
     if(fluid_particle_pointers == NULL)
         printf("Could not allocate fluid_particle_pointers\n");
 
     // Allocate neighbor array
-    neighbor *neighbors = calloc(params.max_fluid_particles_local, sizeof(neighbor));
-    fluid_particle **fluid_neighbors = calloc(params.max_fluid_particles_local * params.max_neighbors, sizeof(fluid_particle *));
+    neighbor *neighbors = calloc(max_fluid_particles_local, sizeof(neighbor));
+    fluid_particle **fluid_neighbors = calloc(max_fluid_particles_local * neighbor_grid.max_neighbors, sizeof(fluid_particle *));
     // Set pointer in each bucket
-    for(i=0; i< params.max_fluid_particles_local; i++ )
-        neighbors[i].fluid_neighbors = &(fluid_neighbors[i*params.max_neighbors]);
-    total_bytes+= (params.max_fluid_particles_local*sizeof(neighbor) + params.max_neighbors*sizeof(fluid_particle *));
+    for(i=0; i< max_fluid_particles_local; i++ )
+        neighbors[i].fluid_neighbors = &(fluid_neighbors[i*neighbor_grid.max_neighbors]);
+
+    neighbor_grid.neighbors = neighbors;
+    total_bytes+= (max_fluid_particles_local*sizeof(neighbor) + neighbor_grid.max_neighbors*sizeof(fluid_particle *));
     if(neighbors == NULL || fluid_neighbors == NULL)
         printf("Could not allocate neighbors\n");
 
     // UNIFORM GRID HASH
-    params.grid_size_x = ceil((boundary_global.max_x - boundary_global.min_x) / params.smoothing_radius);
-    params.grid_size_y = ceil((boundary_global.max_y - boundary_global.min_y) / params.smoothing_radius);
-    unsigned int grid_size = params.grid_size_x * params.grid_size_y;
-    params.length_hash = grid_size;
-    n_bucket* neighbor_grid = calloc(params.length_hash, sizeof(n_bucket));
-    fluid_particle **bucket_particles = calloc(params.length_hash * params.max_bucket_size, sizeof(fluid_particle *));
-    for(i=0; i < params.length_hash; i++)
-	neighbor_grid[i].fluid_particles = &(bucket_particles[i*params.max_bucket_size]);
-    total_bytes+= (params.length_hash * sizeof(n_bucket) + params.max_bucket_size * sizeof(fluid_particle *));
-    if(neighbor_grid == NULL || bucket_particles == NULL)
+    neighbor_grid.size_x = ceil((boundary_global.max_x - boundary_global.min_x) / neighbor_grid.spacing);
+    neighbor_grid.size_y = ceil((boundary_global.max_y - boundary_global.min_y) / neighbor_grid.spacing);
+    unsigned int length_hash = neighbor_grid.size_x * neighbor_grid.size_y;
+    printf("grid x: %d grid y %d\n", neighbor_grid.size_x, neighbor_grid.size_y);
+    bucket_t* grid_buckets = calloc(length_hash, sizeof(bucket_t));
+    fluid_particle **bucket_particles = calloc(length_hash * neighbor_grid.max_bucket_size, sizeof(fluid_particle *));
+    neighbor_grid.grid_buckets = grid_buckets;
+    for(i=0; i < length_hash; i++)
+	grid_buckets[i].fluid_particles = &(bucket_particles[i*neighbor_grid.max_bucket_size]);
+    total_bytes+= (length_hash * sizeof(bucket_t) + neighbor_grid.max_bucket_size * sizeof(fluid_particle *));
+    if(grid_buckets == NULL || bucket_particles == NULL)
         printf("Could not allocate hash\n");
 
     // Allocate edge index arrays
@@ -168,7 +178,8 @@ void start_simulation()
     printf("bytes allocated: %lu\n", total_bytes);
 
     // Initialize particles
-    initParticles(fluid_particle_pointers, fluid_particles, neighbors, neighbor_grid, &water_volume_global, start_x, number_particles_x, &edges, &params);
+    initParticles(fluid_particle_pointers, fluid_particles, &water_volume_global, start_x,
+		  number_particles_x, &edges, max_fluid_particles_local, &params);
 
     // Print some parameters
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
@@ -221,7 +232,7 @@ void start_simulation()
         // Hash the non halo regions
         // This will update the densities so when the halo is exchanged the halo particles are up to date
         // This works well on the raspi's but destroys communication/computation overlap
-        hash_fluid(fluid_particle_pointers, neighbors, neighbor_grid, &params, true);
+        hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, true);
 
          // Exchange halo particles
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
@@ -233,7 +244,7 @@ void start_simulation()
 
 	// Add the halo particles to neighbor buckets
 	// Also update density
-        hash_halo(fluid_particle_pointers, neighbors, neighbor_grid, &params, true);
+        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, true);
 
         // double density relaxation
 	// halo particles will be missing origin contributions to density/pressure
@@ -259,13 +270,13 @@ void start_simulation()
 //        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // We can hash during exchange as the density is not needed
-        hash_fluid(fluid_particle_pointers, neighbors, neighbor_grid, &params, false);
+        hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // Finish asynch halo exchange
 //        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
-//        hash_halo(fluid_particle_pointers, neighbors, neighbor_grid, &params, false);
+//        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost
@@ -657,7 +668,8 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 
 // Initialize particles
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params)
+                   AABB* water, int start_x, int number_particles_x,    
+                   edge *edges, int max_fluid_particles_local, param* params)
 {
     int i;
     fluid_particle *p;
@@ -666,7 +678,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
     constructFluidVolume(fluid_particle_pointers, fluid_particles, water, start_x, number_particles_x, edges, params);
 
     // NULL out unused fluid pointers
-    for(i=params->number_fluid_particles_local; i<params->max_fluid_particles_local; i++)
+    for(i=params->number_fluid_particles_local; i<max_fluid_particles_local; i++)
         fluid_particle_pointers[i] = NULL;
 
     // Initialize particle values

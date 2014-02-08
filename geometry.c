@@ -71,9 +71,6 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
     // Allow space for all particles if neccessary
     int num_local_max = params->number_fluid_particles_global;
 
-    // Add initial space, extra space for particle transfers, and left/right out of boudns/halo particles
-    params->max_fluid_particles_local = num_local_max;// + 2*out_of_bounds->max_oob_particles + 2*edges->max_edge_particles;
-
     out_of_bounds->number_vacancies = 0;
     
 }
