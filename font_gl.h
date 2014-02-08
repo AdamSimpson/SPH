@@ -61,5 +61,6 @@ void create_font_buffers(FONT_T *state);
 void create_font_atlas(FONT_T *state);
 void init_font(FONT_T *state, int screen_width, int screen_height);
 void render_fps(FONT_T *state, float fps);
+void render_parameters(FONT_T *state, parameters selected_param, float gravity, float viscosity, float density, float pressure, float elasticity);
 
 #endif

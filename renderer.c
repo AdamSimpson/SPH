@@ -83,9 +83,7 @@ void start_renderer()
     // Initial gather
     MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
-    printf("global on render: %d\n", params[0].number_fluid_particles_global);
-
-    printf("nprocs %d\n", params[0].nprocs);
+    printf("global particles: %d\n", params[0].number_fluid_particles_global);
 
     // Allocate particle receive array
     int max_particles = params[0].number_fluid_particles_global;

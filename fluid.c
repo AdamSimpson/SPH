@@ -50,9 +50,6 @@ void start_simulation()
 
     unsigned int i;
 
-    params.rank = rank;
-    params.nprocs = nprocs;
-
     params.g = 3.0f;
     params.time_step = 0.03f;
     params.k = 0.2f;
@@ -189,7 +186,7 @@ void start_simulation()
 
     bool check_time = false;
     double time_before, time_after;
-    unsigned int steps_before_check = 5;
+    unsigned int steps_before_check = 100;
 
     // Main simulation loop
     while(1) {
@@ -200,7 +197,7 @@ void start_simulation()
         }
 
         // Initialize velocities
-   	    apply_gravity(fluid_particle_pointers, &params);
+        apply_gravity(fluid_particle_pointers, &params);
 
         // Viscosity impluse
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
@@ -222,11 +219,11 @@ void start_simulation()
         MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
         // Hash the non halo regions
-  	    // This will update the densities so when the halo is exchanged the halo particles are up to date
-	    // This works well on the raspi's but destroys communication/computation overlap
+        // This will update the densities so when the halo is exchanged the halo particles are up to date
+        // This works well on the raspi's but destroys communication/computation overlap
         hash_fluid(fluid_particle_pointers, neighbors, neighbor_grid, &params, true);
 
-	    // Exchange halo particles
+         // Exchange halo particles
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
@@ -234,12 +231,12 @@ void start_simulation()
         if(check_time)
             time_after = MPI_Wtime();
 
-	    // Add the halo particles to neighbor buckets
-	    // Also update density
+	// Add the halo particles to neighbor buckets
+	// Also update density
         hash_halo(fluid_particle_pointers, neighbors, neighbor_grid, &params, true);
 
         // double density relaxation
-	    // halo particles will be missing origin contributions to density/pressure
+	// halo particles will be missing origin contributions to density/pressure
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
@@ -251,23 +248,24 @@ void start_simulation()
             checkPartition(fluid_particle_pointers, &out_of_bounds, time_before + time_after, &params);
             // reset
             n = 0;
-  	        check_time = false;
+  	    check_time = false;
         }
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
+	// TODO: Make this dynamic based upon FPS as measured from render node
 
         // Exchange halo particles from relaxed positions
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // We can hash during exchange as the density is not needed
         hash_fluid(fluid_particle_pointers, neighbors, neighbor_grid, &params, false);
 
         // Finish asynch halo exchange
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
-        hash_halo(fluid_particle_pointers, neighbors, neighbor_grid, &params, false);
+//        hash_halo(fluid_particle_pointers, neighbors, neighbor_grid, &params, false);
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost
@@ -318,7 +316,6 @@ void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
 }
 
 // Add viscosity impluses
-// TODO: GUARD AGAINST IMPULSE BLOWING UP
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
 {
     int i, j, num_fluid;
@@ -359,16 +356,22 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
                 imp = dt * (1-ratio)*(sigma * u + beta * u*u);
                 imp_x = imp*QmP_x*r_recip;
                 imp_y = imp*QmP_y*r_recip;
+
+		// Not correct to use velocity check but will stop velocity from
+		// blowing up
+		checkVelocity(&imp_x, &imp_y);
+
                 p->v_x -= imp_x*0.5f;
                 p->v_y -= imp_y*0.5f;
+
                 if(q->id < num_fluid) {
                     q->v_x += imp_x*0.5f;
                     q->v_y += imp_y*0.5f;
 
                 }
                 else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
-                    q->v_x += imp_x*0.25f;
-                    q->v_y += imp_y*0.25f;
+                //    q->v_x += imp_x*0.25f;
+                //    q->v_y += imp_y*0.25f;
                 }
                 
             }
@@ -463,52 +466,60 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 	        OmR = 1.0f - ratio;
 
             // Attempt to move clustered particles apart
-	        // Particles really love to gather at (0,0)
-	        // Particularly when hash buckets overflow
-            if(r <= 0.000001) {
-                p->x += h*0.1f;
-                p->y += h*0.1f;
+            if(r <= 0.000001f) {
+                p->x += 0.000001f;
+                p->y += 0.000001f;
             }
 
 	    if(ratio < 1.0f && r > 0.0f) {
-            // Updating both neighbor pairs at the same time, slightly different than the paper but quicker
-            // Also the running sum of D for particle p seems to produce more bias/instability so is removed
-            D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
-            D_x = D*(q->x-p->x)*r_recip;
-            D_y = D*(q->y-p->y)*r_recip;
+                // Updating both neighbor pairs at the same time, slightly different than the paper but quicker
+                // Also the running sum of D for particle p seems to produce more bias/instability so is removed
+                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
+                D_x = D*(q->x-p->x)*r_recip;
+                D_y = D*(q->y-p->y)*r_recip;
 
-            // Do not move the halo particles full D
-            // Halo particles are missing D from their origin so I believe this is appropriate
-            if(q->id < num_fluid) {
-                q->x += D_x;
-                q->y += D_y;
-            }	
-            else { // Move the halo particles only half way to account for other sides missing contribution
-                q->x += D_x/2.0f;
-                q->y += D_y/2.0f;
-            }
-                
-               p->x -= D_x;
-               p->y -= D_y;
+                // Do not move the halo particles full D
+                // Halo particles are missing D from their origin so I believe this is appropriate
+                if(q->id < num_fluid) {
+                    q->x += D_x;
+                    q->y += D_y;
+                }	
+                else { // Move the halo particles only half way to account for other sides missing contribution
+                   // q->x += D_x*0.5f;
+                   // q->y += D_y*0.5f;
+                }
+               
+                p->x -= D_x;
+                p->y -= D_y;
            }
        }
 
     }
 }
 
-void updateVelocity(fluid_particle *p, param *params)
+void checkVelocity(float *v_x, float *v_y)
 {
     const float v_max = 5.0f;
+
+    if(*v_x > v_max)
+        *v_x = v_max;
+    else if(*v_x < -v_max)
+        *v_x = -v_max;
+    if(*v_y > v_max)
+        *v_y = v_max;
+    else if(*v_y < -v_max)
+        *v_y = -v_max;
+}
+
+void updateVelocity(fluid_particle *p, param *params)
+{
     float dt = params->time_step;
     float v_x, v_y;
 
     v_x = (p->x-p->x_prev)/dt;
     v_y = (p->y-p->y_prev)/dt;
 
-    if(v_x > v_max)
-	v_x = v_max;
-    if(v_y > v_max)
-	v_y = v_max;
+    checkVelocity(&v_x, &v_y);
 
     p->v_x = v_x;
     p->v_y = v_y;

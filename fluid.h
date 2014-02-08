@@ -69,8 +69,6 @@ struct PARAM {
     int max_fluid_particles_local;    // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles;        // Starting at max_fluid_particle_index
     int length_hash;
-    int rank;
-    int nprocs;
 }; // Simulation paramaters
 
 ////////////////////////////////////////////////
@@ -89,5 +87,7 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AABB *boundary_global, param *params);
+void checkVelocity(float *v_x, float *v_y);
+
 
 #endif

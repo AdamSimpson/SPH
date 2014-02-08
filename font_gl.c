@@ -143,7 +143,11 @@ void create_font_atlas(FONT_T *state)
         }
 
         // fill texture with glyph
+	#ifdef GLES
         glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE, g->bitmap.buffer);
+	#else
+        glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer);	
+	#endif
 
         // Cache values
         char_info[i].ax = g->advance.x >> 6;
@@ -213,10 +217,17 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Load font face
+    #ifdef GLES
     if(FT_New_Face(state->ft, "SPH/DroidSerif-Regular.ttf", 0, &state->face)) {
         printf("Error loading font face\n");
         exit(EXIT_FAILURE);
     }
+    #else
+    if(FT_New_Face(state->ft, "DroidSerif-Regular.ttf", 0, &state->face)) {
+        printf("Error loading font face\n");
+        exit(EXIT_FAILURE);
+    }
+    #endif
 
     // Set pixel size
     FT_Set_Pixel_Sizes(state->face, 0, 24);

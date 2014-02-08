@@ -33,10 +33,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 // x,y [-1, 1], center of screen is origin
 void get_mouse(float *x, float *y, GL_STATE_T *state)
 {
-    glfwGetCursorPos(state->window, x, y);
-    *y = (state->screen_height - *y); // Flip y = 0
+    double mx, my;
+    glfwGetCursorPos(state->window, &mx, &my);
+    *y = (state->screen_height - my); // Flip y = 0
     *y = *y/(0.5*state->screen_height) - 1.0;
-    *x = *x/(0.5*state->screen_width) - 1.0;
+    *x = mx/(0.5*state->screen_width) - 1.0;
 }
 
 // Description: Sets the display, OpenGL context and screen stuff

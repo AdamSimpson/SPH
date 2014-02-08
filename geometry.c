@@ -35,7 +35,9 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
         }
     }
 
-    printf("rank %d max fluid x: %f\n", params->rank,fluid->min_x + (start_x + nx-1)*spacing);
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    printf("rank %d max fluid x: %f\n", rank,fluid->min_x + (start_x + nx-1)*spacing);
 
     params->number_fluid_particles_local = i;
     params->max_fluid_particle_index = i - 1;
@@ -80,10 +82,13 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, int *length_x, param *params)
 {
     int i;
-    int nprocs = params->nprocs;
-    int rank = params->rank;
     float spacing = params->spacing_particle;
-        
+     
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
+
     // number of fluid particles in x direction
     // +1 added for zeroth particle
     int fluid_particles_x = floor((fluid_global->max_x - fluid_global->min_x ) / spacing) + 1;
@@ -142,9 +147,12 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
 {
     int i;
     fluid_particle *p;
-    int rank = params->rank;
-    int nprocs = params->nprocs;
     float h = params->spacing_particle;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
 
     // Get elapsed time since last partition and set new partition time
     double seconds_self =  partition_time;
