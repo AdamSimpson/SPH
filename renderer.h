@@ -20,7 +20,21 @@ typedef struct {
     int num_params;
 
     // "Master" parameters
-    
+    float rest_density;
+    float spacing_particle;
+    float smoothing_radius;
+    float g;
+    float k; // Pressure constant
+    float k_near; // Near pressure constant
+    float k_spring; // Spring constant
+    float sigma; // linear velocity viscocity term
+    float beta;  // quadratic velocity viscocity term
+    float time_step;
+    float node_start_x; // left x position of node partition
+    float node_end_x;   // right x position of node partition
+    float mover_center_x;
+    float mover_center_y;
+    float mover_radius;
 } RENDER_T;
 
 void start_renderer();

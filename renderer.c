@@ -60,7 +60,6 @@ void start_renderer()
         param_counts[i] = i?1:0; // will not receive from rank 0
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }
-
     // Initial gather
     MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
@@ -78,9 +77,8 @@ void start_renderer()
     // Allocate mover point array(position + color)
     float mover_point[5];
 
-    // Particle coordinate gather values
-    int *particle_counts = malloc(num_procs * sizeof(int));
-    int *particle_displs = malloc(num_procs * sizeof(int));
+    // Number of coordinates received from each proc
+    int *particle_coordinate_counts = malloc(num_compute_procs * sizeof(int));
 
     // Set background color
     glClearColor(0, 0, 0, 1);
@@ -90,9 +88,8 @@ void start_renderer()
         1.0,1.0,0.1,
         0.08,0.52,0.8};
 
-    // Perhaps the RECV loop will help pipeline particle send and draw more than a gather
     int num_coords_rank;
-    int total_coords, current_rank;
+    int current_rank;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
     float mover_radius, mover_radius_scaled;
 
@@ -101,6 +98,13 @@ void start_renderer()
     double current_time;
     double wall_time = MPI_Wtime();
     float fps=0.0f;
+
+    // Setup MPI requests used to gather particle coordinates
+    MPI_Request coord_reqs[num_compute_procs];
+    MPI_Status status;
+    int src, coords_recvd;
+    float gl_x, gl_y;
+    float particle_radius = 1.0f;
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -112,11 +116,8 @@ void start_renderer()
 	    wall_time = current_time;
 	}	    
 
-        // Recieve paramaters struct from all nodes
-        MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
-
         // Send updated paramaters to compute nodes
-        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
+//        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 
         // Get keyboard key press
         // process appropriately
@@ -126,46 +127,28 @@ void start_renderer()
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
         mover_radius = 1.0f;
-        for(i=0; i< num_compute_procs; i++) {
-            params[i].mover_center_x = mouse_x_scaled;
-            params[i].mover_center_y = mouse_y_scaled;
-            params[i].mover_radius = mover_radius;
-        }
+        render_state.mover_center_x = mouse_x_scaled;
+        render_state.mover_center_y = mouse_y_scaled;
+        render_state.mover_radius = mover_radius;
 
         // Retrieve all particle coordinates (x,y)
-        num_coords_rank = 0;
-        total_coords = 0;
-        for(i=0; i<num_procs; i++) {
-            num_coords_rank = i?2*params[i-1].number_fluid_particles_local:0;
-            particle_counts[i] = i?num_coords_rank:0;
-            particle_displs[i] = i?total_coords:0;
-            total_coords += num_coords_rank;
-        }
-        MPI_Gatherv(MPI_IN_PLACE, 0, MPI_FLOAT, particle_coords, particle_counts, particle_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
-
-        // Create points array (x,y,r,g,b)
-        current_rank = 0;
-        int particle_count = 1;
-        float gl_x, gl_y;
-        for(j=0; j<total_coords/2; j++, particle_count+=2) {
-            if ( particle_count > particle_counts[1+current_rank]){
-                current_rank++;
-                particle_count = 1;
-            }
-            sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
-            points[j*5]   = gl_x; 
-            points[j*5+1] = gl_y;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
-        }
+	// Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
+	// OR do synchronous recv
+	coords_recvd = 0;
+	for(i=0; i<num_compute_procs; i++) {
+	    // Wait until message is ready from any proc
+            MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
+	    // Retrieve probed values
+    	    src = status.MPI_SOURCE;
+	    MPI_Get_count(&status, MPI_FLOAT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
+	    // Start async recv using probed values
+	    MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_FLOAT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
+            // Update total number of floats recvd
+            coords_recvd += particle_coordinate_counts[src-1];
+	}
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // Render particles
-        float particle_radius = 1.0f;
-        update_points(points, particle_radius, total_coords/2, &circle_state);
 
         // Render mover
         sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
@@ -178,17 +161,44 @@ void start_renderer()
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Draw FPS
-  	render_fps(&font_state, fps);
+        render_fps(&font_state, fps);
 
-	// Draw font parameters
+        // Draw font parameters
         // SHOULD JUST PASS IN render_state
         // RENDER STATE SHOULD INCLUDE PARAMETER VALUES TO DISPLAY
-        render_parameters(&font_state, render_state.selected_parameter, params[0].g, 1.0f, 1.0f, 1.0f, 1.0f);
+        render_parameters(&font_state, render_state.selected_parameter, render_state.g, 1.0f, 1.0f, 1.0f, 1.0f);
 
+	// Wait for all coordinates to be received
+	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
+
+/*
+        // Create points array (x,y,r,g,b)
+        current_rank = 0;
+        int particle_count = 1;
+        for(j=0; j<coords_recvd/2; j++, particle_count+=2) {
+            if ( particle_count > particle_coordinate_counts[1+current_rank]){
+                current_rank++;
+                particle_count = 1;
+            }
+            sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
+            points[j*5]   = gl_x; 
+            points[j*5+1] = gl_y;
+            points[j*5+2] = colors_by_rank[3*current_rank];
+            points[j*5+3] = colors_by_rank[3*current_rank+1];
+            points[j*5+4] = colors_by_rank[3*current_rank+2];
+        }
+
+	// Draw particles
+        update_points(points, particle_radius, coords_recvd/2, &circle_state);
+*/
         // Swap front/back buffers
         swap_ogl(&gl_state);
 
         num_steps++;
+
+        // TODO: this function!
+        // Calculate problem partitioning
+//        balance_partitions(render_state);
     }
 
 //    exit_ogl(&state.gl_state);

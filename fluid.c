@@ -195,18 +195,10 @@ void start_simulation()
     fluid_particle *null_particle = NULL;
     float *null_float = NULL;
 
-    bool check_time = false;
-    double time_before, time_after;
-    unsigned int steps_before_check = 100;
+    MPI_Request coords_req = MPI_REQUEST_NULL;
 
     // Main simulation loop
     while(1) {
-        // Time calculations
-        if(n%steps_before_check == 0) {
-            check_time = true;
-            time_before = MPI_Wtime();
-        }
-
         // Initialize velocities
         apply_gravity(fluid_particle_pointers, &params);
 
@@ -216,18 +208,18 @@ void start_simulation()
         // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
 
-        // Stop time before blocking MPI calls
-        if(check_time)
-            time_before = MPI_Wtime() - time_before;
+	// Make sure that async send to render node is complete
+        if(coords_req != MPI_REQUEST_NULL)
+	    MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
+
+        // Receive updated paramaters from render nodes
+//        MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
+ 	  params.mover_center_x = 0.0; // REMOVE
+          params.mover_center_y = 0.0; // REMOVE
+
 
         // Transfer particles that have left the processor bounds
         transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
-
-        // Send compute parameters to render node
-        MPI_Gatherv(&params, 1, Paramtype, null_param, null_recvcnts, null_displs, Paramtype, 0, MPI_COMM_WORLD);
-
-        // Receive updated paramaters from render nodes
-        MPI_Scatterv(null_param, 0, null_displs, Paramtype, &params, 1, Paramtype, 0,  MPI_COMM_WORLD);
 
         // Hash the non halo regions
         // This will update the densities so when the halo is exchanged the halo particles are up to date
@@ -237,10 +229,6 @@ void start_simulation()
          // Exchange halo particles
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-
-        // Start time_after(after mpi calls)
-        if(check_time)
-            time_after = MPI_Wtime();
 
 	// Add the halo particles to neighbor buckets
 	// Also update density
@@ -252,15 +240,6 @@ void start_simulation()
 
         // update velocity
         updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
-
-        // Check for a balanced particle load between MPI tasks
-        if (check_time) {
-            time_after = MPI_Wtime() - time_after;
-            checkPartition(fluid_particle_pointers, &out_of_bounds, time_before + time_after, &params);
-            // reset
-            n = 0;
-  	    check_time = false;
-        }
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
@@ -281,16 +260,15 @@ void start_simulation()
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost
 
-        // Pack fluid_particle_coords
+        // Pack fluid particle coordinates
+	// This should be sent as short in pixel coordinates
         for(i=0; i<params.number_fluid_particles_local; i++) {
             p = fluid_particle_pointers[i];
             fluid_particle_coords[i*2] = p->x;
             fluid_particle_coords[(i*2)+1] = p->y;
         }
-
-        // Send particle positions to be rendered
-        MPI_Gatherv(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT,
-                null_float, null_recvcnts, null_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	// Async send fluid particle coordinates to render node
+	MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT, 0, 17, MPI_COMM_WORLD, &coords_req);
 
         // iterate sim loop counter
         n++;
