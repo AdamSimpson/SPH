@@ -21,6 +21,8 @@ void error_callback(int error, const char* description)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 
+    RENDER_T *render_state = glfwGetWindowUserPointer(window);
+
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
         switch(key)
         {
@@ -28,16 +30,16 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 glfwSetWindowShouldClose(window, GL_TRUE);
 	        break;
 	    case GLFW_KEY_RIGHT:
-		increase_parameter();
+		increase_parameter(render_state);
 		break;
 	    case GLFW_KEY_LEFT:
-		decrease_parameter();
+		decrease_parameter(render_state);
 		break;
             case GLFW_KEY_UP:
-		move_parameter_up();
+		move_parameter_up(render_state);
 		break;
 	    case GLFW_KEY_DOWN:
-		move_parameter_down();
+		move_parameter_down(render_state);
 		break;
         }
 }
@@ -54,7 +56,7 @@ void get_mouse(float *x, float *y, GL_STATE_T *state)
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void init_ogl(GL_STATE_T *state)
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -87,6 +89,10 @@ void init_ogl(GL_STATE_T *state)
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);
+
+    // Add render state to window pointer
+    // Used for key callbacks
+    glfwSetWindowUserPointer(state->window, render_state);
 
     // Set background color and clear buffers
     glClearColor(0.15f, 0.25f, 0.35f, 1.0f);

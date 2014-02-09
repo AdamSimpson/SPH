@@ -7,10 +7,6 @@
 #include "fluid.h"
 #include "font_gl.h"
 
-// enum to handle currently selected parameter
-// static file scope due to nature of key press callbacks...
-static parameters selected_param;
-
 void start_renderer()
 {
     // Setup initial OpenGL ES state
@@ -19,7 +15,8 @@ void start_renderer()
     memset(&gl_state, 0, sizeof(GL_STATE_T));
 
     // Start OpenGL
-    init_ogl(&gl_state);
+    RENDER_T render_state;
+    init_ogl(&gl_state, &render_state);
 
     // Initialize circle OpenGL state
     CIRCLE_T circle_state;
@@ -29,9 +26,6 @@ void start_renderer()
     FONT_T font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
-    // Set to first parameter
-    selected_param = 0;
-
     // Number of processes
     int num_procs, num_compute_procs;
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -40,6 +34,11 @@ void start_renderer()
     // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
     param *params = malloc(num_compute_procs*sizeof(param));
+
+    // Setup render state
+    render_state.params = params;
+    render_state.num_params = num_compute_procs;
+    render_state.selected_parameter = 0;
 
     int i,j;
 
@@ -113,10 +112,6 @@ void start_renderer()
 	    wall_time = current_time;
 	}	    
 
-	// Get keyboard key press
-	// process appropriately
-	check_key_press(&gl_state);	
-
         // Recieve paramaters struct from all nodes
         MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
@@ -129,6 +124,10 @@ void start_renderer()
             params[i].mover_center_y = mouse_y_scaled;
             params[i].mover_radius = mover_radius;
         }
+
+        // Get keyboard key press
+        // process appropriately
+        check_key_press(&gl_state);
 
         // Send updated paramaters to compute nodes
         MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
@@ -183,8 +182,10 @@ void start_renderer()
 //	    if(num_steps%frames_per_fps == 0)
 //        printf("FPS: %f\n", fps);
 
-	    // Draw font parameters
-        render_parameters(&font_state, selected_param, params[0].g, 1.0f, 1.0f, 1.0f, 1.0f);
+	// Draw font parameters
+        // SHOULD JUST PASS IN render_state
+        // RENDER STATE SHOULD INCLUDE PARAMETER VALUES TO DISPLAY
+        render_parameters(&font_state, render_state.selected_parameter, params[0].g, 1.0f, 1.0f, 1.0f, 1.0f);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -196,57 +197,65 @@ void start_renderer()
 
 }
 
-
 // Move selected parameter up
-void move_parameter_up()
+void move_parameter_up(RENDER_T *render_state)
 {
-    if(selected_param == MIN)
-        selected_param = MAX;
+    if(render_state->selected_parameter == MIN)
+        render_state->selected_parameter = MAX;
     else
-	selected_param--;
+	render_state->selected_parameter--;
 }
 
 // Move selected parameter down
-void move_parameter_down() 
+void move_parameter_down(RENDER_T *render_state) 
 {
-    if(selected_param == MAX)
-        selected_param = MIN;
+    if(render_state->selected_parameter == MAX)
+        render_state->selected_parameter = MIN;
     else
-        selected_param++;
+        render_state->selected_parameter++;
 }
 
-void increase_parameter()
+void increase_parameter(RENDER_T *render_state)
 {
-
+    switch(render_state->selected_parameter) {
+        case GRAVITY:
+	   increase_gravity(render_state);
+	    break;
+    }
 }
 
-void decrease_parameter()
+void decrease_parameter(RENDER_T *render_state)
 {
+    switch(render_state->selected_parameter) {
+        case GRAVITY:
+            decrease_gravity(render_state);
+            break;
+    }
 
 }
 
 // Increase gravity parameter
-void increase_gravity(param *params, int num_params)
+void increase_gravity(RENDER_T *render_state)
 {
     static const float max_grav = -9.0;
-    if(params[0].g < max_grav)
+    if(render_state->params[0].g < max_grav)
         return;
 
     int i;
-    for(i=0; i<num_params; i++)
-        params[i].g -= 1.0;
+    for(i=0; i<render_state->num_params; i++)
+        render_state->params[i].g -= 1.0;
 }
 
 // Decreate gravity parameter
-void decrease_gravity(param *params, int num_params)
+void decrease_gravity(RENDER_T *render_state)
 {
     static const float min_grav = 9.0;
-    if(params[0].g > min_grav)
+    if(render_state->params[0].g > min_grav)
         return;
 
     int i;
-    for(i=0; i<num_params; i++)
-        params[i].g += 1.0;
+    for(i=0; i<render_state->num_params; i++)
+        render_state->params[i].g += 1.0;
 }
 
 // Translate between pixel coordinates with origin at screen center

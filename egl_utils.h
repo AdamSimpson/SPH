@@ -20,6 +20,8 @@ typedef struct {
 
     int keyboard_fd;
     int mouse_fd;
+
+    void *user_pointer; // mimics GLFW user pointer
 } GL_STATE_T;
 
 typedef struct {
@@ -28,7 +30,7 @@ typedef struct {
     char dy;
 } MOUSE_INPUT;
 
-void init_ogl(GL_STATE_T *state);
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state);
 void exit_ogl(GL_STATE_T *state);
 void swap_ogl(GL_STATE_T *state);
 void check_key_press(GL_STATE_T *state);

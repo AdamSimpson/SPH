@@ -5,7 +5,7 @@
 #include "egl_utils.h"
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
-void init_ogl(GL_STATE_T *state)
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 {
 
     bcm_host_init();
@@ -14,6 +14,10 @@ void init_ogl(GL_STATE_T *state)
     memset(state, 0, sizeof(GL_STATE_T));
     state->keyboard_fd = -1;
     state->mouse_fd = -1;
+
+    // Set a user pointer up
+    // This mimics GLFW
+    state->user_pointer = render_state;
 
     int32_t success = 0;
     EGLBoolean result;
