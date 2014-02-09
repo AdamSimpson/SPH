@@ -4,6 +4,7 @@
 typedef struct FLUID_PARTICLE fluid_particle;
 typedef struct NEIGHBOR neighbor;
 typedef struct PARAM param;
+typedef struct TUNABLE_PARAMETERS tunable_parameters;
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -43,22 +44,28 @@ struct NEIGHBOR{
     int number_fluid_neighbors;
 };
 
-struct PARAM {
+
+// These parameters are tunable by the render node
+struct TUNABLE_PARAMETERS {
     float rest_density;
-    float spacing_particle;
     float smoothing_radius;
     float g;
-    float k; // Pressure constant
-    float k_near; // Near pressure constant
-    float k_spring; // Spring constant
-    float sigma; // linear velocity viscocity term
-    float beta;  // quadratic velocity viscocity term
+    float k;
+    float k_near;
+    float k_spring;
+    float sigma;
+    float beta;
     float time_step;
-    float node_start_x; // left x position of node partition
-    float node_end_x;   // right x position of node partition
+    float node_start_x;
+    float node_end_x;
     float mover_center_x;
     float mover_center_y;
     float mover_radius;
+};
+
+// Full parameters struct for simulation
+struct PARAM {
+    tunable_parameters tunable_params;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles not including halo
     int max_fluid_particle_index;     // Max index used in actual particle array
@@ -72,7 +79,7 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    AABB* water, int start_x, int number_particles_x, 
-		   edge *edges, int max_fluid_particles_local, param* params);
+		   edge *edges, int max_fluid_particles_local, float spacing, param* params);
 
 void start_simulation();
 void calculate_density(fluid_particle *p, fluid_particle *q, float ratio);

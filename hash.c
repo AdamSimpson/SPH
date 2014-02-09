@@ -32,7 +32,7 @@ void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid,
 
     int n_start = params->number_fluid_particles_local; // Start of halo particles
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
-    float h = params->smoothing_radius;
+    float h = params->tunable_params.smoothing_radius;
     float h_recip = 1.0f/h;
 
     unsigned int max_neighbors = grid->max_neighbors;
@@ -104,7 +104,7 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor_grid_t *grid,
 {
         int i,j,dx,dy,n,c;
         float x,y, px,py;
-        float h = params->smoothing_radius;
+        float h = params->tunable_params.smoothing_radius;
         float h_recip = 1.0f/h;
         float h2 = h*h;
         int n_f = params->number_fluid_particles_local;

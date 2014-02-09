@@ -54,39 +54,33 @@ void createMpiTypes()
     MPI_Type_commit( &Particletype );
 
     // Create param type
-    for(i=0; i<15; i++) types[i] = MPI_FLOAT;
-    for(i=15; i<19; i++) types[i] = MPI_INT;
-    for (i=0; i<19; i++) blocklens[i] = 1;
+    for(i=0; i<14; i++) types[i] = MPI_FLOAT;
+    for (i=0; i<14; i++) blocklens[i] = 1;
     // Get displacement of each struct member
-    disps[0] = offsetof( param, rest_density );
-    disps[1] = offsetof( param, spacing_particle );
-    disps[2] = offsetof( param, smoothing_radius );
-    disps[3] = offsetof( param, g );
-    disps[4] = offsetof( param, k );
-    disps[5] = offsetof( param, k_near );
-    disps[6] = offsetof( param, k_spring );
-    disps[7] = offsetof( param, sigma );
-    disps[8] = offsetof( param, beta );
-    disps[9] = offsetof( param, time_step );
-    disps[10] = offsetof( param, node_start_x );
-    disps[11] = offsetof( param, node_end_x );
-    disps[12] = offsetof( param, mover_center_x );
-    disps[13] = offsetof( param, mover_center_y );
-    disps[14] = offsetof( param, mover_radius );
-    disps[15] = offsetof( param, number_fluid_particles_global );
-    disps[16] = offsetof( param, number_fluid_particles_local );
-    disps[17] = offsetof( param, max_fluid_particle_index );
-    disps[18] = offsetof( param, number_halo_particles );
+    disps[0] = offsetof( tunable_parameters, rest_density );
+    disps[1] = offsetof( tunable_parameters, smoothing_radius );
+    disps[2] = offsetof( tunable_parameters, g );
+    disps[3] = offsetof( tunable_parameters, k );
+    disps[4] = offsetof( tunable_parameters, k_near );
+    disps[5] = offsetof( tunable_parameters, k_spring );
+    disps[6] = offsetof( tunable_parameters, sigma );
+    disps[7] = offsetof( tunable_parameters, beta );
+    disps[8] = offsetof( tunable_parameters, time_step );
+    disps[9] = offsetof( tunable_parameters, node_start_x );
+    disps[10] = offsetof( tunable_parameters, node_end_x );
+    disps[11] = offsetof( tunable_parameters, mover_center_x );
+    disps[12] = offsetof( tunable_parameters, mover_center_y );
+    disps[13] = offsetof( tunable_parameters, mover_radius );
 
     // Commit type
-    MPI_Type_create_struct( 19, blocklens, disps, types, &Paramtype );
-    MPI_Type_commit( &Paramtype );
+    MPI_Type_create_struct( 14, blocklens, disps, types, &TunableParamtype );
+    MPI_Type_commit( &TunableParamtype );
 }
 
 void freeMpiTypes()
 {
     MPI_Type_free(&Particletype);
-    MPI_Type_free(&Paramtype);
+    MPI_Type_free(&TunableParamtype);
 
     MPI_Group_free(&group_world);
     MPI_Group_free(&group_compute);
@@ -96,7 +90,7 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
 {
     int i;
     fluid_particle *p;
-    float h = params->smoothing_radius;
+    float h = params->tunable_params.smoothing_radius;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
@@ -109,9 +103,9 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         p = fluid_particle_pointers[i];
-        if (p->x - params->node_start_x <= h)
+        if (p->x - params->tunable_params.node_start_x <= h)
             edges->edge_pointers_left[edges->number_edge_particles_left++] = p;
-        else if (params->node_end_x - p->x <= h)
+        else if (params->tunable_params.node_end_x - p->x <= h)
             edges->edge_pointers_right[edges->number_edge_particles_right++] = p;
     }
 

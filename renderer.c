@@ -33,11 +33,11 @@ void start_renderer()
 
     // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
-    param *params = malloc(num_compute_procs*sizeof(param));
+    tunable_parameters *node_params = malloc(num_compute_procs*sizeof(tunable_parameters));
 
     // Setup render state
-    render_state.params = params;
-    render_state.num_params = num_compute_procs;
+    render_state.node_params = node_params;
+    render_state.num_compute_procs = num_compute_procs;
     render_state.selected_parameter = 0;
 
     int i,j;
@@ -49,11 +49,15 @@ void start_renderer()
     // Recv world dimensions from global rank 1
     float world_dims[2];
     MPI_Recv(world_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // Receive number of global particles
+    int max_particles;
+    MPI_Recv(&max_particles, 1, MPI_INT, 1, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     // Calculate world unit to pixel
     float world_to_pix_scale = gl_state.screen_width/world_dims[0];
+    printf("global particles: %d\n", max_particles);
 
-    // Gatherv values
+    // Gatherv initial tunable parameters values
     int *param_counts = malloc(num_procs * sizeof(int));
     int *param_displs = malloc(num_procs * sizeof(int));
     for(i=0; i<num_procs; i++) {
@@ -61,12 +65,9 @@ void start_renderer()
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }
     // Initial gather
-    MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
-
-    printf("global particles: %d\n", params[0].number_fluid_particles_global);
+    MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, node_params, param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
     // Allocate particle receive array
-    int max_particles = params[0].number_fluid_particles_global;
     int num_coords = 2;
     float *particle_coords = (float*)malloc(num_coords * max_particles*sizeof(float));
 
@@ -79,6 +80,8 @@ void start_renderer()
 
     // Number of coordinates received from each proc
     int *particle_coordinate_counts = malloc(num_compute_procs * sizeof(int));
+    // Keep track of order in which particles received
+    int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
 
     // Set background color
     glClearColor(0, 0, 0, 1);
@@ -101,10 +104,18 @@ void start_renderer()
 
     // Setup MPI requests used to gather particle coordinates
     MPI_Request coord_reqs[num_compute_procs];
-    MPI_Status status;
     int src, coords_recvd;
     float gl_x, gl_y;
     float particle_radius = 1.0f;
+
+    MPI_Status status;
+
+    // Param type is not used below, a set of floats is sent instead
+    for(i=0; i<num_procs; i++) {
+        param_counts[i] = i?1:0; // will not receive from rank 0
+        param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
+    }
+
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -117,7 +128,7 @@ void start_renderer()
 	}	    
 
         // Send updated paramaters to compute nodes
-//        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
         // Get keyboard key press
         // process appropriately
@@ -127,19 +138,28 @@ void start_renderer()
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
         mover_radius = 1.0f;
-        render_state.mover_center_x = mouse_x_scaled;
-        render_state.mover_center_y = mouse_y_scaled;
-        render_state.mover_radius = mover_radius;
+        render_state.master_params.mover_center_x = mouse_x_scaled;
+        render_state.master_params.mover_center_y = mouse_y_scaled;
+        render_state.master_params.mover_radius = mover_radius;
+
+	// Update all node parameters with master paramter values
+        for(i=0; i<render_state.num_compute_procs; i++) {
+            render_state.node_params[i].mover_center_x =  render_state.master_params.mover_center_x; 
+            render_state.node_params[i].mover_center_y = render_state.master_params.mover_center_y;
+            render_state.node_params[i].mover_radius = render_state.master_params.mover_radius;
+	    render_state.node_params[i].g = render_state.master_params.g;
+        }
 
         // Retrieve all particle coordinates (x,y)
 	// Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
-	// OR do synchronous recv
+	// OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	coords_recvd = 0;
 	for(i=0; i<num_compute_procs; i++) {
 	    // Wait until message is ready from any proc
             MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
 	    // Retrieve probed values
     	    src = status.MPI_SOURCE;
+            particle_coordinate_ranks[i] = src-1;
 	    MPI_Get_count(&status, MPI_FLOAT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
 	    // Start async recv using probed values
 	    MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_FLOAT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
@@ -166,31 +186,32 @@ void start_renderer()
         // Draw font parameters
         // SHOULD JUST PASS IN render_state
         // RENDER STATE SHOULD INCLUDE PARAMETER VALUES TO DISPLAY
-        render_parameters(&font_state, render_state.selected_parameter, render_state.g, 1.0f, 1.0f, 1.0f, 1.0f);
+        render_parameters(&font_state, render_state.selected_parameter, render_state.master_params.g, 1.0f, 1.0f, 1.0f, 1.0f);
 
 	// Wait for all coordinates to be received
 	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-/*
         // Create points array (x,y,r,g,b)
-        current_rank = 0;
+        current_rank = particle_coordinate_ranks[0];
+ 	int i = 0;
         int particle_count = 1;
         for(j=0; j<coords_recvd/2; j++, particle_count+=2) {
-            if ( particle_count > particle_coordinate_counts[1+current_rank]){
-                current_rank++;
+/*            if ( particle_count > particle_coordinate_counts[i]){
+                current_rank =  particle_coordinate_ranks[i++];
                 particle_count = 1;
             }
-            sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
+*/          sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
             points[j*5]   = gl_x; 
             points[j*5+1] = gl_y;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
+            points[j*5+2] = 1.0;//colors_by_rank[3*current_rank];
+            points[j*5+3] = 0.0;//colors_by_rank[3*current_rank+1];
+            points[j*5+4] = 0.0;//colors_by_rank[3*current_rank+2];
         }
 
 	// Draw particles
         update_points(points, particle_radius, coords_recvd/2, &circle_state);
-*/
+
+
         // Swap front/back buffers
         swap_ogl(&gl_state);
 
@@ -246,25 +267,22 @@ void decrease_parameter(RENDER_T *render_state)
 void increase_gravity(RENDER_T *render_state)
 {
     static const float max_grav = -9.0;
-    if(render_state->params[0].g < max_grav)
+    if(render_state->master_params.g < max_grav)
         return;
 
     int i;
-    for(i=0; i<render_state->num_params; i++) {
-        render_state->params[i].g -= 1.0;
-    }
+    render_state->master_params.g -= 1.0;
 }
 
 // Decreate gravity parameter
 void decrease_gravity(RENDER_T *render_state)
 {
     static const float min_grav = 9.0;
-    if(render_state->params[0].g > min_grav)
+    if(render_state->master_params.g > min_grav)
         return;
 
     int i;
-    for(i=0; i<render_state->num_params; i++)
-        render_state->params[i].g += 1.0;
+    render_state->master_params.g += 1.0;
 }
 
 // Translate between pixel coordinates with origin at screen center

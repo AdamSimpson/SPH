@@ -2,12 +2,11 @@
 #include "geometry.h"
 #include "fluid.h"
 
-void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB* fluid, int start_x, int number_particles_x, edge *edges, param *params)
+void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB* fluid, int start_x, 
+			  int number_particles_x, edge *edges, float spacing, param *params)
 {
-    float spacing;
     int num_y;
     
-    spacing = params->spacing_particle;
     // Number of particles in y,z, number in x is passed in
     num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
     
@@ -45,11 +44,10 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
 
 // Sets upper bound on number of particles, used for memory allocation
 // These numbers are set judiciously for TitanTitan as the number of particles is always small
-void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, oob *out_of_bounds, int number_particles_x, param *params)
+void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, oob *out_of_bounds, int number_particles_x, float spacing, param *params)
 {
     int num_x, num_y, max_y;
     
-    float spacing = params->spacing_particle;
 
     // Set fluid local
     num_x = number_particles_x;
@@ -76,11 +74,9 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 }
 
 // Set local boundary and fluid particle
-void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, int *length_x, param *params)
+void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, int *length_x, float spacing, param *params)
 {
     int i;
-    float spacing = params->spacing_particle;
-     
     int rank;
     MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
     int nprocs;
@@ -118,13 +114,13 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
     *length_x = particle_length_x[rank];
         
     // Set node partition values
-    params->node_start_x = fluid_global->min_x + ((number_to_left-1) * spacing);
-    params->node_end_x   = params->node_start_x + (particle_length_x[rank] * spacing);
+    params->tunable_params.node_start_x = fluid_global->min_x + ((number_to_left-1) * spacing);
+    params->tunable_params.node_end_x   = params->tunable_params.node_start_x + (particle_length_x[rank] * spacing);
     
     if (rank == 0)
-        params->node_start_x  = boundary_global->min_x;
+        params->tunable_params.node_start_x  = boundary_global->min_x;
     if (rank == nprocs-1)
-        params->node_end_x   = boundary_global->max_x;
+        params->tunable_params.node_end_x   = boundary_global->max_x;
 
     // Update requested number of particles with actual value used
     int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
@@ -135,8 +131,6 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, i
 
     free(particle_length_x);
 
-    debug_print("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, params->spacing_particle, *x_start, *length_x, params->node_start_x, params->node_end_x);
-    
 }
 
 // Test if boundaries need to be adjusted
@@ -144,7 +138,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
 {
     int i;
     fluid_particle *p;
-    float h = params->spacing_particle;
+    float h = params->tunable_params.smoothing_radius;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
@@ -154,7 +148,7 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     // Get elapsed time since last partition and set new partition time
     double seconds_self =  partition_time;
 
-    float length = params->node_end_x - params->node_start_x;
+    float length = params->tunable_params.node_end_x - params->tunable_params.node_start_x;
 
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
@@ -198,20 +192,20 @@ void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds
     if (rank != 0) // Dont move left most boundary
     {
         if( diff_left > max_diff_left && length > 4*h) 
-            params->node_start_x += h;
+            params->tunable_params.node_start_x += h;
         else if (diff_left < -max_diff_left && length_left > 4*h)
-            params->node_start_x -= h;
+            params->tunable_params.node_start_x -= h;
     }
     // Adjust right boundary
     if (rank != (nprocs-1))
     {
         if( diff_right > max_diff_right&& length > 4*h)
-            params->node_end_x -= h;
+            params->tunable_params.node_end_x -= h;
         else if (diff_right < -max_diff_right && length_right > 4*h)
-            params->node_end_x += h;
+            params->tunable_params.node_end_x += h;
     }
 
-    debug_print("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
+    debug_print("rank %d node_start %f node_end %f \n", rank, params->tunable_params.node_start_x, params->tunable_params.node_end_x);
 }
 
 ////////////////////////////////////////////////
