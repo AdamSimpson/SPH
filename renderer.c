@@ -92,7 +92,7 @@ void start_renderer()
         0.08,0.52,0.8};
 
     int num_coords_rank;
-    int current_rank;
+    int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
     float mover_radius, mover_radius_scaled;
 
@@ -109,13 +109,6 @@ void start_renderer()
     float particle_radius = 1.0f;
 
     MPI_Status status;
-
-    // Param type is not used below, a set of floats is sent instead
-    for(i=0; i<num_procs; i++) {
-        param_counts[i] = i?1:0; // will not receive from rank 0
-        param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
-    }
-
 
     while(1){
 	// Every frames_per_fps steps calculate FPS
@@ -192,20 +185,20 @@ void start_renderer()
 	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-        current_rank = particle_coordinate_ranks[0];
- 	int i = 0;
-        int particle_count = 1;
-        for(j=0; j<coords_recvd/2; j++, particle_count+=2) {
-/*            if ( particle_count > particle_coordinate_counts[i]){
-                current_rank =  particle_coordinate_ranks[i++];
-                particle_count = 1;
+	i = 0;
+        current_rank = particle_coordinate_ranks[i];
+        // j == coordinate pair
+        for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+            if ( num_parts > particle_coordinate_counts[current_rank]/2){
+                current_rank =  particle_coordinate_ranks[++i];
+                num_parts = 1;
             }
-*/          sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
+            sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
             points[j*5]   = gl_x; 
             points[j*5+1] = gl_y;
-            points[j*5+2] = 1.0;//colors_by_rank[3*current_rank];
-            points[j*5+3] = 0.0;//colors_by_rank[3*current_rank+1];
-            points[j*5+4] = 0.0;//colors_by_rank[3*current_rank+2];
+            points[j*5+2] = colors_by_rank[3*current_rank];
+            points[j*5+3] = colors_by_rank[3*current_rank+1];
+            points[j*5+4] = colors_by_rank[3*current_rank+2];
         }
 
 	// Draw particles

@@ -359,8 +359,8 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
 
                 }
                 else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
-                //    q->v_x += imp_x*0.25f;
-                //    q->v_y += imp_y*0.25f;
+                    q->v_x += imp_x*0.25f;
+                    q->v_y += imp_y*0.25f;
                 }
                 
             }
@@ -475,8 +475,8 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
                     q->y += D_y;
                 }	
                 else { // Move the halo particles only half way to account for other sides missing contribution
-                   // q->x += D_x*0.5f;
-                   // q->y += D_y*0.5f;
+                    q->x += D_x*0.5f;
+                    q->y += D_y*0.5f;
                 }
                
                 p->x -= D_x;
