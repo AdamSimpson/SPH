@@ -18,6 +18,9 @@ typedef struct {
     parameters selected_parameter;
     param *params;
     int num_params;
+
+    // "Master" parameters
+    
 } RENDER_T;
 
 void start_renderer();

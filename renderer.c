@@ -115,7 +115,14 @@ void start_renderer()
         // Recieve paramaters struct from all nodes
         MPI_Gatherv(MPI_IN_PLACE, 0, Paramtype, params, param_counts, param_displs, Paramtype, 0, MPI_COMM_WORLD);
 
-        // Update paramaters as needed
+        // Send updated paramaters to compute nodes
+        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
+
+        // Get keyboard key press
+        // process appropriately
+        check_key_press(&gl_state);
+
+        // Update mover position
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
         mover_radius = 1.0f;
@@ -124,13 +131,6 @@ void start_renderer()
             params[i].mover_center_y = mouse_y_scaled;
             params[i].mover_radius = mover_radius;
         }
-
-        // Get keyboard key press
-        // process appropriately
-        check_key_press(&gl_state);
-
-        // Send updated paramaters to compute nodes
-        MPI_Scatterv(params, param_counts, param_displs, Paramtype, MPI_IN_PLACE, 0, Paramtype, 0, MPI_COMM_WORLD);
 
         // Retrieve all particle coordinates (x,y)
         num_coords_rank = 0;
@@ -178,9 +178,7 @@ void start_renderer()
         update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Draw FPS
-  	    render_fps(&font_state, fps);
-//	    if(num_steps%frames_per_fps == 0)
-//        printf("FPS: %f\n", fps);
+  	render_fps(&font_state, fps);
 
 	// Draw font parameters
         // SHOULD JUST PASS IN render_state
@@ -242,8 +240,9 @@ void increase_gravity(RENDER_T *render_state)
         return;
 
     int i;
-    for(i=0; i<render_state->num_params; i++)
+    for(i=0; i<render_state->num_params; i++) {
         render_state->params[i].g -= 1.0;
+    }
 }
 
 // Decreate gravity parameter
