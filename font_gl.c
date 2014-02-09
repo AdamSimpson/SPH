@@ -278,8 +278,9 @@ void render_parameters(FONT_T *state, parameters selected_param, float gravity, 
     glUniform1i(state->tex_location, 0);
 
     // Set font color
-    GLfloat black[4] = {1, 1, 1, 1};
-    glUniform4fv(state->color_location, 1, black);
+    GLfloat non_selected[4] = {1, 1, 1, 1};
+    GLfloat selected[4] = {0, 1, 1, 1};
+    glUniform4fv(state->color_location, 1, non_selected);
 
     // Buffer to create strings in
     char buffer[100];
@@ -289,29 +290,45 @@ void render_parameters(FONT_T *state, parameters selected_param, float gravity, 
     float sy = 2.0 / state->screen_height;
 
     // Gravity
-//    if(selected_param == GRAVITY)      
+    if(selected_param == GRAVITY)
+        glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Gravity: %.1f", gravity);
     render_text(state, buffer, -1 + 8 * sx, 1 - 50 * sy, sx, sy);
+    if(selected_param == GRAVITY) 
+        glUniform4fv(state->color_location, 1, non_selected);
 
     // Viscocity
-//    if(selected_param == VISCOSITY)
+    if(selected_param == VISCOSITY)
+        glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Viscosity: %.1f", viscosity);
     render_text(state, buffer, -1 + 8 * sx, 1 - 100 * sy, sx, sy);
+    if(selected_param == VISCOSITY)
+        glUniform4fv(state->color_location, 1, non_selected);
 
     // Density
-//    if(selected_param == DENSITY)
+    if(selected_param == DENSITY)
+        glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Density: %.1f", density);
     render_text(state, buffer, -1 + 8 * sx, 1 - 150 * sy, sx, sy);
+    if(selected_param == DENSITY)
+        glUniform4fv(state->color_location, 1, non_selected);
 
     // Pressure
-//    if(selected_param == PRESSURE)
+    if(selected_param == PRESSURE)
+        glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Pressure: %.1f", pressure);
     render_text(state, buffer, -1 + 8 * sx, 1 - 200 * sy, sx, sy);
+    if(selected_param == PRESSURE)
+        glUniform4fv(state->color_location, 1, non_selected);
 
     // Elasticity
-//    if(selected_param == ELASTICITY)
+    if(selected_param == ELASTICITY)
+        glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Elasticity: %.1f", elasticity);
     render_text(state, buffer, -1 + 8 * sx, 1 - 250 * sy, sx, sy);
+    if(selected_param == ELASTICITY)
+        glUniform4fv(state->color_location, 1, non_selected);
+
 }
 
 void remove_font(FONT_T *font_state)

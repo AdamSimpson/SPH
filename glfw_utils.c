@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "glfw_utils.h"
+#include "renderer.h"
 
 void check_key_press(GL_STATE_T *state)
 {
@@ -20,12 +21,24 @@ void error_callback(int error, const char* description)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 
-    if(action == GLFW_PRESS)
+    if(action == GLFW_PRESS || action == GLFW_REPEAT)
         switch(key)
         {
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(window, GL_TRUE);
 	        break;
+	    case GLFW_KEY_RIGHT:
+		increase_parameter();
+		break;
+	    case GLFW_KEY_LEFT:
+		decrease_parameter();
+		break;
+            case GLFW_KEY_UP:
+		move_parameter_up();
+		break;
+	    case GLFW_KEY_DOWN:
+		move_parameter_down();
+		break;
         }
 }
 
@@ -71,6 +84,9 @@ void init_ogl(GL_STATE_T *state)
     // Initialize GLEW
     glewExperimental = GL_TRUE;
     glewInit();
+
+    // Set key callback
+    glfwSetKeyCallback(state->window, key_callback);
 
     // Set background color and clear buffers
     glClearColor(0.15f, 0.25f, 0.35f, 1.0f);

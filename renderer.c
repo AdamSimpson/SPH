@@ -7,25 +7,9 @@
 #include "fluid.h"
 #include "font_gl.h"
 
-// Translate between pixel coordinates with origin at screen center
-// to simulation coordinates
-void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
-{
-    float half_width = world_dims[0]*0.5;
-    float half_height = world_dims[1]*0.5;
-
-    *sim_x = x*half_width + half_width;
-    *sim_y = y*half_height + half_height;
-}
-
-void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
-{
-    float half_width = world_dims[0]*0.5;
-    float half_height = world_dims[1]*0.5;
-
-    *gl_x = x/half_width - 1.0;
-    *gl_y = y/half_height - 1.0;
-}
+// enum to handle currently selected parameter
+// static file scope due to nature of key press callbacks...
+static parameters selected_param;
 
 void start_renderer()
 {
@@ -45,8 +29,6 @@ void start_renderer()
     FONT_T font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
-    // enum to handle currently selected parameter
-    parameters selected_param;
     // Set to first parameter
     selected_param = 0;
 
@@ -183,7 +165,7 @@ void start_renderer()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Render particles
-        float particle_radius = 3.0f;
+        float particle_radius = 1.0f;
         update_points(points, particle_radius, total_coords/2, &circle_state);
 
         // Render mover
@@ -212,4 +194,77 @@ void start_renderer()
 
 //    exit_ogl(&state.gl_state);
 
+}
+
+
+// Move selected parameter up
+void move_parameter_up()
+{
+    if(selected_param == MIN)
+        selected_param = MAX;
+    else
+	selected_param--;
+}
+
+// Move selected parameter down
+void move_parameter_down() 
+{
+    if(selected_param == MAX)
+        selected_param = MIN;
+    else
+        selected_param++;
+}
+
+void increase_parameter()
+{
+
+}
+
+void decrease_parameter()
+{
+
+}
+
+// Increase gravity parameter
+void increase_gravity(param *params, int num_params)
+{
+    static const float max_grav = -9.0;
+    if(params[0].g < max_grav)
+        return;
+
+    int i;
+    for(i=0; i<num_params; i++)
+        params[i].g -= 1.0;
+}
+
+// Decreate gravity parameter
+void decrease_gravity(param *params, int num_params)
+{
+    static const float min_grav = 9.0;
+    if(params[0].g > min_grav)
+        return;
+
+    int i;
+    for(i=0; i<num_params; i++)
+        params[i].g += 1.0;
+}
+
+// Translate between pixel coordinates with origin at screen center
+// to simulation coordinates
+void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
+{
+    float half_width = world_dims[0]*0.5;
+    float half_height = world_dims[1]*0.5;
+
+    *sim_x = x*half_width + half_width;
+    *sim_y = y*half_height + half_height;
+}
+
+void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
+{
+    float half_width = world_dims[0]*0.5;
+    float half_height = world_dims[1]*0.5;
+
+    *gl_x = x/half_width - 1.0;
+    *gl_y = y/half_height - 1.0;
 }
