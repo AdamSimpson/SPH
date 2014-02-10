@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "egl_utils.h"
+#include "linux/input.h"
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
 void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
@@ -194,7 +195,26 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 
 void check_key_press(GL_STATE_T *state)
 {
+    RENDER_T *render_state = (render_state*)state->user_pointer;
 
+    // Get key press
+    int key = get_key_press(state);
+
+    switch(key)
+    {
+        case KEY_RIGHT:
+            increase_parameter(render_state);
+            break;
+        case KEY_LEFT:
+            decrease_parameter(render_state);
+            break;
+        case KEY_UP:
+            move_parameter_up(render_state);
+            break;
+        case KEY_DOWN:
+            move_parameter_down(render_state);
+            break;
+    }
 }
 
 int get_key_press(GL_STATE_T *state)
