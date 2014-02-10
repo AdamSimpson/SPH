@@ -195,9 +195,8 @@ void start_renderer()
                 current_rank =  particle_coordinate_ranks[++i];
                 num_parts = 1;
             }
-            sim_pixels_to_opengl(pixel_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
-            points[j*5]   = gl_x; 
-            points[j*5+1] = gl_y;
+            points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX; 
+            points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
             points[j*5+2] = colors_by_rank[3*current_rank];
             points[j*5+3] = colors_by_rank[3*current_rank+1];
             points[j*5+4] = colors_by_rank[3*current_rank+2];
@@ -296,16 +295,6 @@ void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y
 {
     float half_width = world_dims[0]*0.5;
     float half_height = world_dims[1]*0.5;
-
-    *gl_x = x/half_width - 1.0;
-    *gl_y = y/half_height - 1.0;
-}
-
-// Translate between pixel coordinates, origin at bottom left, and opengl -1,1 center of screen coords
-void sim_pixels_to_opengl(short *pixel_dims, short x, short y, float *gl_x, float *gl_y)
-{
-    float half_width = pixel_dims[0]*0.5;
-    float half_height = pixel_dims[1]*0.5;
 
     *gl_x = x/half_width - 1.0;
     *gl_y = y/half_height - 1.0;

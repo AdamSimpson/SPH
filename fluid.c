@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 
 #include "mpi.h"
 #include "hash.h"
@@ -201,9 +202,6 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
-    float sim_to_pixels_x = (float)pixel_dims[0]/boundary_global.max_x;
-    float sim_to_pixels_y = (float)pixel_dims[1]/boundary_global.max_y;
-
     // Main simulation loop
     while(1) {
         // Initialize velocities
@@ -269,8 +267,8 @@ void start_simulation()
 	// This should be sent as short in pixel coordinates
         for(i=0; i<params.number_fluid_particles_local; i++) {
             p = fluid_particle_pointers[i];
-            fluid_particle_coords[i*2] = p->x * sim_to_pixels_x;
-            fluid_particle_coords[(i*2)+1] = p->y * sim_to_pixels_y;
+            fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+            fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
         }
 	// Async send fluid particle coordinates to render node
 	MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
