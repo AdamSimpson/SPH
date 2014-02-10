@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "circles_gl.h"
 #include "mpi.h"
+#include "geometry.h"
 #include "communication.h"
 #include "fluid.h"
 #include "font_gl.h"
@@ -118,15 +119,15 @@ void start_renderer()
     MPI_Status status;
 
     while(1){
-	// Every frames_per_fps steps calculate FPS
-	if(num_steps%frames_per_fps == 0) {
-	    current_time =  MPI_Wtime();
-	    wall_time = current_time - wall_time;
-	    fps = frames_per_fps/wall_time;
-	    num_steps = 0;
-	    wall_time = current_time;
-	}	    
-
+        // Every frames_per_fps steps calculate FPS
+        if(num_steps%frames_per_fps == 0) {
+            current_time =  MPI_Wtime();
+            wall_time = current_time - wall_time;
+            fps = frames_per_fps/wall_time;
+            num_steps = 0;
+            wall_time = current_time;
+        }
+        
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
@@ -162,6 +163,10 @@ void start_renderer()
             coords_recvd += particle_coordinate_counts[src-1];
 	    }
 
+        // Ensure a balanced partition
+        // We pass in number of coordinates instead of particle counts    
+        checkPartitions(&render_state, particle_coordinate_counts, coords_recvd);
+
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -173,7 +178,6 @@ void start_renderer()
         mover_point[3] = 1.0f;
         mover_point[4] = 1.0f;
         mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
-        update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Draw FPS
         render_fps(&font_state, fps);
@@ -204,6 +208,8 @@ void start_renderer()
 
 	    // Draw particles
         update_points(points, particle_radius, coords_recvd/2, &circle_state);
+
+        update_mover_point(mover_point, mover_radius_scaled, &circle_state);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -429,5 +435,33 @@ void update_node_params(RENDER_T *render_state)
         render_state->node_params[i].k = render_state->master_params.k;
         render_state->node_params[i].k_near = render_state->master_params.k_near;
         render_state->node_params[i].k_spring = render_state->master_params.k_spring;
+    }
+}
+
+void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles)
+{
+    int rank, diff;
+    int max_diff = total_particles/10;
+    float dx, length, length_right;    
+
+    tunable_parameters *node_params = render_state->node_params;
+
+    for(rank=0; rank<(render_state->num_compute_procs-1); rank++)
+    {
+        length =  node_params[rank].node_end_x = node_params[rank].node_start_x; 
+        length_right =  node_params[rank+1].node_end_x - node_params[rank+1].node_start_x; 
+        diff = particle_counts[rank] - particle_counts[rank+1];
+        dx = (length+length_right)*0.05f;
+
+        // current rank has too many particles
+        if( diff > max_diff && length >= dx) {
+            node_params[rank].node_end_x -= dx;
+            node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
+        }
+        // current rank has too few particles
+        else if (diff < -max_diff) {
+            node_params[rank].node_end_x += dx;
+            node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
+        }    
     }
 }

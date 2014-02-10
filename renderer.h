@@ -40,5 +40,6 @@ void increase_pressure(RENDER_T *render_state);
 void decrease_elasticity(RENDER_T *render_state);
 void increase_elasticity(RENDER_T *render_state);
 void update_node_params(RENDER_T *render_state);
+void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles);
 
 #endif

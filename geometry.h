@@ -24,5 +24,4 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB* fluid, int start_x, 
                           int number_particles_x, edge *edges, float spacing, param *params);
 
-void checkPartition(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, double partition_time, param *params);
 #endif
