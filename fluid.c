@@ -69,8 +69,10 @@ void start_simulation()
     boundary_global.min_y = 0.0f;
 
     // Receive aspect ratio to scale world y max
+    short pixel_dims[2];
     float aspect_ratio;
-    MPI_Bcast(&aspect_ratio, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
+    aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
     boundary_global.max_y = boundary_global.max_x / aspect_ratio;
     
     // water volume
@@ -129,10 +131,10 @@ void start_simulation()
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
-    // Allocate (x,y) coordinate array
-    bytes = 2 * max_fluid_particles_local * sizeof(float);
+    // Allocate (x,y) coordinate array, transfer pixel coords
+    bytes = 2 * max_fluid_particles_local * sizeof(short);
     total_bytes+=bytes;
-    float *fluid_particle_coords = malloc(bytes);
+    short *fluid_particle_coords = malloc(bytes);
     if(fluid_particle_coords == NULL)
         printf("Could not allocate fluid_particle coords\n");
 
@@ -199,6 +201,9 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
+    float sim_to_pixels_x = (float)pixel_dims[0]/boundary_global.max_x;
+    float sim_to_pixels_y = (float)pixel_dims[1]/boundary_global.max_y;
+
     // Main simulation loop
     while(1) {
         // Initialize velocities
@@ -264,11 +269,11 @@ void start_simulation()
 	// This should be sent as short in pixel coordinates
         for(i=0; i<params.number_fluid_particles_local; i++) {
             p = fluid_particle_pointers[i];
-            fluid_particle_coords[i*2] = p->x;
-            fluid_particle_coords[(i*2)+1] = p->y;
+            fluid_particle_coords[i*2] = p->x * sim_to_pixels_x;
+            fluid_particle_coords[(i*2)+1] = p->y * sim_to_pixels_y;
         }
 	// Async send fluid particle coordinates to render node
-	MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_FLOAT, 0, 17, MPI_COMM_WORLD, &coords_req);
+	MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
 
         // iterate sim loop counter
         n++;

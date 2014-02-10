@@ -42,9 +42,11 @@ void start_renderer()
 
     int i,j;
 
-    // Broadcast aspect ratio
-    float aspect_ratio = (float)gl_state.screen_width/(float)gl_state.screen_height;
-    MPI_Bcast(&aspect_ratio, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    // Broadcast pixels rati
+    short pixel_dims[2];
+    pixel_dims[0] = (short)gl_state.screen_width;
+    pixel_dims[1] = (short)gl_state.screen_height;
+    MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
  
     // Recv world dimensions from global rank 1
     float world_dims[2];
@@ -69,7 +71,7 @@ void start_renderer()
 
     // Allocate particle receive array
     int num_coords = 2;
-    float *particle_coords = (float*)malloc(num_coords * max_particles*sizeof(float));
+    short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
     int point_size = 5 * sizeof(float);
@@ -153,9 +155,9 @@ void start_renderer()
 	    // Retrieve probed values
     	    src = status.MPI_SOURCE;
             particle_coordinate_ranks[i] = src-1;
-	    MPI_Get_count(&status, MPI_FLOAT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
+	    MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
 	    // Start async recv using probed values
-	    MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_FLOAT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
+	    MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
             // Update total number of floats recvd
             coords_recvd += particle_coordinate_counts[src-1];
 	}
@@ -193,7 +195,7 @@ void start_renderer()
                 current_rank =  particle_coordinate_ranks[++i];
                 num_parts = 1;
             }
-            sim_to_opengl(world_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
+            sim_pixels_to_opengl(pixel_dims, particle_coords[j*2], particle_coords[j*2+1], &gl_x, &gl_y);
             points[j*5]   = gl_x; 
             points[j*5+1] = gl_y;
             points[j*5+2] = colors_by_rank[3*current_rank];
@@ -289,10 +291,21 @@ void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_
     *sim_y = y*half_height + half_height;
 }
 
+// Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
 void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
 {
     float half_width = world_dims[0]*0.5;
     float half_height = world_dims[1]*0.5;
+
+    *gl_x = x/half_width - 1.0;
+    *gl_y = y/half_height - 1.0;
+}
+
+// Translate between pixel coordinates, origin at bottom left, and opengl -1,1 center of screen coords
+void sim_pixels_to_opengl(short *pixel_dims, short x, short y, float *gl_x, float *gl_y)
+{
+    float half_width = pixel_dims[0]*0.5;
+    float half_height = pixel_dims[1]*0.5;
 
     *gl_x = x/half_width - 1.0;
     *gl_y = y/half_height - 1.0;

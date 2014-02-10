@@ -28,6 +28,7 @@ void move_parameter_up(RENDER_T *render_state);
 void move_parameter_down(RENDER_T *render_state);
 void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y);
 void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y);
+void sim_pixels_to_opengl(short *pixel_dims, short x, short y, float *gl_x, float *gl_y);
 void decrease_gravity(RENDER_T *render_state);
 void increase_gravity(RENDER_T *render_state);
 
