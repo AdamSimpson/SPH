@@ -4,6 +4,7 @@
 
 #include "egl_utils.h"
 #include "linux/input.h"
+#include "renderer.h"
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
 void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
@@ -144,8 +145,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
     static int x = 0;
     static int y = 0;
 
-    float x_scaled;
-    float y_scaled;
+    float x_scaled = 0.0;
+    float y_scaled = 0.0;
 
     ssize_t bytes_read;
 
@@ -157,8 +158,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
         MOUSE_INPUT event;
         bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
 
-//        if(bytes_read != sizeof(MOUSE_INPUT))
-//            return;
+        if(bytes_read != sizeof(MOUSE_INPUT))
+            return;
 
         int speed_multiplier = 2;
 
@@ -182,8 +183,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
             y = height;
 
         // convert to OpenGL screen coordinates from pixels
-        x_scaled = (float)x/(0.5*width) - 1.0;
-        y_scaled = (float)y/(0.5*height) - 1.0;
+        x_scaled = (float)x/(0.5f*width) - 1.0f;
+        y_scaled = (float)y/(0.5f*height) - 1.0f;
 
 //        debug_print("pixels(%d,%d) scaled(%f,%f)\n", x,y,x_scaled,y_scaled);
     }
@@ -195,7 +196,7 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 
 void check_key_press(GL_STATE_T *state)
 {
-    RENDER_T *render_state = (render_state*)state->user_pointer;
+    RENDER_T *render_state = (RENDER_T*)state->user_pointer;
 
     // Get key press
     int key = get_key_press(state);

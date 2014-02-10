@@ -9,6 +9,8 @@
 #include "linux/input.h"
 
 #include "bcm_host.h"
+#include "renderer.h"
+
 
 typedef struct {
     uint32_t screen_width;
