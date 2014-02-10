@@ -145,8 +145,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
     static int x = 0;
     static int y = 0;
 
-    float x_scaled = 0.0;
-    float y_scaled = 0.0;
+    float x_scaled;
+    float y_scaled;
 
     ssize_t bytes_read;
 
@@ -229,7 +229,7 @@ int get_key_press(GL_STATE_T *state)
     if (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY)
+	if(event.type == EV_KEY && event.value == 1)
 	    key_code = (int)event.code;
     }
 
