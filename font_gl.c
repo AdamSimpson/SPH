@@ -266,7 +266,7 @@ void render_fps(FONT_T *state, float fps)
     render_text(state, buffer, 1 - 200 * sx, 1 - 50 * sy, sx, sy);
 }
 
-void render_parameters(FONT_T *state, parameters selected_param, float gravity, float viscosity, float density, float pressure, float elasticity)
+void render_parameters(FONT_T *state, RENDER_T *render_state)
 {
     // Setup environment
     glUseProgram(state->program);
@@ -289,6 +289,15 @@ void render_parameters(FONT_T *state, parameters selected_param, float gravity, 
     float sx = 2.0 / state->screen_width;
     float sy = 2.0 / state->screen_height;
 
+    parameters selected_param = render_state->selected_parameter;
+    float gravity, viscosity, density, pressure, elasticity;
+
+    gravity = render_state->master_params.g;
+    viscosity = render_state->master_params.sigma;
+    density = render_state->master_params.rest_density;
+    pressure = render_state->master_params.k;
+    elasticity = render_state->master_params.k_spring;
+  
     // Gravity
     if(selected_param == GRAVITY)
         glUniform4fv(state->color_location, 1, selected);

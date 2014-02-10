@@ -31,5 +31,14 @@ void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y
 void sim_pixels_to_opengl(short *pixel_dims, short x, short y, float *gl_x, float *gl_y);
 void decrease_gravity(RENDER_T *render_state);
 void increase_gravity(RENDER_T *render_state);
+void decrease_viscosity(RENDER_T *render_state);
+void increase_viscosity(RENDER_T *render_state);
+void decrease_density(RENDER_T *render_state);
+void increase_density(RENDER_T *render_state);
+void decrease_pressure(RENDER_T *render_state);
+void increase_pressure(RENDER_T *render_state);
+void decrease_elasticity(RENDER_T *render_state);
+void increase_elasticity(RENDER_T *render_state);
+void update_node_params(RENDER_T *render_state);
 
 #endif

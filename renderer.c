@@ -69,6 +69,11 @@ void start_renderer()
     // Initial gather
     MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, node_params, param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
+    // Fill in master parameters
+    render_state.master_params = node_params[0];
+    render_state.master_params.node_start_x = 0;// THESE SHOULD NOT BE USED
+    render_state.master_params.node_end_x = 0;  // THESE SHOULD NOT BE USED
+
     // Allocate particle receive array
     int num_coords = 2;
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
@@ -137,30 +142,25 @@ void start_renderer()
         render_state.master_params.mover_center_y = mouse_y_scaled;
         render_state.master_params.mover_radius = mover_radius;
 
-	// Update all node parameters with master paramter values
-        for(i=0; i<render_state.num_compute_procs; i++) {
-            render_state.node_params[i].mover_center_x =  render_state.master_params.mover_center_x; 
-            render_state.node_params[i].mover_center_y = render_state.master_params.mover_center_y;
-            render_state.node_params[i].mover_radius = render_state.master_params.mover_radius;
-	    render_state.node_params[i].g = render_state.master_params.g;
-        }
+        // Update node params with master param values
+        update_node_params(&render_state);
 
         // Retrieve all particle coordinates (x,y)
-	// Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
-	// OR do synchronous recv...very likely that synchronous receive is as fast as anything else
-	coords_recvd = 0;
-	for(i=0; i<num_compute_procs; i++) {
-	    // Wait until message is ready from any proc
+  	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
+	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
+	    coords_recvd = 0;
+	    for(i=0; i<num_compute_procs; i++) {
+	        // Wait until message is ready from any proc
             MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
-	    // Retrieve probed values
+	        // Retrieve probed values
     	    src = status.MPI_SOURCE;
             particle_coordinate_ranks[i] = src-1;
-	    MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
-	    // Start async recv using probed values
-	    MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
+	        MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
+	        // Start async recv using probed values
+	        MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
             // Update total number of floats recvd
             coords_recvd += particle_coordinate_counts[src-1];
-	}
+	    }
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
@@ -181,13 +181,13 @@ void start_renderer()
         // Draw font parameters
         // SHOULD JUST PASS IN render_state
         // RENDER STATE SHOULD INCLUDE PARAMETER VALUES TO DISPLAY
-        render_parameters(&font_state, render_state.selected_parameter, render_state.master_params.g, 1.0f, 1.0f, 1.0f, 1.0f);
+        render_parameters(&font_state, &render_state);
 
-	// Wait for all coordinates to be received
-	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
+	    // Wait for all coordinates to be received
+	    MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	i = 0;
+	    i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
@@ -202,9 +202,8 @@ void start_renderer()
             points[j*5+4] = colors_by_rank[3*current_rank+2];
         }
 
-	// Draw particles
+	    // Draw particles
         update_points(points, particle_radius, coords_recvd/2, &circle_state);
-
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -242,8 +241,20 @@ void increase_parameter(RENDER_T *render_state)
 {
     switch(render_state->selected_parameter) {
         case GRAVITY:
-	   increase_gravity(render_state);
-	    break;
+	        increase_gravity(render_state);
+	        break;
+        case VISCOSITY:
+            increase_viscosity(render_state);
+            break;
+        case DENSITY:
+            increase_density(render_state);
+            break;
+        case PRESSURE:
+            increase_pressure(render_state);
+            break;
+         case ELASTICITY:
+            increase_elasticity(render_state);
+            break;
     }
 }
 
@@ -253,38 +264,141 @@ void decrease_parameter(RENDER_T *render_state)
         case GRAVITY:
             decrease_gravity(render_state);
             break;
+        case VISCOSITY:
+            decrease_viscosity(render_state);
+            break;
+        case DENSITY:
+            decrease_density(render_state);
+            break;
+        case PRESSURE:
+            decrease_pressure(render_state);
+            break;
+        case ELASTICITY:
+            decrease_elasticity(render_state);
+            break;
     }
-
 }
 
 // Increase gravity parameter
 void increase_gravity(RENDER_T *render_state)
 {
-    static const float max_grav = -9.0;
-    if(render_state->master_params.g < max_grav)
+    static const float max_grav = -9.0f;
+    if(render_state->master_params.g <= max_grav)
         return;
 
-    int i;
-    render_state->master_params.g -= 1.0;
+    render_state->master_params.g -= 1.0f;
 }
 
 // Decreate gravity parameter
 void decrease_gravity(RENDER_T *render_state)
 {
-    static const float min_grav = 9.0;
-    if(render_state->master_params.g > min_grav)
+    static const float min_grav = 9.0f;
+    if(render_state->master_params.g >= min_grav)
         return;
 
-    int i;
-    render_state->master_params.g += 1.0;
+    render_state->master_params.g += 1.0f;
+}
+
+// Increase density parameter
+void increase_density(RENDER_T *render_state)
+{
+    static const float max_dens = 150.0f;
+    if(render_state->master_params.rest_density >= max_dens)
+        return;
+
+    render_state->master_params.rest_density += 5.0f;
+}
+
+// Decreate gravity parameter
+void decrease_density(RENDER_T *render_state)
+{
+    static const float min_dens = 0.0f;
+    if(render_state->master_params.rest_density <= min_dens)
+        return;
+
+    render_state->master_params.rest_density -= 5.0f;
+}
+
+// Increase viscosity parameter
+void increase_viscosity(RENDER_T *render_state)
+{
+    static const float max_viscosity = 200.0f;
+    float viscosity = render_state->master_params.sigma;
+
+    if(viscosity > max_viscosity)
+        return;
+
+    render_state->master_params.sigma += 5.0f;
+    render_state->master_params.beta += 0.5f;
+}
+
+// Decreate viscosity parameter
+void decrease_viscosity(RENDER_T *render_state)
+{
+    static const float min_viscosity = 0.0f;
+    float viscosity = render_state->master_params.sigma;
+
+    if(viscosity <= min_viscosity)
+        return;
+
+    render_state->master_params.sigma -= 5.0f;
+    render_state->master_params.beta -= 0.5f;
+}
+
+// Increase pressure parameter
+void increase_pressure(RENDER_T *render_state)
+{
+    static const float max_pressure = 2.0f;
+    float pressure = render_state->master_params.k;
+    float pressure_near = render_state->master_params.k_near;
+
+    if(pressure > max_pressure)
+        return;
+
+    render_state->master_params.k += 0.1f;
+    render_state->master_params.k_near += 0.5f;
+}
+
+// Decreate pressure parameter
+void decrease_pressure(RENDER_T *render_state)
+{
+    static const float min_pressure = 0.0f;
+    float pressure = render_state->master_params.k;
+    float pressure_near = render_state->master_params.k_near;
+
+    if(pressure <= min_pressure)
+        return;
+
+    render_state->master_params.k -= 0.1f;
+    render_state->master_params.k_near -= 0.5f;
+}
+
+// Increase elasticity parameter
+void increase_elasticity(RENDER_T *render_state)
+{
+    static const float max_elast = 200.0f;
+    if(render_state->master_params.k_spring > max_elast)
+        return;
+
+    render_state->master_params.k_spring += 5.0f;
+}
+
+// Decreate elasticity parameter
+void decrease_elasticity(RENDER_T *render_state)
+{
+    static const float min_elast = -50.0f;
+    if(render_state->master_params.k_spring < min_elast)
+        return;
+
+    render_state->master_params.k_spring -= 5.0f;
 }
 
 // Translate between pixel coordinates with origin at screen center
 // to simulation coordinates
 void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
 {
-    float half_width = world_dims[0]*0.5;
-    float half_height = world_dims[1]*0.5;
+    float half_width = world_dims[0]*0.5f;
+    float half_height = world_dims[1]*0.5f;
 
     *sim_x = x*half_width + half_width;
     *sim_y = y*half_height + half_height;
@@ -293,9 +407,27 @@ void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_
 // Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
 void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
 {
-    float half_width = world_dims[0]*0.5;
-    float half_height = world_dims[1]*0.5;
+    float half_width = world_dims[0]*0.5f;
+    float half_height = world_dims[1]*0.5f;
 
-    *gl_x = x/half_width - 1.0;
-    *gl_y = y/half_height - 1.0;
+    *gl_x = x/half_width - 1.0f;
+    *gl_y = y/half_height - 1.0f;
+}
+
+void update_node_params(RENDER_T *render_state)
+{
+    int i;
+	// Update all node parameters with master paramter values
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->node_params[i].mover_center_x =  render_state->master_params.mover_center_x; 
+        render_state->node_params[i].mover_center_y = render_state->master_params.mover_center_y;
+        render_state->node_params[i].mover_radius = render_state->master_params.mover_radius;
+   	    render_state->node_params[i].g = render_state->master_params.g;
+        render_state->node_params[i].sigma = render_state->master_params.sigma;
+        render_state->node_params[i].beta = render_state->master_params.beta;
+        render_state->node_params[i].rest_density = render_state->master_params.rest_density;
+        render_state->node_params[i].k = render_state->master_params.k;
+        render_state->node_params[i].k_near = render_state->master_params.k_near;
+        render_state->node_params[i].k_spring = render_state->master_params.k_spring;
+    }
 }
