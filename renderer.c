@@ -183,12 +183,10 @@ void start_renderer()
         render_fps(&font_state, fps);
 
         // Draw font parameters
-        // SHOULD JUST PASS IN render_state
-        // RENDER STATE SHOULD INCLUDE PARAMETER VALUES TO DISPLAY
         render_parameters(&font_state, &render_state);
 
-	    // Wait for all coordinates to be received
-	    MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
+	// Wait for all coordinates to be received
+	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
 	    i = 0;
@@ -216,9 +214,6 @@ void start_renderer()
 
         num_steps++;
 
-        // TODO: this function!
-        // Calculate problem partitioning
-//        balance_partitions(render_state);
     }
 
 //    exit_ogl(&state.gl_state);
@@ -428,40 +423,44 @@ void update_node_params(RENDER_T *render_state)
         render_state->node_params[i].mover_center_x =  render_state->master_params.mover_center_x; 
         render_state->node_params[i].mover_center_y = render_state->master_params.mover_center_y;
         render_state->node_params[i].mover_radius = render_state->master_params.mover_radius;
-   	    render_state->node_params[i].g = render_state->master_params.g;
+        render_state->node_params[i].g = render_state->master_params.g;
         render_state->node_params[i].sigma = render_state->master_params.sigma;
         render_state->node_params[i].beta = render_state->master_params.beta;
         render_state->node_params[i].rest_density = render_state->master_params.rest_density;
         render_state->node_params[i].k = render_state->master_params.k;
         render_state->node_params[i].k_near = render_state->master_params.k_near;
         render_state->node_params[i].k_spring = render_state->master_params.k_spring;
+
     }
 }
 
 void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
-    int max_diff = total_particles/10;
+    int max_diff = (int)total_particles/10.0f;
     float dx, length, length_right;    
+
+    dx = 0.894427;
 
     tunable_parameters *node_params = render_state->node_params;
 
     for(rank=0; rank<(render_state->num_compute_procs-1); rank++)
     {
-        length =  node_params[rank].node_end_x = node_params[rank].node_start_x; 
+        length =  node_params[rank].node_end_x - node_params[rank].node_start_x; 
         length_right =  node_params[rank+1].node_end_x - node_params[rank+1].node_start_x; 
         diff = particle_counts[rank] - particle_counts[rank+1];
-        dx = (length+length_right)*0.05f;
 
         // current rank has too many particles
-        if( diff > max_diff && length >= dx) {
+        if( diff > max_diff) {
             node_params[rank].node_end_x -= dx;
-            node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
+            node_params[rank+1].node_start_x = node_params[rank].node_end_x;
+	    rank++;
         }
         // current rank has too few particles
         else if (diff < -max_diff) {
             node_params[rank].node_end_x += dx;
             node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
+	    rank++;
         }    
     }
 }

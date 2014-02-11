@@ -100,7 +100,10 @@ void start_simulation()
     setParticleNumbers(&boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, spacing_particle, &params);
 
     // We will allocate enough room for all particles on single node
-    int max_fluid_particles_local = params.number_fluid_particles_global;
+    // We also must take into account halo particles are placed onto the end of the max particle index
+    // So this value can be even greater than the number of global
+    // Before reaching this point the program should, but doesn't, intelligenly clean up fluid_particles
+    int max_fluid_particles_local = 2*params.number_fluid_particles_global;
 
     // Smoothing radius, h
     params.tunable_params.smoothing_radius = 2.0f*spacing_particle;
