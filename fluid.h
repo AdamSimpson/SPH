@@ -90,6 +90,6 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
 void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AABB *boundary_global, param *params);
 void checkVelocity(float *v_x, float *v_y);
-
+void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, AABB *boundary_global, param *params);
 
 #endif

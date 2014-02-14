@@ -216,16 +216,15 @@ void start_simulation()
         // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
 
-	// Make sure that async send to render node is complete
-        if(coords_req != MPI_REQUEST_NULL) {
+	    // Make sure that async send to render node is complete
+        if(coords_req != MPI_REQUEST_NULL)
 	    MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
-	}
 
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
-        // Transfer particles that have left the processor bounds
-        transferOOBParticles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &params);
+        // Identify out of bounds particles and send them to appropriate rank
+        identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &boundary_global, &params);
 
         // Hash the non halo regions
         // This will update the densities so when the halo is exchanged the halo particles are up to date
@@ -236,12 +235,12 @@ void start_simulation()
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-	// Add the halo particles to neighbor buckets
-	// Also update density
+	    // Add the halo particles to neighbor buckets
+	    // Also update density
         hash_halo(fluid_particle_pointers, &neighbor_grid, &params, true);
 
         // double density relaxation
-	// halo particles will be missing origin contributions to density/pressure
+	    // halo particles will be missing origin contributions to density/pressure
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
@@ -374,6 +373,32 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
         }
     }
 }
+
+// Identify out of bounds particles and send them to appropriate rank
+void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, AABB *boundary_global, param *params)
+{
+    int i;
+    fluid_particle *p;
+
+    // Reset OOB numbers
+    out_of_bounds->number_oob_particles_left = 0;
+    out_of_bounds->number_oob_particles_right = 0;
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = fluid_particle_pointers[i];
+
+        // Set OOB particle indicies and update number
+        if (p->x < params->tunable_params.node_start_x)
+            out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
+        else if (p->x >= params->tunable_params.node_end_x)
+            out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
+    }
+ 
+   // Transfer particles that have left the processor bounds
+   transferOOBParticles(fluid_particle_pointers, fluid_particles, out_of_bounds, params);
+}
+
+
 
 // Predict position
 void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params)
