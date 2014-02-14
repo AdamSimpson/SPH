@@ -440,7 +440,7 @@ void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_par
     int max_diff = (int)total_particles/10.0f;
     float dx, length, length_right;    
 
-    dx = 0.894427;
+    dx = 0.894427*0.25;
 
     tunable_parameters *node_params = render_state->node_params;
 

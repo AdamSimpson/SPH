@@ -249,7 +249,7 @@ void start_simulation()
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
-	// TODO: Make this dynamic based upon FPS as measured from render node
+	    // TODO: Make this dynamic based upon FPS as measured from render node
 
         // Exchange halo particles from relaxed positions
 //        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
