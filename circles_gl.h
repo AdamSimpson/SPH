@@ -23,10 +23,10 @@ typedef struct
 } CIRCLE_T;
 
 void init_circles(CIRCLE_T *state);
-void update_points(float *points, int num_points, CIRCLE_T *state);
+void update_points(float *points, float radius, int num_points, CIRCLE_T *state);
 void update_mover_point(float *point, float radius, CIRCLE_T *state);
 void create_shaders(CIRCLE_T *state);
-void draw_circles(CIRCLE_T *state, int num_points);
+void draw_circles(CIRCLE_T *state, float radius, int num_points);
 void draw_circle_mover(CIRCLE_T *state, float radius);
 void create_buffers(CIRCLE_T *state);
 

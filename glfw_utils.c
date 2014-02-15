@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "glfw_utils.h"
+#include "renderer.h"
 
 void check_key_press(GL_STATE_T *state)
 {
@@ -20,27 +21,48 @@ void error_callback(int error, const char* description)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 
-    if(action == GLFW_PRESS)
+    RENDER_T *render_state = glfwGetWindowUserPointer(window);
+
+    if(action == GLFW_PRESS || action == GLFW_REPEAT)
         switch(key)
         {
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(window, GL_TRUE);
 	        break;
+	    case GLFW_KEY_RIGHT:
+		increase_parameter(render_state);
+		break;
+	    case GLFW_KEY_LEFT:
+		decrease_parameter(render_state);
+		break;
+            case GLFW_KEY_UP:
+		move_parameter_up(render_state);
+		break;
+	    case GLFW_KEY_DOWN:
+		move_parameter_down(render_state);
+		break;
+	    case GLFW_KEY_LEFT_BRACKET:
+		remove_partition(render_state);
+	        break;
+	    case GLFW_KEY_RIGHT_BRACKET:
+		add_partition(render_state);
+		break;
         }
 }
 
 // Return mouse position in OpenGL screen coordinates
 // x,y [-1, 1], center of screen is origin
-void get_mouse(double *x, double *y, GL_STATE_T *state)
+void get_mouse(float *x, float *y, GL_STATE_T *state)
 {
-    glfwGetCursorPos(state->window, x, y);
-    *y = (state->screen_height - *y); // Flip y = 0
+    double mx, my;
+    glfwGetCursorPos(state->window, &mx, &my);
+    *y = (state->screen_height - my); // Flip y = 0
     *y = *y/(0.5*state->screen_height) - 1.0;
-    *x = *x/(0.5*state->screen_width) - 1.0;
+    *x = mx/(0.5*state->screen_width) - 1.0;
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void init_ogl(GL_STATE_T *state)
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -70,6 +92,13 @@ void init_ogl(GL_STATE_T *state)
     // Initialize GLEW
     glewExperimental = GL_TRUE;
     glewInit();
+
+    // Set key callback
+    glfwSetKeyCallback(state->window, key_callback);
+
+    // Add render state to window pointer
+    // Used for key callbacks
+    glfwSetWindowUserPointer(state->window, render_state);
 
     // Set background color and clear buffers
     glClearColor(0.15f, 0.25f, 0.35f, 1.0f);

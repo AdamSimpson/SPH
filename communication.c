@@ -8,9 +8,6 @@
 // This will create appropriate MPI communicators
 void create_communicators()
 {
-    MPI_Group group_world;
-    MPI_Group group_compute;
-
     // Extract group handle
     MPI_Comm_group(MPI_COMM_WORLD, &group_world);    
 
@@ -18,11 +15,13 @@ void create_communicators()
     int exclude_rank = 0;
     MPI_Group_excl(group_world, 1, &exclude_rank, &group_compute);
 
+    // Create render group
+    int include_rank = 0;
+    MPI_Group_incl(group_world, 1, &include_rank, &group_render);
+
     // Create communicator from group_compute
     MPI_Comm_create(MPI_COMM_WORLD, group_compute, &MPI_COMM_COMPUTE);
 
-    MPI_Group_free(&group_world);
-    MPI_Group_free(&group_compute);
 }
 
 void createMpiTypes()
@@ -33,7 +32,7 @@ void createMpiTypes()
     int i; 
 
     // Create fluid particle type;
-    for (i=0; i<12; i++) types[i] = MPI_DOUBLE;
+    for (i=0; i<12; i++) types[i] = MPI_FLOAT;
     types[12] = MPI_INT;
     for (i=0; i<13; i++) blocklens[i] = 1;
     // Get displacement of each struct member
@@ -55,57 +54,48 @@ void createMpiTypes()
     MPI_Type_commit( &Particletype );
 
     // Create param type
-    for(i=0; i<15; i++) types[i] = MPI_DOUBLE;
-    for(i=15; i<27; i++) types[i] = MPI_INT;
-    for (i=0; i<27; i++) blocklens[i] = 1;
+    for(i=0; i<14; i++) types[i] = MPI_FLOAT;
+    for (i=0; i<14; i++) blocklens[i] = 1;
     // Get displacement of each struct member
-    disps[0] = offsetof( param, rest_density );
-    disps[1] = offsetof( param, spacing_particle );
-    disps[2] = offsetof( param, smoothing_radius );
-    disps[3] = offsetof( param, g );
-    disps[4] = offsetof( param, k );
-    disps[5] = offsetof( param, k_near );
-    disps[6] = offsetof( param, k_spring );
-    disps[7] = offsetof( param, sigma );
-    disps[8] = offsetof( param, beta );
-    disps[9] = offsetof( param, time_step );
-    disps[10] = offsetof( param, node_start_x );
-    disps[11] = offsetof( param, node_end_x );
-    disps[12] = offsetof( param, mover_center_x );
-    disps[13] = offsetof( param, mover_center_y );
-    disps[14] = offsetof( param, mover_radius );
-    disps[15] = offsetof( param, max_bucket_size );
-    disps[16] = offsetof( param, max_neighbors ); 
-    disps[17] = offsetof( param, grid_size_x );
-    disps[18] = offsetof( param, grid_size_y );
-    disps[19] = offsetof( param, number_fluid_particles_global );
-    disps[20] = offsetof( param, number_fluid_particles_local );
-    disps[21] = offsetof( param, max_fluid_particle_index );
-    disps[22] = offsetof( param, max_fluid_particles_local );
-    disps[23] = offsetof( param, number_halo_particles );
-    disps[24] = offsetof( param, length_hash );
-    disps[25] = offsetof( param, rank );
-    disps[26] = offsetof( param, nprocs );
+    disps[0] = offsetof( tunable_parameters, rest_density );
+    disps[1] = offsetof( tunable_parameters, smoothing_radius );
+    disps[2] = offsetof( tunable_parameters, g );
+    disps[3] = offsetof( tunable_parameters, k );
+    disps[4] = offsetof( tunable_parameters, k_near );
+    disps[5] = offsetof( tunable_parameters, k_spring );
+    disps[6] = offsetof( tunable_parameters, sigma );
+    disps[7] = offsetof( tunable_parameters, beta );
+    disps[8] = offsetof( tunable_parameters, time_step );
+    disps[9] = offsetof( tunable_parameters, node_start_x );
+    disps[10] = offsetof( tunable_parameters, node_end_x );
+    disps[11] = offsetof( tunable_parameters, mover_center_x );
+    disps[12] = offsetof( tunable_parameters, mover_center_y );
+    disps[13] = offsetof( tunable_parameters, mover_radius );
 
     // Commit type
-    MPI_Type_create_struct( 27, blocklens, disps, types, &Paramtype );
-    MPI_Type_commit( &Paramtype );
+    MPI_Type_create_struct( 14, blocklens, disps, types, &TunableParamtype );
+    MPI_Type_commit( &TunableParamtype );
 }
 
 void freeMpiTypes()
 {
     MPI_Type_free(&Particletype);
-    MPI_Type_free(&Paramtype);
+    MPI_Type_free(&TunableParamtype);
+
+    MPI_Group_free(&group_world);
+    MPI_Group_free(&group_compute);
 }
 
 void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
 {
     int i;
-    int rank = params->rank;
-    int nprocs = params->nprocs;
-
     fluid_particle *p;
-    double h = params->smoothing_radius;
+    float h = params->tunable_params.smoothing_radius;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
 
     // Set edge particle indicies and update number
     edges->number_edge_particles_left = 0;
@@ -113,9 +103,9 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         p = fluid_particle_pointers[i];
-        if (p->x - params->node_start_x <= h)
+        if (p->x - params->tunable_params.node_start_x <= h)
             edges->edge_pointers_left[edges->number_edge_particles_left++] = p;
-        else if (params->node_end_x - p->x <= h)
+        else if (params->tunable_params.node_end_x - p->x <= h)
             edges->edge_pointers_right[edges->number_edge_particles_right++] = p;
     }
 
@@ -206,7 +196,8 @@ void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle
     int total_received = num_received_left + num_received_right;
     params->number_halo_particles = total_received;
 
-    debug_print("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
+    // Need to automatically add rank to debug print
+    debug_print("halo: recv %d from left, %d from right\n",num_received_left,num_received_right);
 
     // Update pointer array with new values
     int local_index;
@@ -228,8 +219,11 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
 {
     int i;
     fluid_particle *p;
-    int rank = params->rank;
-    int nprocs = params->nprocs;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
 
     int num_moving_left = out_of_bounds->number_oob_particles_left;
     int num_moving_right = out_of_bounds->number_oob_particles_right;
@@ -407,7 +401,8 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
 
     params->number_fluid_particles_local = num_particles;
 
-    debug_print("rank %d num local: %d\n", params->rank, num_particles);
+    // Need to add rank to debug_print
+    debug_print("num local: %d\n", num_particles);
 
     // Free indexed types
     MPI_Type_free(&LeftRecvtype);

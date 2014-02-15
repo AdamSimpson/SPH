@@ -1,5 +1,6 @@
 CC=mpicc
-CLIBS= -lglfw3 -lGLEW -framework OpenGL -framework Cocoa -framework IOkit
+CLIBS= -lglfw3 -lGLEW -framework OpenGL -framework Cocoa -framework IOkit -L/usr/local/Cellar/freetype/2.5.2/lib -lfreetype
+CINCLUDES= -I/usr/local/Cellar/freetype/2.5.2/include/freetype2
 CFLAGS= -DGLFW -O3 -ffast-math -lm
 
 all:

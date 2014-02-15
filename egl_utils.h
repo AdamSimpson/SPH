@@ -9,6 +9,8 @@
 #include "linux/input.h"
 
 #include "bcm_host.h"
+#include "renderer.h"
+
 
 typedef struct {
     uint32_t screen_width;
@@ -20,6 +22,8 @@ typedef struct {
 
     int keyboard_fd;
     int mouse_fd;
+
+    void *user_pointer; // mimics GLFW user pointer
 } GL_STATE_T;
 
 typedef struct {
@@ -28,11 +32,11 @@ typedef struct {
     char dy;
 } MOUSE_INPUT;
 
-void init_ogl(GL_STATE_T *state);
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state);
 void exit_ogl(GL_STATE_T *state);
 void swap_ogl(GL_STATE_T *state);
 void check_key_press(GL_STATE_T *state);
 int get_key_press(GL_STATE_T *state);
-void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state);
+void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state);
 
 #endif

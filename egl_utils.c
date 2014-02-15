@@ -3,9 +3,11 @@
 #include <assert.h>
 
 #include "egl_utils.h"
+#include "linux/input.h"
+#include "renderer.h"
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
-void init_ogl(GL_STATE_T *state)
+void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 {
 
     bcm_host_init();
@@ -14,6 +16,10 @@ void init_ogl(GL_STATE_T *state)
     memset(state, 0, sizeof(GL_STATE_T));
     state->keyboard_fd = -1;
     state->mouse_fd = -1;
+
+    // Set a user pointer up
+    // This mimics GLFW
+    state->user_pointer = render_state;
 
     int32_t success = 0;
     EGLBoolean result;
@@ -125,7 +131,7 @@ void exit_ogl(GL_STATE_T *state)
 
 // Return mouse position in OpenGL coordinates
 // This is different than default GLFW coordinates
-void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
+void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 {
     // Screen dimensions in pixels
     const int width = state->screen_width;
@@ -139,8 +145,10 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
     static int x = 0;
     static int y = 0;
 
-    double x_scaled = 0.0;
-    double y_scaled = 0.0;
+    float x_scaled;
+    float y_scaled;
+
+    ssize_t bytes_read;
 
     // Open file containing mouse events
     if (state->mouse_fd < 0)
@@ -148,9 +156,10 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
 
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
-        read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
+        bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
 
- //       debug_print("dx: %d, dy: %d\n", event.dx, event.dy);
+        if(bytes_read != sizeof(MOUSE_INPUT))
+            return;
 
         int speed_multiplier = 2;
 
@@ -174,8 +183,8 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
             y = height;
 
         // convert to OpenGL screen coordinates from pixels
-        x_scaled = (double)x/(0.5*width) - 1.0;
-        y_scaled = (double)y/(0.5*height) - 1.0;
+        x_scaled = (float)x/(0.5f*width) - 1.0f;
+        y_scaled = (float)y/(0.5f*height) - 1.0f;
 
 //        debug_print("pixels(%d,%d) scaled(%f,%f)\n", x,y,x_scaled,y_scaled);
     }
@@ -187,7 +196,26 @@ void get_mouse(double *x_pos, double *y_pos, GL_STATE_T *state)
 
 void check_key_press(GL_STATE_T *state)
 {
+    RENDER_T *render_state = (RENDER_T*)state->user_pointer;
 
+    // Get key press
+    int key = get_key_press(state);
+
+    switch(key)
+    {
+        case KEY_RIGHT:
+            increase_parameter(render_state);
+            break;
+        case KEY_LEFT:
+            decrease_parameter(render_state);
+            break;
+        case KEY_UP:
+            move_parameter_up(render_state);
+            break;
+        case KEY_DOWN:
+            move_parameter_down(render_state);
+            break;
+    }
 }
 
 int get_key_press(GL_STATE_T *state)
@@ -201,7 +229,7 @@ int get_key_press(GL_STATE_T *state)
     if (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY)
+	if(event.type == EV_KEY && event.value == 1)
 	    key_code = (int)event.code;
     }
 
