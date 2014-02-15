@@ -44,5 +44,6 @@ void update_node_params(RENDER_T *render_state);
 void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles);
 void add_partition(RENDER_T *render_state);
 void remove_partition(RENDER_T *render_state);
+void hsv_to_rgb(float* hsv, float *rgb);
 
 #endif

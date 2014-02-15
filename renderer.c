@@ -100,11 +100,18 @@ void start_renderer()
     // Set background color
     glClearColor(0, 0, 0, 1);
 
-    // Create color index - hard coded for now to experiment
-    float colors_by_rank[9] = {0.69,0.07,0.07,
-        1.0,1.0,0.1,
-        0.08,0.52,0.8};
-
+    // Create color index, equally spaced around HSV
+    float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
+    float angle_space = 1.0f/(float)render_state.num_compute_procs;
+    float HSV[3];
+    for(i=0; i<render_state.num_compute_procs; i++)
+    {
+	HSV[0] = angle_space*i;
+        HSV[1] = 1.0f;
+	HSV[2] = 1.0f;
+        hsv_to_rgb(HSV, colors_by_rank+3*i);
+    }
+ 
     int num_coords_rank;
     int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
@@ -203,6 +210,7 @@ void start_renderer()
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+	    // Check if we are processing a new rank's particles
             if ( num_parts > particle_coordinate_counts[current_rank]/2){
                 current_rank =  particle_coordinate_ranks[++i];
                 num_parts = 1;
@@ -533,4 +541,69 @@ void add_partition(RENDER_T *render_state)
     render_state->master_params[num_compute_procs_active].node_start_x = new_x;
 
     render_state->num_compute_procs_active += 1;
+}
+
+// Convert hsv to rgb
+// input hsv [0:1]
+// output rgb [0,1]
+void hsv_to_rgb(float* HSV, float *RGB)
+{
+    float hue, saturation, value, hh, p, q, t, ff, r, g, b;
+    long i;
+
+    hue = HSV[0];
+    saturation = HSV[1];
+    value = HSV[2];
+
+    hh = hue*360.0f;
+    if(hh >= 360.0f)
+	hh = 0.0f;
+    hh /= 60.0f;
+    i = (long)hh;
+    ff = hh - i;
+    p = value * (1.0f - saturation);
+    q = value * (1.0f - (saturation * ff));
+    t = value * (1.0f - (saturation * (1.0f - ff)));
+
+    switch(i) {
+        case 0:
+	    r = value;
+	    g = t;
+	    b = p;
+	    break;
+	case 1:
+	    r = q;
+	    g = value;
+	    b = p;
+	    break;
+	case 2:
+	    r = p;
+	    g = value;
+	    b = t;
+	    break;
+	case 3:
+	    r = p;
+	    g = q;
+	    b = value;
+	    break;
+        case 4:
+	    r = t;
+	    g = p;
+	    b = value;
+	    break;
+	case 5:
+	    r = value;
+	    g = p;
+	    b = q;
+	    break;
+	default:
+	    r = value;
+	    g = p;
+	    b = q;
+	    break;
+    }
+
+    RGB[0] = r;
+    RGB[1] = g;
+    RGB[2] = b;
 }
