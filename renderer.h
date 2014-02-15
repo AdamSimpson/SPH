@@ -19,6 +19,7 @@ typedef struct {
     tunable_parameters *node_params; // Holds all nodes paramters including start/end lengths
     tunable_parameters master_params; // Holds parameters shared by all nodes
     int num_compute_procs;
+    int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
 } RENDER_T;
 
 void start_renderer();
@@ -41,5 +42,7 @@ void decrease_elasticity(RENDER_T *render_state);
 void increase_elasticity(RENDER_T *render_state);
 void update_node_params(RENDER_T *render_state);
 void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles);
+void add_partition(RENDER_T *render_state);
+void remove_partition(RENDER_T *render_state);
 
 #endif

@@ -28,9 +28,10 @@ void start_renderer()
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
     // Number of processes
-    int num_procs, num_compute_procs;
+    int num_procs, num_compute_procs, num_compute_procs_active;
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     num_compute_procs = num_procs - 1;
+    num_compute_procs_active = num_compute_procs;
 
     // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
@@ -105,6 +106,7 @@ void start_renderer()
     float mover_radius, mover_radius_scaled;
 
     int frames_per_fps = 30;
+    int frames_per_check = 3;
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -165,7 +167,8 @@ void start_renderer()
 
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
-        checkPartitions(&render_state, particle_coordinate_counts, coords_recvd);
+        if(num_steps%frames_per_check == 0)
+            checkPartitions(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
@@ -430,37 +433,78 @@ void update_node_params(RENDER_T *render_state)
         render_state->node_params[i].k = render_state->master_params.k;
         render_state->node_params[i].k_near = render_state->master_params.k_near;
         render_state->node_params[i].k_spring = render_state->master_params.k_spring;
-
     }
 }
 
+// Checks for a balanced number of particles on each compute node
+// If unbalanced the partition between nodes will change
 void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
     int max_diff = (int)total_particles/10.0f;
     float dx, length, length_right;    
 
-    dx = 0.894427*0.25;
+    // Fixed distance to move partition is 1/2 smoothing radius
+    float h = render_state->master_params.smoothing_radius;
+    dx = h*0.5;
 
     tunable_parameters *node_params = render_state->node_params;
 
-    for(rank=0; rank<(render_state->num_compute_procs-1); rank++)
+    for(rank=0; rank<(render_state->num_compute_procs_active-1); rank++)
     {
         length =  node_params[rank].node_end_x - node_params[rank].node_start_x; 
         length_right =  node_params[rank+1].node_end_x - node_params[rank+1].node_start_x; 
         diff = particle_counts[rank] - particle_counts[rank+1];
 
         // current rank has too many particles
-        if( diff > max_diff) {
+        if( diff > max_diff && length > 4*h) {
             node_params[rank].node_end_x -= dx;
             node_params[rank+1].node_start_x = node_params[rank].node_end_x;
-	    rank++;
         }
         // current rank has too few particles
-        else if (diff < -max_diff) {
+        else if (diff < -max_diff && length_right > 4*h) {
             node_params[rank].node_end_x += dx;
             node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
-	    rank++;
         }    
     }
+}
+
+// Set last partition to be outside of simulation bounds
+// Effectively removing it from the simulation
+void remove_partition(RENDER_T *render_state)
+{
+    if(render_state->num_compute_procs_active == 1) 
+	return;
+
+    int num_compute_procs_active = render_state->num_compute_procs_active;
+
+    // Set new end position of last active proc to end of simulation
+    render_state->node_params[num_compute_procs_active-2].node_end_x = render_state->node_params[num_compute_procs_active-1].node_end_x;
+
+    // Send start and end x out of sim bounds
+    float position = render_state->node_params[num_compute_procs_active-1].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
+    render_state->node_params[num_compute_procs_active-1].node_start_x = position;
+    render_state->node_params[num_compute_procs_active-1].node_end_x = position;
+
+    render_state->num_compute_procs_active -= 1;
+}
+
+// Add on partition to right side that has been removed
+void add_partition(RENDER_T *render_state)
+{
+    if(render_state->num_compute_procs_active == render_state->num_compute_procs)
+	return;
+
+    int num_compute_procs_active = render_state->num_compute_procs_active;    
+
+    // Set end of added partition to current end location
+    render_state->node_params[num_compute_procs_active].node_end_x = render_state->node_params[num_compute_procs_active-1].node_end_x;
+    
+    // Divide the current last partition in half
+    float length = render_state->node_params[num_compute_procs_active-1].node_end_x - render_state->node_params[num_compute_procs_active-1].node_start_x;
+    float new_x = render_state->node_params[num_compute_procs_active-1].node_start_x + length*0.5;
+    render_state->node_params[num_compute_procs_active-1].node_end_x = new_x;
+    render_state->node_params[num_compute_procs_active].node_start_x = new_x;
+
+    render_state->num_compute_procs_active += 1;
 }

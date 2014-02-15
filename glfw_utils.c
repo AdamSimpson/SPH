@@ -41,6 +41,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	    case GLFW_KEY_DOWN:
 		move_parameter_down(render_state);
 		break;
+	    case GLFW_KEY_LEFT_BRACKET:
+		remove_partition(render_state);
+	        break;
+	    case GLFW_KEY_RIGHT_BRACKET:
+		add_partition(render_state);
+		break;
         }
 }
 
