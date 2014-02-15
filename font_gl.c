@@ -292,11 +292,11 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     parameters selected_param = render_state->selected_parameter;
     float gravity, viscosity, density, pressure, elasticity;
 
-    gravity = render_state->master_params.g;
-    viscosity = render_state->master_params.sigma;
-    density = render_state->master_params.rest_density;
-    pressure = render_state->master_params.k;
-    elasticity = render_state->master_params.k_spring;
+    gravity = render_state->master_params[0].g;
+    viscosity = render_state->master_params[0].sigma;
+    density = render_state->master_params[0].rest_density;
+    pressure = render_state->master_params[0].k;
+    elasticity = render_state->master_params[0].k_spring;
   
     // Gravity
     if(selected_param == GRAVITY)

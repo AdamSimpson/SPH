@@ -37,14 +37,20 @@ void start_renderer()
     // So we can use MPI_Gather instead of MPI_Gatherv
     tunable_parameters *node_params = malloc(num_compute_procs*sizeof(tunable_parameters));
 
+    // The render node must keep it's own set of master parameters
+    // This is due to the GLFW key callback method
+    tunable_parameters *master_params = malloc(num_compute_procs*sizeof(tunable_parameters));
+
     // Setup render state
     render_state.node_params = node_params;
+    render_state.master_params = master_params;
     render_state.num_compute_procs = num_compute_procs;
+    render_state.num_compute_procs_active = num_compute_procs;
     render_state.selected_parameter = 0;
 
     int i,j;
 
-    // Broadcast pixels rati
+    // Broadcast pixels ratio
     short pixel_dims[2];
     pixel_dims[0] = (short)gl_state.screen_width;
     pixel_dims[1] = (short)gl_state.screen_height;
@@ -72,9 +78,8 @@ void start_renderer()
     MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, node_params, param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
     // Fill in master parameters
-    render_state.master_params = node_params[0];
-    render_state.master_params.node_start_x = 0;// THESE SHOULD NOT BE USED
-    render_state.master_params.node_end_x = 0;  // THESE SHOULD NOT BE USED
+    for(i=0; i<render_state.num_compute_procs; i++)
+        render_state.master_params[i] = node_params[i];
 
     // Allocate particle receive array
     int num_coords = 2;
@@ -141,9 +146,11 @@ void start_renderer()
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
         mover_radius = 1.0f;
-        render_state.master_params.mover_center_x = mouse_x_scaled;
-        render_state.master_params.mover_center_y = mouse_y_scaled;
-        render_state.master_params.mover_radius = mover_radius;
+        for(i=0; i<render_state.num_compute_procs; i++) {
+            render_state.master_params[i].mover_center_x = mouse_x_scaled;
+            render_state.master_params[i].mover_center_y = mouse_y_scaled;
+            render_state.master_params[i].mover_radius = mover_radius;
+        }
 
         // Update node params with master param values
         update_node_params(&render_state);
@@ -287,114 +294,138 @@ void decrease_parameter(RENDER_T *render_state)
 void increase_gravity(RENDER_T *render_state)
 {
     static const float max_grav = -9.0f;
-    if(render_state->master_params.g <= max_grav)
+    if(render_state->master_params[0].g <= max_grav)
         return;
 
-    render_state->master_params.g -= 1.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].g -= 1.0f;
 }
 
 // Decreate gravity parameter
 void decrease_gravity(RENDER_T *render_state)
 {
     static const float min_grav = 9.0f;
-    if(render_state->master_params.g >= min_grav)
+    if(render_state->master_params[0].g >= min_grav)
         return;
 
-    render_state->master_params.g += 1.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].g += 1.0f;
 }
 
 // Increase density parameter
 void increase_density(RENDER_T *render_state)
 {
     static const float max_dens = 150.0f;
-    if(render_state->master_params.rest_density >= max_dens)
+    if(render_state->master_params[0].rest_density >= max_dens)
         return;
 
-    render_state->master_params.rest_density += 5.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].rest_density += 5.0f;
 }
 
 // Decreate gravity parameter
 void decrease_density(RENDER_T *render_state)
 {
     static const float min_dens = 0.0f;
-    if(render_state->master_params.rest_density <= min_dens)
+    if(render_state->master_params[0].rest_density <= min_dens)
         return;
 
-    render_state->master_params.rest_density -= 5.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].rest_density -= 5.0f;
 }
 
 // Increase viscosity parameter
 void increase_viscosity(RENDER_T *render_state)
 {
     static const float max_viscosity = 200.0f;
-    float viscosity = render_state->master_params.sigma;
+    float viscosity = render_state->master_params[0].sigma;
 
     if(viscosity > max_viscosity)
         return;
 
-    render_state->master_params.sigma += 5.0f;
-    render_state->master_params.beta += 0.5f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].sigma += 5.0f;
+        render_state->master_params[i].beta += 0.5f;
+    }
 }
 
 // Decreate viscosity parameter
 void decrease_viscosity(RENDER_T *render_state)
 {
     static const float min_viscosity = 0.0f;
-    float viscosity = render_state->master_params.sigma;
+    float viscosity = render_state->master_params[0].sigma;
 
     if(viscosity <= min_viscosity)
         return;
 
-    render_state->master_params.sigma -= 5.0f;
-    render_state->master_params.beta -= 0.5f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].sigma -= 5.0f;
+        render_state->master_params[i].beta -= 0.5f;
+    }
 }
 
 // Increase pressure parameter
 void increase_pressure(RENDER_T *render_state)
 {
     static const float max_pressure = 2.0f;
-    float pressure = render_state->master_params.k;
-    float pressure_near = render_state->master_params.k_near;
+    float pressure = render_state->master_params[0].k;
+    float pressure_near = render_state->master_params[0].k_near;
 
     if(pressure > max_pressure)
         return;
 
-    render_state->master_params.k += 0.1f;
-    render_state->master_params.k_near += 0.5f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].k += 0.1f;
+        render_state->master_params[i].k_near += 0.5f;
+    }
 }
 
 // Decreate pressure parameter
 void decrease_pressure(RENDER_T *render_state)
 {
     static const float min_pressure = 0.0f;
-    float pressure = render_state->master_params.k;
-    float pressure_near = render_state->master_params.k_near;
+    float pressure = render_state->master_params[0].k;
+    float pressure_near = render_state->master_params[0].k_near;
 
     if(pressure <= min_pressure)
         return;
 
-    render_state->master_params.k -= 0.1f;
-    render_state->master_params.k_near -= 0.5f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].k -= 0.1f;
+        render_state->master_params[i].k_near -= 0.5f;
+    }
 }
 
 // Increase elasticity parameter
 void increase_elasticity(RENDER_T *render_state)
 {
     static const float max_elast = 200.0f;
-    if(render_state->master_params.k_spring > max_elast)
+    if(render_state->master_params[0].k_spring > max_elast)
         return;
 
-    render_state->master_params.k_spring += 5.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].k_spring += 5.0f;
 }
 
 // Decreate elasticity parameter
 void decrease_elasticity(RENDER_T *render_state)
 {
     static const float min_elast = -50.0f;
-    if(render_state->master_params.k_spring < min_elast)
+    if(render_state->master_params[0].k_spring < min_elast)
         return;
 
-    render_state->master_params.k_spring -= 5.0f;
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].k_spring -= 5.0f;
 }
 
 // Translate between pixel coordinates with origin at screen center
@@ -422,18 +453,8 @@ void update_node_params(RENDER_T *render_state)
 {
     int i;
 	// Update all node parameters with master paramter values
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->node_params[i].mover_center_x =  render_state->master_params.mover_center_x; 
-        render_state->node_params[i].mover_center_y = render_state->master_params.mover_center_y;
-        render_state->node_params[i].mover_radius = render_state->master_params.mover_radius;
-        render_state->node_params[i].g = render_state->master_params.g;
-        render_state->node_params[i].sigma = render_state->master_params.sigma;
-        render_state->node_params[i].beta = render_state->master_params.beta;
-        render_state->node_params[i].rest_density = render_state->master_params.rest_density;
-        render_state->node_params[i].k = render_state->master_params.k;
-        render_state->node_params[i].k_near = render_state->master_params.k_near;
-        render_state->node_params[i].k_spring = render_state->master_params.k_spring;
-    }
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->node_params[i] = render_state->master_params[i]; 
 }
 
 // Checks for a balanced number of particles on each compute node
@@ -442,29 +463,29 @@ void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_par
 {
     int rank, diff;
     int max_diff = (int)total_particles/10.0f;
-    float dx, length, length_right;    
+    float h, dx, length, length_right;    
 
     // Fixed distance to move partition is 1/2 smoothing radius
-    float h = render_state->master_params.smoothing_radius;
+    h = render_state->master_params[0].smoothing_radius;
     dx = h*0.5;
 
-    tunable_parameters *node_params = render_state->node_params;
+    tunable_parameters *master_params = render_state->master_params;
 
     for(rank=0; rank<(render_state->num_compute_procs_active-1); rank++)
     {
-        length =  node_params[rank].node_end_x - node_params[rank].node_start_x; 
-        length_right =  node_params[rank+1].node_end_x - node_params[rank+1].node_start_x; 
+        length =  master_params[rank].node_end_x - master_params[rank].node_start_x; 
+        length_right =  master_params[rank+1].node_end_x - master_params[rank+1].node_start_x; 
         diff = particle_counts[rank] - particle_counts[rank+1];
 
         // current rank has too many particles
-        if( diff > max_diff && length > 4*h) {
-            node_params[rank].node_end_x -= dx;
-            node_params[rank+1].node_start_x = node_params[rank].node_end_x;
+        if( diff > max_diff && length > 2*h) {
+            master_params[rank].node_end_x -= dx;
+            master_params[rank+1].node_start_x = master_params[rank].node_end_x;
         }
         // current rank has too few particles
-        else if (diff < -max_diff && length_right > 4*h) {
-            node_params[rank].node_end_x += dx;
-            node_params[rank+1].node_start_x = node_params[rank].node_end_x; 
+        else if (diff < -max_diff && length_right > 2*h) {
+            master_params[rank].node_end_x += dx;
+            master_params[rank+1].node_start_x = master_params[rank].node_end_x; 
         }    
     }
 }
@@ -479,12 +500,12 @@ void remove_partition(RENDER_T *render_state)
     int num_compute_procs_active = render_state->num_compute_procs_active;
 
     // Set new end position of last active proc to end of simulation
-    render_state->node_params[num_compute_procs_active-2].node_end_x = render_state->node_params[num_compute_procs_active-1].node_end_x;
+    render_state->master_params[num_compute_procs_active-2].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
 
     // Send start and end x out of sim bounds
-    float position = render_state->node_params[num_compute_procs_active-1].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
-    render_state->node_params[num_compute_procs_active-1].node_start_x = position;
-    render_state->node_params[num_compute_procs_active-1].node_end_x = position;
+    float position = render_state->master_params[num_compute_procs_active-1].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
+    render_state->master_params[num_compute_procs_active-1].node_start_x = position;
+    render_state->master_params[num_compute_procs_active-1].node_end_x = position;
 
     render_state->num_compute_procs_active -= 1;
 }
@@ -498,13 +519,13 @@ void add_partition(RENDER_T *render_state)
     int num_compute_procs_active = render_state->num_compute_procs_active;    
 
     // Set end of added partition to current end location
-    render_state->node_params[num_compute_procs_active].node_end_x = render_state->node_params[num_compute_procs_active-1].node_end_x;
+    render_state->master_params[num_compute_procs_active].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
     
     // Divide the current last partition in half
-    float length = render_state->node_params[num_compute_procs_active-1].node_end_x - render_state->node_params[num_compute_procs_active-1].node_start_x;
-    float new_x = render_state->node_params[num_compute_procs_active-1].node_start_x + length*0.5;
-    render_state->node_params[num_compute_procs_active-1].node_end_x = new_x;
-    render_state->node_params[num_compute_procs_active].node_start_x = new_x;
+    float length = render_state->master_params[num_compute_procs_active-1].node_end_x - render_state->master_params[num_compute_procs_active-1].node_start_x;
+    float new_x = render_state->master_params[num_compute_procs_active-1].node_start_x + length*0.5;
+    render_state->master_params[num_compute_procs_active-1].node_end_x = new_x;
+    render_state->master_params[num_compute_procs_active].node_start_x = new_x;
 
     render_state->num_compute_procs_active += 1;
 }
