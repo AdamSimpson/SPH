@@ -102,11 +102,14 @@ void start_renderer()
 
     // Create color index, equally spaced around HSV
     float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
-    float angle_space = 1.0f/(float)render_state.num_compute_procs;
+    float angle_space = 0.5f/(float)render_state.num_compute_procs;
     float HSV[3];
     for(i=0; i<render_state.num_compute_procs; i++)
     {
-	HSV[0] = angle_space*i;
+	if(i%2)
+	    HSV[0] = angle_space*i;
+	else
+	    HSV[0] = angle_space*i + 0.5f;
         HSV[1] = 1.0f;
 	HSV[2] = 1.0f;
         hsv_to_rgb(HSV, colors_by_rank+3*i);
