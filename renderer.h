@@ -17,7 +17,7 @@ typedef enum {
 typedef struct {
     parameters selected_parameter;
     tunable_parameters *node_params; // Holds all nodes paramters including start/end lengths
-    tunable_parameters master_params; // Holds parameters shared by all nodes
+    tunable_parameters *master_params; // Holds parameters shared by all nodes
     int num_compute_procs;
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
 } RENDER_T;
