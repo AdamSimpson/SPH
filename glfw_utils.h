@@ -21,5 +21,6 @@ void get_mouse(float *x, float *y, GL_STATE_T *state);
 void init_ogl(GL_STATE_T *state, RENDER_T *render_state);
 void exit_ogl(GL_STATE_T *state);
 void swap_ogl(GL_STATE_T *state);
+bool window_should_close(GL_STATE_T *state);
 
 #endif

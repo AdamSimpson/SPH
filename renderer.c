@@ -145,7 +145,16 @@ void start_renderer()
             num_steps = 0;
             wall_time = current_time;
         }
-        
+
+	// Check to see if simulation should close
+	if(window_should_close(&gl_state)) {
+            for(i=0; i<render_state.num_compute_procs; i++)
+                render_state.node_params[i].kill_sim = true;
+            // Send kill paramaters to compute nodes
+            MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
+	    break;
+	}    
+
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
@@ -242,8 +251,7 @@ void start_renderer()
 
     }
 
-//    exit_ogl(&state.gl_state);
-
+    exit_ogl(&gl_state);
 }
 
 // Move selected parameter up

@@ -25,9 +25,9 @@ int main(int argc, char *argv[])
 
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0)
-  	    start_renderer();
+        start_renderer();
     else
-	    start_simulation();
+        start_simulation();
 
     printf("Global rank %d\n", rank);
     MPI_Finalize();
@@ -51,6 +51,7 @@ void start_simulation()
 
     unsigned int i;
 
+    params.tunable_params.kill_sim = false;
     params.tunable_params.g = 3.0f;
     params.tunable_params.time_step = 0.03f;
     params.tunable_params.k = 0.2f;
@@ -118,7 +119,6 @@ void start_simulation()
         MPI_Send(world_dims, 2, MPI_FLOAT, 0, 8, MPI_COMM_WORLD);
 	MPI_Send(&params.number_fluid_particles_global, 1, MPI_INT, 0, 9, MPI_COMM_WORLD);
     }
-
 
     // Neighbor grid setup
     neighbor_grid_t neighbor_grid;
@@ -205,8 +205,10 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
+
     // Main simulation loop
     while(1) {
+
         // Initialize velocities
         apply_gravity(fluid_particle_pointers, &params);
 
@@ -222,6 +224,9 @@ void start_simulation()
 
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
+
+	if(params.tunable_params.kill_sim)
+	    break;
 
         // Identify out of bounds particles and send them to appropriate rank
         identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &boundary_global, &params);

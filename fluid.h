@@ -61,6 +61,7 @@ struct TUNABLE_PARAMETERS {
     float mover_center_x;
     float mover_center_y;
     float mover_radius;
+    char kill_sim;
 };
 
 // Full parameters struct for simulation
