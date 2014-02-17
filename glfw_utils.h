@@ -7,8 +7,8 @@
 #include "renderer.h"
 
 typedef struct {
-    uint32_t screen_width;
-    uint32_t screen_height;
+    int screen_width;
+    int screen_height;
 
     GLFWwindow* window;
 
