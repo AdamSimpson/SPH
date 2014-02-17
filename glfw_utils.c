@@ -79,8 +79,8 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-    state->screen_width = 800;
-    state->screen_height = 800;
+    state->screen_width = 1920;
+    state->screen_height = 1080;
     state->window = glfwCreateWindow(state->screen_width, state->screen_height, "SPH", NULL, NULL);
 
     if(!state->window)

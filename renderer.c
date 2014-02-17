@@ -122,6 +122,7 @@ void start_renderer()
 
     int frames_per_fps = 30;
     int frames_per_check = 3;
+//    bool check_left = false;
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -184,8 +185,7 @@ void start_renderer()
 
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
-        if(num_steps%frames_per_check == 0)
-            checkPartitions(&render_state, particle_coordinate_counts, coords_recvd);
+        check_partition_right(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
@@ -475,11 +475,15 @@ void update_node_params(RENDER_T *render_state)
 
 // Checks for a balanced number of particles on each compute node
 // If unbalanced the partition between nodes will change
-void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_particles)
+// Check from left to right
+void check_partition_right(RENDER_T *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
-    int max_diff = (int)total_particles/10.0f;
-    float h, dx, length, length_right;    
+    float h, dx, length, length_right;
+
+    // Particles per proc if evenly divided
+    int even_particles = total_particles/render_state->num_compute_procs_active;
+    int max_diff = even_particles/15.0f;
 
     // Fixed distance to move partition is 1/2 smoothing radius
     h = render_state->master_params[0].smoothing_radius;
@@ -491,20 +495,62 @@ void checkPartitions(RENDER_T *render_state, int *particle_counts, int total_par
     {
         length =  master_params[rank].node_end_x - master_params[rank].node_start_x; 
         length_right =  master_params[rank+1].node_end_x - master_params[rank+1].node_start_x; 
-        diff = particle_counts[rank] - particle_counts[rank+1];
+        diff = particle_counts[rank] - even_particles;// particle_counts[rank+1];
 
         // current rank has too many particles
-        if( diff > max_diff && length > 2*h) {
+        if( diff > max_diff && length > 4*h) {
             master_params[rank].node_end_x -= dx;
             master_params[rank+1].node_start_x = master_params[rank].node_end_x;
+	    rank++;
         }
         // current rank has too few particles
-        else if (diff < -max_diff && length_right > 2*h) {
+        else if (diff < -max_diff && length_right > 4*h) {
             master_params[rank].node_end_x += dx;
-            master_params[rank+1].node_start_x = master_params[rank].node_end_x; 
+            master_params[rank+1].node_start_x = master_params[rank].node_end_x;
+	    rank++;
         }    
     }
 }
+
+// Checks for a balanced number of particles on each compute node
+// If unbalanced the partition between nodes will change 
+// Check from right to left
+void check_partition_left(RENDER_T *render_state, int *particle_counts, int total_particles)
+{
+    int rank, diff;
+    float h, dx, length, length_left;   
+
+    // Particles per proc if evenly divided
+    int even_particles = total_particles/render_state->num_compute_procs_active;
+    int max_diff = even_particles/15.0f;
+
+    // Fixed distance to move partition is 1/2 smoothing radius
+    h = render_state->master_params[0].smoothing_radius;
+    dx = h*0.125;
+
+    tunable_parameters *master_params = render_state->master_params;
+
+    for(rank=render_state->num_compute_procs_active; rank-- > 1; )
+    {
+        length =  master_params[rank].node_end_x - master_params[rank].node_start_x;
+        length_left =  master_params[rank-1].node_end_x - master_params[rank-1].node_start_x;
+        diff = particle_counts[rank] - even_particles;//particle_counts[rank-1];
+
+        // current rank has too many particles
+        if( diff > max_diff && length > 4*h) {
+            master_params[rank].node_start_x += dx;
+            master_params[rank-1].node_end_x = master_params[rank].node_start_x;
+        }
+        // current rank has too few particles
+        else if (diff < -max_diff && length_left > 4*h) {
+            master_params[rank].node_start_x -= dx;
+            master_params[rank-1].node_end_x = master_params[rank].node_start_x;
+        }
+
+    }
+
+}
+
 
 // Set last partition to be outside of simulation bounds
 // Effectively removing it from the simulation
@@ -532,13 +578,19 @@ void add_partition(RENDER_T *render_state)
     if(render_state->num_compute_procs_active == render_state->num_compute_procs)
 	return;
 
-    int num_compute_procs_active = render_state->num_compute_procs_active;    
+    // Length of currently last partiion
+    int num_compute_procs_active = render_state->num_compute_procs_active;
+    float length = render_state->master_params[num_compute_procs_active-1].node_end_x - render_state->master_params[num_compute_procs_active-1].node_start_x;
+    float h = render_state->master_params[0].smoothing_radius;
+
+    // If the last partition is too small we can't split it and another
+    if(length < 6*h)
+	return;
 
     // Set end of added partition to current end location
     render_state->master_params[num_compute_procs_active].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
     
     // Divide the current last partition in half
-    float length = render_state->master_params[num_compute_procs_active-1].node_end_x - render_state->master_params[num_compute_procs_active-1].node_start_x;
     float new_x = render_state->master_params[num_compute_procs_active-1].node_start_x + length*0.5;
     render_state->master_params[num_compute_procs_active-1].node_end_x = new_x;
     render_state->master_params[num_compute_procs_active].node_start_x = new_x;

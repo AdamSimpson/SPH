@@ -61,7 +61,7 @@ void start_simulation()
     params.tunable_params.rest_density = 30.0f;
  
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 3000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -214,7 +214,7 @@ void start_simulation()
         viscosity_impluses(fluid_particle_pointers, neighbors, &params);
 
         // Advance to predicted position and set OOB particles
-        predict_positions(fluid_particle_pointers, &out_of_bounds, &boundary_global, &params);
+        predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
 	    // Make sure that async send to render node is complete
         if(coords_req != MPI_REQUEST_NULL)
@@ -248,19 +248,18 @@ void start_simulation()
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
-	    // TODO: Make this dynamic based upon FPS as measured from render node
 
         // Exchange halo particles from relaxed positions
-//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // We can hash during exchange as the density is not needed
         hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // Finish asynch halo exchange
-//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
-//        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
+        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost
@@ -327,7 +326,8 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     dt = params->tunable_params.time_step;
 
 
-    for(i=0; i<params->number_fluid_particles_local; i++) {
+    for(i=params->number_fluid_particles_local; i-- > 0; ) {
+//    for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
  	    p_x = p->x;
@@ -364,8 +364,8 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
 
                 }
                 else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
-                    q->v_x += imp_x*0.25f;
-                    q->v_y += imp_y*0.25f;
+                    q->v_x += imp_x*0.125f;
+                    q->v_y += imp_y*0.125f;
                 }
                 
             }
@@ -401,15 +401,11 @@ void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_part
 
 
 // Predict position
-void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bounds, AABB *boundary_global, param *params)
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
     float dt = params->tunable_params.time_step;
-
-    // Reset OOB numbers
-    out_of_bounds->number_oob_particles_left = 0;
-    out_of_bounds->number_oob_particles_right = 0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
@@ -420,12 +416,6 @@ void predict_positions(fluid_particle **fluid_particle_pointers, oob *out_of_bou
 
 	// Enforce boundary conditions
         boundaryConditions(p, boundary_global, params);
-
-        // Set OOB particle indicies and update number
-        if (p->x < params->tunable_params.node_start_x)
-            out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x >= params->tunable_params.node_end_x)
-            out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 }
 
@@ -476,7 +466,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
         p_pressure = p->pressure;
-	    p_pressure_near = p->pressure_near;
+        p_pressure_near = p->pressure_near;
 
         for(j=0; j<n->number_fluid_neighbors; j++) {
 
@@ -506,15 +496,14 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
                     q->y += D_y;
                 }	
                 else { // Move the halo particles only half way to account for other sides missing contribution
-                    q->x += D_x*0.5f;
-                    q->y += D_y*0.5f;
+                    q->x += D_x*0.125f;
+                    q->y += D_y*0.125f;
                 }
-               
+ 
                 p->x -= D_x;
                 p->y -= D_y;
            }
        }
-
     }
 }
 
