@@ -132,7 +132,7 @@ void start_renderer()
     MPI_Request coord_reqs[num_compute_procs];
     int src, coords_recvd;
     float gl_x, gl_y;
-    float particle_radius = 1.0f;
+    float particle_radius = 5.0f;
 
     MPI_Status status;
 
@@ -556,9 +556,7 @@ void check_partition_left(RENDER_T *render_state, int *particle_counts, int tota
         }
 
     }
-
 }
-
 
 // Set last partition to be outside of simulation bounds
 // Effectively removing it from the simulation

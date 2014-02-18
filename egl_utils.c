@@ -6,6 +6,14 @@
 #include "linux/input.h"
 #include "renderer.h"
 
+bool window_should_close(GL_STATE_T *state)
+{
+    if(state->window_should_close)
+        return true;
+    else
+        return false;
+}
+
 // Description: Sets the display, OpenGL|ES context and screen stuff
 void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 {
@@ -16,6 +24,7 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
     memset(state, 0, sizeof(GL_STATE_T));
     state->keyboard_fd = -1;
     state->mouse_fd = -1;
+    state->window_should_close = false;
 
     // Set a user pointer up
     // This mimics GLFW
@@ -215,6 +224,9 @@ void check_key_press(GL_STATE_T *state)
         case KEY_DOWN:
             move_parameter_down(render_state);
             break;
+	case KEY_ESC:
+	    state->window_should_close = true;
+	    break;
     }
 }
 
