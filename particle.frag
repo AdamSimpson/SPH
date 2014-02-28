@@ -35,7 +35,11 @@ void main() {
     float cosAngleIncidence = clamp( 1.0 * dot(normal, frag_to_light) , 0, 1);
     cosAngleIncidence = cosAngleIncidence < 0.0001 ? 0.0 : cosAngleIncidence;
 
-    vec3 color = sqrt(sphere_color * light_intensity * cosAngleIncidence);
+    // diffuse lighting
+    vec3 color = sphere_color * light_intensity * cosAngleIncidence;
+
+    // ambient lighting
+    color += sphere_color * 0.2;
 
     out_color = vec4(color, 1);
 }
