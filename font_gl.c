@@ -202,7 +202,6 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
     }
         glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_DYNAMIC_DRAW);
         glDrawArrays(GL_TRIANGLES, 0, n);
- 
 }
 
 void init_font(FONT_T *state, int screen_width, int screen_height)
@@ -260,10 +259,10 @@ void render_fps(FONT_T *state, float fps)
 
     // Buffer to create strings in
     char buffer[64];
-    sprintf( buffer, "FPS: %.2f", fps);
+    sprintf( buffer, "FPS: %.0f", fps);
    
     // Render text
-    render_text(state, buffer, 1 - 200 * sx, 1 - 50 * sy, sx, sy);
+    render_text(state, buffer, 1 - 100 * sx, 1 - 50 * sy, sx, sy);
 }
 
 void render_parameters(FONT_T *state, RENDER_T *render_state)

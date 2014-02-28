@@ -62,7 +62,7 @@ void start_simulation()
     params.tunable_params.rest_density = 30.0f;
  
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 2000;
+    params.number_fluid_particles_global = 1000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0

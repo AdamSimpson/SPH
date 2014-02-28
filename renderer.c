@@ -131,7 +131,7 @@ void start_renderer()
     MPI_Request coord_reqs[num_compute_procs];
     int src, coords_recvd;
     float gl_x, gl_y;
-    float particle_radius = 10.0f;
+    float particle_radius = 15.0f;
 
     MPI_Status status;
 
@@ -145,14 +145,14 @@ void start_renderer()
             wall_time = current_time;
         }
 
-	// Check to see if simulation should close
-	if(window_should_close(&gl_state)) {
+	    // Check to see if simulation should close
+	    if(window_should_close(&gl_state)) {
             for(i=0; i<render_state.num_compute_procs; i++)
                 render_state.node_params[i].kill_sim = true;
             // Send kill paramaters to compute nodes
             MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
-	    break;
-	}    
+	        break;
+	    }    
 
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
@@ -213,11 +213,11 @@ void start_renderer()
         // Draw font parameters
         render_parameters(&font_state, &render_state);
 
-	// Wait for all coordinates to be received
-	MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
+	    // Wait for all coordinates to be received
+	    MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	i = 0;
+	    i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
@@ -247,7 +247,6 @@ void start_renderer()
         swap_ogl(&gl_state);
 
         num_steps++;
-
     }
 
     exit_ogl(&gl_state);
