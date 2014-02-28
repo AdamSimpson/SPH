@@ -111,7 +111,7 @@ void start_renderer()
 	else
 	    HSV[0] = angle_space*i + 0.5f;
         HSV[1] = 1.0f;
-	HSV[2] = 1.0f;
+	HSV[2] = 0.8f;
         hsv_to_rgb(HSV, colors_by_rank+3*i);
     }
  
@@ -122,7 +122,6 @@ void start_renderer()
 
     int frames_per_fps = 30;
     int frames_per_check = 1;
-//    bool check_left = false;
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -132,7 +131,7 @@ void start_renderer()
     MPI_Request coord_reqs[num_compute_procs];
     int src, coords_recvd;
     float gl_x, gl_y;
-    float particle_radius = 5.0f;
+    float particle_radius = 10.0f;
 
     MPI_Status status;
 
@@ -204,8 +203,8 @@ void start_renderer()
         mover_point[0] = gl_x;
         mover_point[1] = gl_y;
         mover_point[2] = 1.0f;
-        mover_point[3] = 1.0f;
-        mover_point[4] = 1.0f;
+        mover_point[3] = 0.0f;
+        mover_point[4] = 0.0f;
         mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
 
         // Draw FPS
