@@ -121,7 +121,7 @@ void start_renderer()
     float mover_radius, mover_radius_scaled;
 
     int frames_per_fps = 30;
-    int frames_per_check = 3;
+    int frames_per_check = 1;
 //    bool check_left = false;
     int num_steps = 0;
     double current_time;
@@ -365,7 +365,7 @@ void decrease_density(RENDER_T *render_state)
 // Increase viscosity parameter
 void increase_viscosity(RENDER_T *render_state)
 {
-    static const float max_viscosity = 200.0f;
+    static const float max_viscosity = 100.0f;
     float viscosity = render_state->master_params[0].sigma;
 
     if(viscosity > max_viscosity)
@@ -397,7 +397,7 @@ void decrease_viscosity(RENDER_T *render_state)
 // Increase pressure parameter
 void increase_pressure(RENDER_T *render_state)
 {
-    static const float max_pressure = 2.0f;
+    static const float max_pressure = 1.0f;
     float pressure = render_state->master_params[0].k;
     float pressure_near = render_state->master_params[0].k_near;
 
@@ -530,7 +530,7 @@ void check_partition_left(RENDER_T *render_state, int *particle_counts, int tota
 
     // Particles per proc if evenly divided
     int even_particles = total_particles/render_state->num_compute_procs_active;
-    int max_diff = even_particles/15.0f;
+    int max_diff = even_particles/10.0f;
 
     // Fixed distance to move partition is 1/2 smoothing radius
     h = render_state->master_params[0].smoothing_radius;

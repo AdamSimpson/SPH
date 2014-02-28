@@ -62,7 +62,7 @@ void start_simulation()
     params.tunable_params.rest_density = 30.0f;
  
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 3000;
+    params.number_fluid_particles_global = 2000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -205,7 +205,6 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
-
     // Main simulation loop
     while(1) {
 
@@ -255,16 +254,16 @@ void start_simulation()
         // Not updating these can cause unstable behavior
 
         // Exchange halo particles from relaxed positions
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // We can hash during exchange as the density is not needed
         hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // Finish asynch halo exchange
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
-        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
+//        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost

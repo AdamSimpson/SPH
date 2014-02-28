@@ -224,9 +224,15 @@ void check_key_press(GL_STATE_T *state)
         case KEY_DOWN:
             move_parameter_down(render_state);
             break;
-	case KEY_ESC:
-	    state->window_should_close = true;
-	    break;
+        case KEY_ESC:
+	        state->window_should_close = true;
+	        break;
+	    case KEY_PAGEUP:
+		    remove_partition(render_state);
+	        break;
+	    case KEY_PAGEDOWN:
+		    add_partition(render_state);
+		    break;
     }
 }
 
@@ -241,7 +247,7 @@ int get_key_press(GL_STATE_T *state)
     if (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY && event.value == 1)
+	if(event.type == EV_KEY && event.value == 1 && event.code > 0)
 	    key_code = (int)event.code;
     }
 

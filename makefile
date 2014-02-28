@@ -15,7 +15,7 @@ clean:
 	rm -f ./*.o
 
 run: copy
-	cd $(HOME) && mpirun --host 192.168.3.100,192.168.3.101,192.168.3.102,192.168.3.103 -n 4 ./sph.out && cd SPH 
+	cd $(HOME) && mpirun --host 192.168.3.100,192.168.3.101,192.168.3.103,192.168.3.102 -n 4 ./sph.out && cd SPH 
 
 copy:
 	scp ./bin/sph.out pi0:~/
