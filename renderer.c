@@ -122,7 +122,6 @@ void start_renderer()
 
     int frames_per_fps = 30;
     int frames_per_check = 3;
-//    bool check_left = false;
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -204,8 +203,8 @@ void start_renderer()
         mover_point[0] = gl_x;
         mover_point[1] = gl_y;
         mover_point[2] = 1.0f;
-        mover_point[3] = 1.0f;
-        mover_point[4] = 1.0f;
+        mover_point[3] = 0.0f;
+        mover_point[4] = 0.0f;
         mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
 
         // Draw FPS
