@@ -47,5 +47,7 @@ void remove_partition(RENDER_T *render_state);
 void hsv_to_rgb(float* hsv, float *rgb);
 void check_partition_right(RENDER_T *render_state, int *particle_counts, int total_particles);
 void check_partition_left(RENDER_T *render_state, int *particle_counts, int total_particles);
+void decrease_mover_y(RENDER_T *render_state);
+void increase_mover_y(RENDER_T *render_state);
 
 #endif

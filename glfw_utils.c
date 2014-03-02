@@ -28,7 +28,7 @@ bool window_should_close(GL_STATE_T *state)
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-
+    // Get render_state from GLFW user pointer
     RENDER_T *render_state = glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
@@ -37,13 +37,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(window, GL_TRUE);
 	            break;
-	        case GLFW_KEY_RIGHT:
+                case GLFW_KEY_RIGHT:
 		        increase_parameter(render_state);
 		        break;
-	        case GLFW_KEY_LEFT:
+                case GLFW_KEY_LEFT:
 		        decrease_parameter(render_state);
 		        break;
-            case GLFW_KEY_UP:
+                case GLFW_KEY_UP:
 		        move_parameter_up(render_state);
 		        break;
 	        case GLFW_KEY_DOWN:
@@ -67,6 +67,19 @@ void get_mouse(float *x, float *y, GL_STATE_T *state)
     *y = (state->screen_height - my); // Flip y = 0
     *y = *y/(0.5*state->screen_height) - 1.0;
     *x = mx/(0.5*state->screen_width) - 1.0;
+}
+
+// scroll wheel callback
+void wheel_callback(GLFWwindow* window, double x, double y)
+{
+    // Get render_state from GLFW user pointer
+    RENDER_T *render_state = glfwGetWindowUserPointer(window);
+    
+    // Call increase/decrease mover calls
+    if(y > 0.0)
+	increase_mover_y(render_state);
+    else if(y < 0.0)
+	decrease_mover_y(render_state);
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
@@ -109,6 +122,9 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);
+
+    // Set scroll wheel callback
+    glfwSetScrollCallback(state->window, wheel_callback);
 
     // Add render state to window pointer
     // Used for key callbacks

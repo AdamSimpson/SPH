@@ -254,15 +254,15 @@ void render_fps(FONT_T *state, float fps)
 
 
     // Font start
-    float sx = 2.0 / state->screen_width;
-    float sy = 2.0 / state->screen_height;
+    float sx = 2.0f / state->screen_width;
+    float sy = 2.0f / state->screen_height;
 
     // Buffer to create strings in
     char buffer[64];
     sprintf( buffer, "FPS: %.0f", fps);
    
     // Render text
-    render_text(state, buffer, 1 - 100 * sx, 1 - 50 * sy, sx, sy);
+    render_text(state, buffer, 1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 }
 
 void render_parameters(FONT_T *state, RENDER_T *render_state)
@@ -277,16 +277,16 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     glUniform1i(state->tex_location, 0);
 
     // Set font color
-    GLfloat non_selected[4] = {1, 1, 1, 1};
-    GLfloat selected[4] = {0, 1, 1, 1};
+    GLfloat non_selected[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat selected[4] = {0.0f, 1.0f, 0.0f, 1.0f};
     glUniform4fv(state->color_location, 1, non_selected);
 
     // Buffer to create strings in
     char buffer[100];
 
     // Font start
-    float sx = 2.0 / state->screen_width;
-    float sy = 2.0 / state->screen_height;
+    float sx = 2.0f / state->screen_width;
+    float sy = 2.0f / state->screen_height;
 
     parameters selected_param = render_state->selected_parameter;
     float gravity, viscosity, density, pressure, elasticity;
@@ -301,7 +301,7 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     if(selected_param == GRAVITY)
         glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Gravity: %.1f", gravity);
-    render_text(state, buffer, -1 + 8 * sx, 1 - 50 * sy, sx, sy);
+    render_text(state, buffer, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
     if(selected_param == GRAVITY) 
         glUniform4fv(state->color_location, 1, non_selected);
 
@@ -309,7 +309,7 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     if(selected_param == VISCOSITY)
         glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Viscosity: %.1f", viscosity);
-    render_text(state, buffer, -1 + 8 * sx, 1 - 100 * sy, sx, sy);
+    render_text(state, buffer, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
     if(selected_param == VISCOSITY)
         glUniform4fv(state->color_location, 1, non_selected);
 
@@ -317,7 +317,7 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     if(selected_param == DENSITY)
         glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Density: %.1f", density);
-    render_text(state, buffer, -1 + 8 * sx, 1 - 150 * sy, sx, sy);
+    render_text(state, buffer, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
     if(selected_param == DENSITY)
         glUniform4fv(state->color_location, 1, non_selected);
 
@@ -325,7 +325,7 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     if(selected_param == PRESSURE)
         glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Pressure: %.1f", pressure);
-    render_text(state, buffer, -1 + 8 * sx, 1 - 200 * sy, sx, sy);
+    render_text(state, buffer, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
     if(selected_param == PRESSURE)
         glUniform4fv(state->color_location, 1, non_selected);
 
@@ -333,7 +333,7 @@ void render_parameters(FONT_T *state, RENDER_T *render_state)
     if(selected_param == ELASTICITY)
         glUniform4fv(state->color_location, 1, selected);
     sprintf( buffer, "Elasticity: %.1f", elasticity);
-    render_text(state, buffer, -1 + 8 * sx, 1 - 250 * sy, sx, sy);
+    render_text(state, buffer, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
     if(selected_param == ELASTICITY)
         glUniform4fv(state->color_location, 1, non_selected);
 

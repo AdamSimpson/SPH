@@ -60,7 +60,8 @@ void start_simulation()
     params.tunable_params.sigma = 20.0f;
     params.tunable_params.beta = 2.0f;
     params.tunable_params.rest_density = 30.0f;
- 
+    params.tunable_params.mover_radius = 1.0f;
+
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 1000;
 

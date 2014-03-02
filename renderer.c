@@ -124,7 +124,7 @@ void start_renderer()
     int num_coords_rank;
     int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
-    float mover_radius, mover_radius_gl;
+    float mover_radius_gl;
     float mover_gl_dims[2];
 
     int frames_per_fps = 30;
@@ -174,11 +174,9 @@ void start_renderer()
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
 
         // Mover radius in sim coordinates
-        mover_radius = 1.0f;
         for(i=0; i<render_state.num_compute_procs; i++) {
             render_state.master_params[i].mover_center_x = mouse_x_scaled;
             render_state.master_params[i].mover_center_y = mouse_y_scaled;
-            render_state.master_params[i].mover_radius = mover_radius;
         }
 
         // Update node params with master param values
@@ -217,12 +215,12 @@ void start_renderer()
         mover_color[2] = 0.0f;
 
         // Mover bounding rectangle half width/height lengths in ogl system
-        mover_gl_dims[0] = mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.5) ;
-        mover_gl_dims[1] = mover_radius/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.5);
+        mover_gl_dims[0] = render_state.master_params[0].mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.5) ;
+        mover_gl_dims[1] = render_state.master_params[0].mover_radius/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.5);
 
         // Set mover radius in ogl system, not exactly correct due to aspect ratio issues
         // Subtract particle radius so they don't penetrate mover
-        mover_radius_gl = mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width);
+        mover_radius_gl = render_state.master_params[0].mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width);
 
         // Draw FPS
         render_fps(&font_state, fps);
@@ -466,6 +464,36 @@ void decrease_elasticity(RENDER_T *render_state)
     int i;
     for(i=0; i<render_state->num_compute_procs; i++)
         render_state->master_params[i].k_spring -= 5.0f;
+}
+
+// Increase mover "y"
+void increase_mover_y(RENDER_T *render_state)
+{
+    // Sphere mover max radius
+    static const float max_radius = 4.0f;
+
+    if(render_state->master_params[0].mover_radius > max_radius)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].mover_radius += 0.1f;
+
+}
+
+// Increase mover "y"
+void decrease_mover_y(RENDER_T *render_state)
+{
+    // Sphere mover max radius
+    static const float min_radius = 0.2f;
+
+    if(render_state->master_params[0].mover_radius < min_radius)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++)
+        render_state->master_params[i].mover_radius -= 0.1f;
+
 }
 
 // Translate between pixel coordinates with origin at screen center
