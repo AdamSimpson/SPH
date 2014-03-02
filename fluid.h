@@ -19,6 +19,11 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
 #define debug_print(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
+// MPI doesn't have a C enum type
+// So we use defines
+#define SPHERE_MOVER 0
+#define RECTANGLE_MOVER 1
+
 ////////////////////////////////////////////////
 // Structures
 ////////////////////////////////////////////////
@@ -44,7 +49,6 @@ struct NEIGHBOR{
     int number_fluid_neighbors;
 };
 
-
 // These parameters are tunable by the render node
 struct TUNABLE_PARAMETERS {
     float rest_density;
@@ -60,7 +64,9 @@ struct TUNABLE_PARAMETERS {
     float node_end_x;
     float mover_center_x;
     float mover_center_y;
-    float mover_radius;
+    float mover_width;
+    float mover_height;
+    char mover_type;
     char kill_sim;
 };
 

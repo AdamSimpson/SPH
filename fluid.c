@@ -60,7 +60,9 @@ void start_simulation()
     params.tunable_params.sigma = 20.0f;
     params.tunable_params.beta = 2.0f;
     params.tunable_params.rest_density = 30.0f;
-    params.tunable_params.mover_radius = 1.0f;
+    params.tunable_params.mover_width = 1.0f;
+    params.tunable_params.mover_height = 1.0f;
+    params.tunable_params.mover_type = SPHERE_MOVER;
 
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 1000;
@@ -607,36 +609,46 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
 
-    // Circle test
-    float center_x = params->tunable_params.mover_center_x;
-    float center_y = params->tunable_params.mover_center_y;
+    // Boundary condition for sphere mover
+    if(params->tunable_params.mover_type == SPHERE_MOVER)
+    {
+        // Circle test
+        float center_x = params->tunable_params.mover_center_x;
+        float center_y = params->tunable_params.mover_center_y;
 
-    float radius = params->tunable_params.mover_radius;
-    float norm_x;
-    float norm_y;
+        // For sphere width == height
+        float radius = params->tunable_params.mover_width;
+        float norm_x;
+        float norm_y;
 
-    // Both circle tests can be combined if no impulse is used
+        // Both circle tests can be combined if no impulse is used
+        // Test if inside of circle
+        float d;
+        float d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
+        if(d2 <= radius*radius && d2 > 0.0f) {
+            norm_x = (center_x-p->x)/sqrt(d2);
+            norm_y = (center_y-p->y)/sqrt(d2);
+           // collisionImpulse(p, norm_x, norm_y, params);
+        }
 
-    // Test if inside of circle
-    float d;
-    float d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
-    if(d2 <= radius*radius && d2 > 0.0f) {
-        norm_x = (center_x-p->x)/sqrt(d2);
-        norm_y = (center_y-p->y)/sqrt(d2);
-
-//        collisionImpulse(p, norm_x, norm_y, params);
+        // Make sure particle is outside of circle
+        d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
+        if(d2 <= radius*radius) {
+            float pen_dist = radius - sqrt(d2);
+            p->x -= pen_dist * norm_x;
+            p->y -= pen_dist * norm_y;
+        }
     }
 
-    // Make sure particle is outside of circle
-    d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
-    if(d2 <= radius*radius) {
-        float pen_dist = radius - sqrt(d2);
-        p->x -= pen_dist * norm_x;
-        p->y -= pen_dist * norm_y;
-    }
+    // Boundary condition for rectangle mover
+    if(params->tunable_params.mover_type == RECTANGLE_MOVER)
+    {
 
+
+    }
+ 
     // Boundary seems more stable without collision impulse
-/*
+    /*
     // Update velocity
     if(p->x <= boundary->min_x) {
         collisionImpulse(p,1.0,0.0,params);
@@ -650,8 +662,8 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     else if(p->y >= boundary->max_y){
         collisionImpulse(p,0.0,-1.0,params);
     }
+    */
 
-*/
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash potentially won't pick it up
     // as the particle will in the 'next' after last bin

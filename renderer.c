@@ -124,7 +124,6 @@ void start_renderer()
     int num_coords_rank;
     int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
-    float mover_radius_gl;
     float mover_gl_dims[2];
 
     int frames_per_fps = 30;
@@ -153,21 +152,14 @@ void start_renderer()
             wall_time = current_time;
         }
 
-	    // Check to see if simulation should close
-	    if(window_should_close(&gl_state)) {
+        // Check to see if simulation should close
+        if(window_should_close(&gl_state)) {
             for(i=0; i<render_state.num_compute_procs; i++)
                 render_state.node_params[i].kill_sim = true;
             // Send kill paramaters to compute nodes
             MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
-	        break;
-	    }    
-
-        // Send updated paramaters to compute nodes
-        MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
-
-        // Get keyboard key press
-        // process appropriately
-        check_key_press(&gl_state);
+            break;
+        }    
 
         // Update mover position
         get_mouse(&mouse_x, &mouse_y, &gl_state);
@@ -179,8 +171,15 @@ void start_renderer()
             render_state.master_params[i].mover_center_y = mouse_y_scaled;
         }
 
+        // Get keyboard key press
+        // process appropriately
+        check_key_press(&gl_state);
+
         // Update node params with master param values
         update_node_params(&render_state);
+
+        // Send updated paramaters to compute nodes
+        MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
         // Retrieve all particle coordinates (x,y)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
@@ -215,18 +214,17 @@ void start_renderer()
         mover_color[2] = 0.0f;
 
         // Mover bounding rectangle half width/height lengths in ogl system
-        mover_gl_dims[0] = render_state.master_params[0].mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.5) ;
-        mover_gl_dims[1] = render_state.master_params[0].mover_radius/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.5);
-
-        // Set mover radius in ogl system, not exactly correct due to aspect ratio issues
-        // Subtract particle radius so they don't penetrate mover
-        mover_radius_gl = render_state.master_params[0].mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width);
+        mover_gl_dims[0] = render_state.master_params[0].mover_width/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.5) ;
+        mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.5);
 
         // Draw FPS
         render_fps(&font_state, fps);
 
         // Draw font parameters
         render_parameters(&font_state, &render_state);
+
+        // Render over particles to hide penetration
+        update_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
@@ -255,9 +253,6 @@ void start_renderer()
 
 	// Draw particles
         update_particles(points, particle_radius, coords_recvd/2, &particle_GLstate);
-
-        // Render over particles to hide penetration
-        update_mover(mover_center, mover_radius_gl, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -472,12 +467,17 @@ void increase_mover_y(RENDER_T *render_state)
     // Sphere mover max radius
     static const float max_radius = 4.0f;
 
-    if(render_state->master_params[0].mover_radius > max_radius)
+    if(render_state->master_params[0].mover_height > max_radius)
         return;
 
     int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].mover_radius += 0.1f;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+	// Increase sphere
+        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
+            render_state->master_params[i].mover_height += 0.2f;
+            render_state->master_params[i].mover_width += 0.2f;
+        }
+    }
 
 }
 
@@ -487,12 +487,17 @@ void decrease_mover_y(RENDER_T *render_state)
     // Sphere mover max radius
     static const float min_radius = 0.2f;
 
-    if(render_state->master_params[0].mover_radius < min_radius)
+    if(render_state->master_params[0].mover_height < min_radius)
         return;
 
     int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].mover_radius -= 0.1f;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+	// Decrease sphere
+        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
+            render_state->master_params[i].mover_height -= 0.2f;
+            render_state->master_params[i].mover_width -= 0.2f;
+        }
+    }
 
 }
 

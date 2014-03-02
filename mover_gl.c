@@ -22,7 +22,7 @@ void init_mover(MOVER_T *state)
 }
 
 // Update coordinates of point mover
-void update_mover(float *center, float radius, float *gl_dims, float *color, MOVER_T *state)
+void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
 {
      // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -51,6 +51,8 @@ void update_mover(float *center, float radius, float *gl_dims, float *color, MOV
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    float radius = gl_dims[0];
 
     draw_circle_mover(state, center, radius, color);
 }

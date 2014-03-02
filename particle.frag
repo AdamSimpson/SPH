@@ -6,7 +6,7 @@ out vec4 out_color;
 
 uniform float radius;
 
-const vec3 light_intensity = vec3(0.8, 0.8, 0.8);
+const vec3 light_intensity = vec3(1.0, 1.0, 1.0);
 const vec3 light_position = vec3(0.0, 0.0, 0.8);
 
 // Needs to be fixed
