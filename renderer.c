@@ -487,7 +487,7 @@ void decrease_mover_y(RENDER_T *render_state)
     // Sphere mover max radius
     static const float min_radius = 0.2f;
 
-    if(render_state->master_params[0].mover_height < min_radius)
+    if(render_state->master_params[0].mover_height - min_radius < 0.001)
         return;
 
     int i;
@@ -498,7 +498,6 @@ void decrease_mover_y(RENDER_T *render_state)
             render_state->master_params[i].mover_width -= 0.2f;
         }
     }
-
 }
 
 // Translate between pixel coordinates with origin at screen center
