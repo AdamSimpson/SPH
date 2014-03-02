@@ -62,7 +62,7 @@ void start_simulation()
     params.tunable_params.rest_density = 30.0f;
     params.tunable_params.mover_width = 1.0f;
     params.tunable_params.mover_height = 1.0f;
-    params.tunable_params.mover_type = SPHERE_MOVER;
+    params.tunable_params.mover_type = RECTANGLE_MOVER;
 
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 1000;
@@ -609,15 +609,14 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 {
 
+    float center_x = params->tunable_params.mover_center_x;
+    float center_y = params->tunable_params.mover_center_y;
+
     // Boundary condition for sphere mover
     if(params->tunable_params.mover_type == SPHERE_MOVER)
     {
-        // Circle test
-        float center_x = params->tunable_params.mover_center_x;
-        float center_y = params->tunable_params.mover_center_y;
-
-        // For sphere width == height
-        float radius = params->tunable_params.mover_width;
+        // Sphere width == height
+        float radius = params->tunable_params.mover_width*0.5f;
         float norm_x;
         float norm_y;
 
@@ -626,25 +625,69 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
         float d;
         float d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
         if(d2 <= radius*radius && d2 > 0.0f) {
-            norm_x = (center_x-p->x)/sqrt(d2);
-            norm_y = (center_y-p->y)/sqrt(d2);
+            d = sqrt(d2);
+            norm_x = (center_x-p->x)/d;
+            norm_y = (center_y-p->y)/d;
+	    
+	    // With no collision impulse we can handle penetration here
+            float pen_dist = radius - d;
+            p->x -= pen_dist * norm_x;
+            p->y -= pen_dist * norm_y;
+
            // collisionImpulse(p, norm_x, norm_y, params);
         }
 
         // Make sure particle is outside of circle
+        /*
         d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
         if(d2 <= radius*radius) {
             float pen_dist = radius - sqrt(d2);
             p->x -= pen_dist * norm_x;
             p->y -= pen_dist * norm_y;
         }
+        */
     }
 
     // Boundary condition for rectangle mover
     if(params->tunable_params.mover_type == RECTANGLE_MOVER)
     {
+        float half_width = params->tunable_params.mover_width*0.5;
+        float half_height = params->tunable_params.mover_height*0.5;
 
+        // Particle possition relative to mover center
+        float pos_center_x = p->x - center_x;
+        float pos_center_y = p->y - center_y;
 
+        // Distance from particle to mover center
+	float dist_center_x = fabs(pos_center_x);
+	float dist_center_y = fabs(pos_center_y);  
+
+	// Test if inside rectangle
+        if( dist_center_x < half_width && dist_center_y < half_height)
+        {
+            // To find where penetrated from we assume
+            // particle is closest to penetrated side
+
+            // Particle penetration depth into rectangle
+            float pen_depth_x = half_width - dist_center_x;
+            float pen_depth_y = half_height - dist_center_y;
+
+            // Particle closer to left/right sides
+            if(pen_depth_x < pen_depth_y){
+                // Entered left side
+                if(pos_center_x < 0.0f)
+                    p->x -= pen_depth_x;
+                else // Entered right side
+                    p->x += pen_depth_x;
+            }
+            else { // Particle closer to top/bottom
+                // Entered bottom
+                if(pos_center_y < 0.0f)
+                    p->y -= pen_depth_y;
+                else // Entered top
+                    p->y += pen_depth_y;
+            }
+        }
     }
  
     // Boundary seems more stable without collision impulse

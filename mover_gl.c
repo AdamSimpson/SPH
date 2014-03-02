@@ -30,21 +30,23 @@ void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
     float center_x = center[0];
     float center_y = center[1];
 
+    float half_width = gl_dims[0]*0.5;
+    float half_height = gl_dims[1]*0.5;
     // Triangle strip Verticies for rectangle that contains circle
     float verts[8];
 
     // Bottom left
-    verts[0] = center_x - gl_dims[0]; 
-    verts[1] = center_y - gl_dims[1];
+    verts[0] = center_x - half_width; 
+    verts[1] = center_y - half_height;
     // Top left
-    verts[2] = center_x - gl_dims[0];
-    verts[3] = center_y + gl_dims[1];
+    verts[2] = center_x - half_width;
+    verts[3] = center_y + half_height;
     // Bottom right
-    verts[4] = center_x + gl_dims[0];
-    verts[5] = center_y - gl_dims[1];
+    verts[4] = center_x + half_width;
+    verts[5] = center_y - half_height;
     // Top right
-    verts[6] = center_x + gl_dims[0];
-    verts[7] = center_y + gl_dims[1];
+    verts[6] = center_x + half_width;
+    verts[7] = center_y + half_height;
 
     // Fill buffer
     glBufferData(GL_ARRAY_BUFFER, 8*sizeof(GLfloat), verts, GL_STREAM_DRAW);
@@ -52,7 +54,7 @@ void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    float radius = gl_dims[0];
+    float radius = half_width;
 
     draw_circle_mover(state, center, radius, color);
 }

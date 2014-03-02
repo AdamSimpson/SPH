@@ -77,9 +77,13 @@ void wheel_callback(GLFWwindow* window, double x, double y)
     
     // Call increase/decrease mover calls
     if(y > 0.0)
-	increase_mover_y(render_state);
+	increase_mover_height(render_state);
     else if(y < 0.0)
-	decrease_mover_y(render_state);
+	decrease_mover_height(render_state);
+    if(x > 0.0)
+        increase_mover_width(render_state);
+    else if(x < 0.0)
+        decrease_mover_width(render_state);
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
