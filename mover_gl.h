@@ -10,15 +10,22 @@
 
 typedef struct
 {
+    char mover_type;
+
     // Program handle
-    GLuint program;
+    GLuint sphere_program;
+    GLuint rectangle_program;
 
     // Locations
-    GLint position_location;
+    GLint sphere_position_location;
+    GLint sphere_center_location;
+    GLint sphere_color_location;
+    GLint sphere_radius_location;
 
-    GLint center_location;
-    GLint color_location;
-    GLint radius_location;
+    // Locations
+    GLint rectangle_position_location;
+    GLint rectangle_center_location;
+    GLint rectangle_color_location;
 
     // buffers
     GLuint vbo;
@@ -26,8 +33,10 @@ typedef struct
 
 void init_mover(MOVER_T *state);
 void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state);
-void create_mover_shaders(MOVER_T *state);
+void create_sphere_mover_program(MOVER_T *state);
+void create_rectangle_mover_program(MOVER_T *state);
 void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color);
+void draw_rectangle_mover(MOVER_T *state, float *center, float *color);
 void create_mover_buffers(MOVER_T *state);
 
 #endif

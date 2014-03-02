@@ -16,9 +16,9 @@ void init_mover(MOVER_T *state)
     // Create circle buffers
     create_mover_buffers(state);
 
-    // Create and set circle shaders
-    // Also links circle program
-    create_mover_shaders(state);
+    // Create shader programs
+    create_sphere_mover_program(state);
+    create_rectangle_mover_program(state);
 }
 
 // Update coordinates of point mover
@@ -54,9 +54,12 @@ void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    float radius = half_width;
-
-    draw_circle_mover(state, center, radius, color);
+    if(state->mover_type == SPHERE_MOVER) {
+        float radius = half_width;
+        draw_circle_mover(state, center, radius, color);
+    }
+    else if(state->mover_type == RECTANGLE_MOVER)
+        draw_rectangle_mover(state, center, color);
 }
 
 void create_mover_buffers(MOVER_T *state)
@@ -72,7 +75,8 @@ void create_mover_buffers(MOVER_T *state)
     glGenBuffers(1, &state->vbo);
 }
 
-void create_mover_shaders(MOVER_T *state)
+// Compile sphere program
+void create_sphere_mover_program(MOVER_T *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -91,55 +95,87 @@ void create_mover_shaders(MOVER_T *state)
     #endif
 
     // Create shader program
-    state->program = glCreateProgram();
-    glAttachShader(state->program, vertexShader);
-    glAttachShader(state->program, fragmentShader); 
+    state->sphere_program = glCreateProgram();
+    glAttachShader(state->sphere_program, vertexShader);
+    glAttachShader(state->sphere_program, fragmentShader); 
 
     // Link and use program
-    glLinkProgram(state->program);
-    show_program_log(state->program);
+    glLinkProgram(state->sphere_program);
+    show_program_log(state->sphere_program);
 
     // Get position location
-    state->position_location = glGetAttribLocation(state->program, "position");
+    state->sphere_position_location = glGetAttribLocation(state->sphere_program, "position");
 
-    // Get tex_coorad location
-    state->color_location = glGetUniformLocation(state->program, "color");
+    // Get color location
+    state->sphere_color_location = glGetUniformLocation(state->sphere_program, "color");
     // Get radius location
-    state->radius_location = glGetUniformLocation(state->program, "radius");
+    state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "radius");
     // Get center location
-    state->center_location = glGetUniformLocation(state->program, "center");
+    state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
-    // Enable point size to be specified in the shader
-    #ifndef GLES
-    glEnable(GL_PROGRAM_POINT_SIZE);
+// Compile rectnagle program
+void create_rectangle_mover_program(MOVER_T *state)
+{
+    // Compile vertex shader
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    #ifdef GLES
+      compile_shader(vertexShader, "SPH/mover_rectangle_es.vert");
+    #else
+      compile_shader(vertexShader, "mover_rectangle.vert");
     #endif
+
+    // Compile frag shader
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    #ifdef GLES
+      compile_shader(fragmentShader, "SPH/mover_rectangle_es.frag");
+    #else
+      compile_shader(fragmentShader, "mover_rectangle.frag");
+    #endif
+
+    // Create shader program
+    state->rectangle_program = glCreateProgram();
+    glAttachShader(state->rectangle_program, vertexShader);
+    glAttachShader(state->rectangle_program, fragmentShader);
+
+    // Link and use program
+    glLinkProgram(state->rectangle_program);
+    show_program_log(state->rectangle_program);
+
+    // Get position location
+    state->rectangle_position_location = glGetAttribLocation(state->rectangle_program, "position");
+
+    // Get rectangle location
+    state->rectangle_color_location = glGetUniformLocation(state->rectangle_program, "color");
+    // Get center location
+    state->rectangle_center_location = glGetUniformLocation(state->rectangle_program, "center");
 }
 
 void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color)
 {
 
-    // Bind circle shader program
-    glUseProgram(state->program);
+    // Bind sphere shader program
+    glUseProgram(state->sphere_program);
 
     // set radius uniform
-    glUniform1f(state->radius_location, radius);
+    glUniform1f(state->sphere_radius_location, radius);
 
     // set color uniform
-    glUniform3fv(state->color_location, 1, color);
+    glUniform3fv(state->sphere_color_location, 1, color);
 
     // set center uniform
-    glUniform2fv(state->center_location, 1, center);
+    glUniform2fv(state->sphere_center_location, 1, center);
 
     // Bind buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Setup verticies
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
-    glEnableVertexAttribArray(state->position_location);
+    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
+    glEnableVertexAttribArray(state->sphere_position_location);
 
     // Draw
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -147,3 +183,30 @@ void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+
+void draw_rectangle_mover(MOVER_T *state, float *center, float *color)
+{
+
+    // Bind rectangle shader program
+    glUseProgram(state->rectangle_program);
+
+    // set color uniform
+    glUniform3fv(state->rectangle_color_location, 1, color);
+
+    // set center uniform
+    glUniform2fv(state->rectangle_center_location, 1, center);
+
+    // Bind buffer
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+
+    // Setup verticies
+    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
+    glEnableVertexAttribArray(state->sphere_position_location);
+
+    // Draw
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    // Unbind buffer
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+

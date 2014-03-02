@@ -86,6 +86,9 @@ void start_renderer()
     for(i=0; i<render_state.num_compute_procs; i++)
         render_state.master_params[i] = node_params[i];
 
+    // Set mover state
+    mover_GLstate.mover_type = render_state.master_params[0].mover_type;
+
     // Allocate particle receive array
     int num_coords = 2;
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
@@ -224,9 +227,6 @@ void start_renderer()
         // Draw font parameters
         render_parameters(&font_state, &render_state);
 
-        // Render over particles to hide penetration
-        update_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
-
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
@@ -254,6 +254,9 @@ void start_renderer()
 
 	// Draw particles
         update_particles(points, particle_radius, coords_recvd/2, &particle_GLstate);
+
+        // Render over particles to hide penetration
+        update_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
