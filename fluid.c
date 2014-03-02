@@ -55,7 +55,7 @@ void start_simulation()
     params.tunable_params.g = 3.0f;
     params.tunable_params.time_step = 0.03f;
     params.tunable_params.k = 0.2f;
-    params.tunable_params.k_near = 2.0f;
+    params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
     params.tunable_params.sigma = 20.0f;
     params.tunable_params.beta = 2.0f;
@@ -610,7 +610,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     float center_x = params->tunable_params.mover_center_x;
     float center_y = params->tunable_params.mover_center_y;
 
-    float radius = 1.0f;
+    float radius = params->tunable_params.mover_radius;
     float norm_x;
     float norm_y;
 

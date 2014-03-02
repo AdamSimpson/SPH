@@ -6,10 +6,10 @@ CFLAGS= -DGLES -mfloat-abi=hard -mfpu=vfp -O3 -lm -ffast-math
 
 all:
 	mkdir -p bin
-	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c font_gl.c circles_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c font_gl.c particles_gl.c mover_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 debug:
 	mkdir -p bin
-	mpecc -mpilog -g $(CFLAGS) $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c font_gl.c circles_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+	mpecc -mpilog -g $(CFLAGS) $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c font_gl.c particles_gl.c mover_gl.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 clean:
 	rm -f ./bin/sph.out
 	rm -f ./*.o

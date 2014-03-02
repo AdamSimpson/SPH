@@ -1,7 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "circles_gl.h"
+#include "particles_gl.h"
+#include "mover_gl.h"
 #include "mpi.h"
 #include "geometry.h"
 #include "communication.h"
@@ -19,9 +20,13 @@ void start_renderer()
     RENDER_T render_state;
     init_ogl(&gl_state, &render_state);
 
-    // Initialize circle OpenGL state
-    CIRCLE_T circle_state;
-    init_circles(&circle_state);
+    // Initialize particles OpenGL state
+    PARTICLES_T particle_GLstate;
+    init_particles(&particle_GLstate);
+
+    // Initialize mover OpenGL state
+    MOVER_T mover_GLstate;
+    init_mover(&mover_GLstate);
 
     // Initialize font atlas
     FONT_T font_state;
@@ -90,7 +95,8 @@ void start_renderer()
     float *points = (float*)malloc(point_size*max_particles);
 
     // Allocate mover point array(position + color)
-    float mover_point[5];
+    float mover_center[2];
+    float mover_color[3];
 
     // Number of coordinates received from each proc
     int *particle_coordinate_counts = malloc(num_compute_procs * sizeof(int));
@@ -118,7 +124,8 @@ void start_renderer()
     int num_coords_rank;
     int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
-    float mover_radius, mover_radius_scaled;
+    float mover_radius, mover_radius_gl;
+    float mover_gl_dims[2];
 
     int frames_per_fps = 30;
     int frames_per_check = 1;
@@ -131,6 +138,7 @@ void start_renderer()
     MPI_Request coord_reqs[num_compute_procs];
     int src, coords_recvd;
     float gl_x, gl_y;
+    // Particle radius in pixels
     float particle_radius = 15.0f;
 
     MPI_Status status;
@@ -164,6 +172,8 @@ void start_renderer()
         // Update mover position
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
+
+        // Mover radius in sim coordinates
         mover_radius = 1.0f;
         for(i=0; i<render_state.num_compute_procs; i++) {
             render_state.master_params[i].mover_center_x = mouse_x_scaled;
@@ -198,14 +208,21 @@ void start_renderer()
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Render mover
+        // update mover
         sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
-        mover_point[0] = gl_x;
-        mover_point[1] = gl_y;
-        mover_point[2] = 1.0f;
-        mover_point[3] = 0.0f;
-        mover_point[4] = 0.0f;
-        mover_radius_scaled = mover_radius*world_to_pix_scale - particle_radius;
+        mover_center[0] = gl_x;
+        mover_center[1] = gl_y;
+        mover_color[0] = 1.0f;
+        mover_color[1] = 0.0f;
+        mover_color[2] = 0.0f;
+
+        // Mover bounding rectangle half width/height lengths in ogl system
+        mover_gl_dims[0] = mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.5) ;
+        mover_gl_dims[1] = mover_radius/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.5);
+
+        // Set mover radius in ogl system, not exactly correct due to aspect ratio issues
+        // Subtract particle radius so they don't penetrate mover
+        mover_radius_gl = mover_radius/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width);
 
         // Draw FPS
         render_fps(&font_state, fps);
@@ -213,11 +230,11 @@ void start_renderer()
         // Draw font parameters
         render_parameters(&font_state, &render_state);
 
-	    // Wait for all coordinates to be received
-	    MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
+        // Wait for all coordinates to be received
+        MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	    i = 0;
+	i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
@@ -238,10 +255,11 @@ void start_renderer()
 
         }
 
-	    // Draw particles
-        update_points(points, particle_radius, coords_recvd/2, &circle_state);
+	// Draw particles
+        update_particles(points, particle_radius, coords_recvd/2, &particle_GLstate);
 
-        update_mover_point(mover_point, mover_radius_scaled, &circle_state);
+        // Render over particles to hide penetration
+        update_mover(mover_center, mover_radius_gl, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
