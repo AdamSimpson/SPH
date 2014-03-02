@@ -11,14 +11,11 @@ const vec3 light_intensity = vec3(0.7, 0.7, 0.7);
 const vec3 light_position = vec3(0.0, 0.0, 0.8);
 
 void main() {
-    // squared 2D distance from center of gl_point
-    float rad_squared = dot(local_frag_coord, local_frag_coord);
-
     // Calculate 3D normal
-    vec3 normal = normalize( vec3(local_frag_coord, 0.0));
+    vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - local_frag_coord.y*local_frag_coord.y)));
 
     // GL world coordinates
-    vec3 frag_position = (normal + vec3(center, 0.0));
+    vec3 frag_position = vec3(gl_FragCoord.x/960.0 - 1.0, gl_FragCoord.y/540.0 - 1.0 ,0.0);
 
     // Vector from frag to light
     vec3 frag_to_light = light_position - frag_position;

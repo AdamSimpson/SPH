@@ -32,30 +32,44 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     RENDER_T *render_state = glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
+    {
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(window, GL_TRUE);
-	            break;
-                case GLFW_KEY_RIGHT:
-		        increase_parameter(render_state);
-		        break;
-                case GLFW_KEY_LEFT:
-		        decrease_parameter(render_state);
-		        break;
-                case GLFW_KEY_UP:
-		        move_parameter_up(render_state);
-		        break;
-	        case GLFW_KEY_DOWN:
-		        move_parameter_down(render_state);
-		        break;
-	        case GLFW_KEY_LEFT_BRACKET:
-		        remove_partition(render_state);
-	            break;
-	        case GLFW_KEY_RIGHT_BRACKET:
-		        add_partition(render_state);
-		        break;
+	        break;
+            case GLFW_KEY_RIGHT:
+                increase_parameter(render_state);
+                break;
+            case GLFW_KEY_LEFT:
+                decrease_parameter(render_state);
+                break;
+            case GLFW_KEY_UP:
+                move_parameter_up(render_state);
+                break;
+            case GLFW_KEY_DOWN:
+                move_parameter_down(render_state);
+                break;
+            case GLFW_KEY_LEFT_BRACKET:
+                remove_partition(render_state);
+                break;
+            case GLFW_KEY_RIGHT_BRACKET:
+                add_partition(render_state);
+                break;
+            case GLFW_KEY_X:
+                set_fluid_x(render_state);
+                break;
+            case GLFW_KEY_Y:
+                set_fluid_y(render_state);
+                break;
+            case GLFW_KEY_A:
+                set_fluid_a(render_state);
+                break;
+            case GLFW_KEY_B:
+                set_fluid_b(render_state);
+                break;
         }
+    }
 }
 
 // Return mouse position in OpenGL screen coordinates

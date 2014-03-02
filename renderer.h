@@ -51,5 +51,9 @@ void decrease_mover_height(RENDER_T *render_state);
 void increase_mover_height(RENDER_T *render_state);
 void decrease_mover_width(RENDER_T *render_state);
 void increase_mover_width(RENDER_T *render_state);
+void set_fluid_x(RENDER_T *render_state);
+void set_fluid_y(RENDER_T *render_state);
+void set_fluid_a(RENDER_T *render_state);
+void set_fluid_b(RENDER_T *render_state);
 
 #endif

@@ -62,7 +62,7 @@ void start_simulation()
     params.tunable_params.rest_density = 30.0f;
     params.tunable_params.mover_width = 1.0f;
     params.tunable_params.mover_height = 1.0f;
-    params.tunable_params.mover_type = RECTANGLE_MOVER;
+    params.tunable_params.mover_type = SPHERE_MOVER;
 
     // The number of particles used may differ slightly
     params.number_fluid_particles_global = 1000;

@@ -511,6 +511,68 @@ void decrease_mover_width(RENDER_T *render_state)
     }
 }
 
+// Preset fluids based upon xbox controller buttons
+
+// Standard fluid
+void set_fluid_x(RENDER_T *render_state)
+{
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].g = 3.0f;
+        render_state->master_params[i].k = 0.2f;
+        render_state->master_params[i].k_near = 6.0f;
+        render_state->master_params[i].k_spring = 10.0f;
+        render_state->master_params[i].sigma = 20.0f;
+        render_state->master_params[i].beta = 2.0f;
+        render_state->master_params[i].rest_density = 30.0f;  
+    }
+}
+
+// super goo
+void set_fluid_y(RENDER_T *render_state)
+{
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].g = 3.0f;
+        render_state->master_params[i].k = 0.1f;
+        render_state->master_params[i].k_near = 3.0f;
+        render_state->master_params[i].k_spring = -30.0f;
+        render_state->master_params[i].sigma = 100.0f;
+        render_state->master_params[i].beta = 10.0f;
+        render_state->master_params[i].rest_density = 30.0f;
+    }
+}
+
+// zero g high surface tension
+void set_fluid_a(RENDER_T *render_state)
+{
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].g = 0.0f;
+        render_state->master_params[i].k = 0.2f;
+        render_state->master_params[i].k_near = 6.0f;
+        render_state->master_params[i].k_spring = 10.0f;
+        render_state->master_params[i].sigma = 20.0f;
+        render_state->master_params[i].beta = 2.0f;
+        render_state->master_params[i].rest_density = 55.0f;
+    }
+}
+
+// spring gas fluid
+void set_fluid_b(RENDER_T *render_state)
+{
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].g = 3.0f;
+        render_state->master_params[i].k = 0.0f;
+        render_state->master_params[i].k_near = 0.0f;
+        render_state->master_params[i].k_spring = 70.0f;
+        render_state->master_params[i].sigma = 20.0f;
+        render_state->master_params[i].beta = 2.0f;
+        render_state->master_params[i].rest_density = 0.0f;
+    }
+}
+
 // Increase mover y dimension
 void increase_mover_height(RENDER_T *render_state)
 {
