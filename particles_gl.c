@@ -11,8 +11,12 @@
   #include "egl_utils.h"
 #endif
 
-void init_particles(PARTICLES_T *state)
+void init_particles(PARTICLES_T *state, int screen_width, int screen_height)
 {
+    state->screen_width = screen_width;
+    state->screen_height = screen_height;
+
+
     // Create circle buffers
     create_particle_buffers(state);
 
@@ -22,7 +26,7 @@ void init_particles(PARTICLES_T *state)
 }
 
 // Update coordinate of fluid points
-void update_particles(float *points, float radius, int num_points, PARTICLES_T *state)
+void update_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -36,7 +40,7 @@ void update_particles(float *points, float radius, int num_points, PARTICLES_T *
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    draw_particles(state, radius, num_points);
+    draw_particles(state, diameter_pixels, num_points);
 }
 
 void create_particle_buffers(PARTICLES_T *state)
@@ -84,7 +88,9 @@ void create_particle_shaders(PARTICLES_T *state)
     // Get tex_coord location
     state->color_location = glGetAttribLocation(state->program, "color");
     // Get radius location
-    state->radius_location = glGetUniformLocation(state->program, "radius");
+    state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
+    // Get pixel diameter location
+    state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
@@ -100,13 +106,16 @@ void create_particle_shaders(PARTICLES_T *state)
    printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
 }
 
-void draw_particles(PARTICLES_T *state, float radius, int num_points)
+void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points)
 {
     // Bind circle shader program
     glUseProgram(state->program);
 
-    // set radius uniform
-    glUniform1f(state->radius_location, (GLfloat)radius);
+    // Set radius uniform
+    glUniform1f(state->radius_world_location, (GLfloat)diameter_pixels/state->screen_width);
+
+    // Set pixel diameter uniform
+    glUniform1f(state->diameter_pixels_location, (GLfloat)diameter_pixels);
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

@@ -225,14 +225,26 @@ void check_key_press(GL_STATE_T *state)
             move_parameter_down(render_state);
             break;
         case KEY_ESC:
-	        state->window_should_close = true;
-	        break;
-	    case KEY_PAGEUP:
-		    remove_partition(render_state);
-	        break;
-	    case KEY_PAGEDOWN:
-		    add_partition(render_state);
-		    break;
+            state->window_should_close = true;
+            break;
+        case KEY_PAGEUP:
+            remove_partition(render_state);
+            break;
+        case KEY_PAGEDOWN:
+            add_partition(render_state);
+            break;
+        case KEY_X:
+            set_fluid_x(render_state);
+            break;
+        case KEY_Y:
+            set_fluid_y(render_state);
+            break;
+        case KEY_A:
+            set_fluid_a(render_state);
+            break;
+        case KEY_B:
+            set_fluid_b(render_state);
+            break;
     }
 }
 

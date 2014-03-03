@@ -22,7 +22,7 @@ void start_renderer()
 
     // Initialize particles OpenGL state
     PARTICLES_T particle_GLstate;
-    init_particles(&particle_GLstate);
+    init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize mover OpenGL state
     MOVER_T mover_GLstate;
@@ -141,7 +141,7 @@ void start_renderer()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    float particle_radius = 15.0f;
+    float particle_diameter_pixels = 30.0f;
 
     MPI_Status status;
 
@@ -218,8 +218,8 @@ void start_renderer()
 
         // Mover bounding rectangle half width/height lengths in ogl system
         // Subtract off particle diamter so no particle/mover penetration
-        mover_gl_dims[0] = render_state.master_params[0].mover_width/(world_dims[0]*0.5) - particle_radius/(gl_state.screen_width*0.25) ;
-        mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5) - particle_radius/(gl_state.screen_height*0.25);
+        mover_gl_dims[0] = render_state.master_params[0].mover_width/(world_dims[0]*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
+        mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
 
         // Draw FPS
         render_fps(&font_state, fps);
@@ -253,7 +253,7 @@ void start_renderer()
         }
 
 	// Draw particles
-        update_particles(points, particle_radius, coords_recvd/2, &particle_GLstate);
+        update_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
         // Render over particles to hide penetration
         update_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);

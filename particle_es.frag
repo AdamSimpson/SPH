@@ -3,13 +3,10 @@ precision highp float;
 varying vec3 sphere_color;
 varying vec2 circle_center;
 
-uniform float radius;
+uniform float radius_world;
 
 const vec3 light_intensity = vec3(0.8, 0.8, 0.8);
 const vec3 light_position = vec3(0.0, 0.0, 2.0);
-
-// Needs to be fixed
-const float pixels_to_world = 1.0/1080.0;
 
 void main() {
     // Convert from [0,1] to [-1, 1] coords
@@ -28,7 +25,7 @@ void main() {
     vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - rad_squared)));
 
     // GL world coordinates
-    vec3 frag_position = (normal * radius * pixels_to_world) + vec3(circle_center, 0.0);
+    vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
 
     // Vector from frag to light
     vec3 frag_to_light = light_position - frag_position;
