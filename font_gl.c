@@ -165,7 +165,7 @@ void create_font_atlas(FONT_T *state)
     }
 } 
 
-void render_text(FONT_T *state, const char *text, float x, float y, float sx, float sy)
+void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy)
 {
     struct point {
         GLfloat x;
@@ -200,7 +200,7 @@ void render_text(FONT_T *state, const char *text, float x, float y, float sx, fl
         coords[n++] = (struct point){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
         coords[n++] = (struct point){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height};
     }
-        glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_STREAM_DRAW);
         glDrawArrays(GL_TRIANGLES, 0, n);
 }
 
@@ -251,7 +251,6 @@ void render_fps(FONT_T *state, float fps)
     // Set font color
     GLfloat black[4] = {1, 1, 1, 1};
     glUniform4fv(state->color_location, 1, black);
-
 
     // Font start
     float sx = 2.0f / state->screen_width;

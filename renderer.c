@@ -168,7 +168,7 @@ void start_renderer()
         get_mouse(&mouse_x, &mouse_y, &gl_state);
         pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
 
-        // Mover radius in sim coordinates
+        // Mover position in sim coordinates
         for(i=0; i<render_state.num_compute_procs; i++) {
             render_state.master_params[i].mover_center_x = mouse_x_scaled;
             render_state.master_params[i].mover_center_y = mouse_y_scaled;
