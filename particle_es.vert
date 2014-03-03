@@ -1,5 +1,6 @@
 attribute vec2 position;
 attribute vec3 color;
+
 uniform float diameter_pixels;
 
 varying vec3 sphere_color;

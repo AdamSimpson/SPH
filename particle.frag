@@ -28,7 +28,7 @@ void main() {
     vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
 
     // Vector from frag to light
-    vec3 frag_to_light = normalize( light_position - frag_position );
+    vec3 frag_to_light = light_position - frag_position;
 
     // cosine of angle of incidence
     float cosAngleIncidence = clamp( 1.0 * dot(normal, frag_to_light) , 0, 1);
@@ -40,7 +40,7 @@ void main() {
     color += sphere_color * 0.2;
 
     // Specular lighting
-//    color += vec3(0.7, 0.7, 0.7)*pow(clamp( dot(normal, frag_to_light) , 0, 1), 40.0);
+//    color += vec3(0.7, 0.7, 0.7)*pow(cosAngleIncidence, 40.0);
 
     out_color = vec4(color, 1.0);
 }
