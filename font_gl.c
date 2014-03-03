@@ -200,7 +200,13 @@ void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy
         coords[n++] = (struct point){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
         coords[n++] = (struct point){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height};
     }
+        // Orphan buffer
+        glBufferData(GL_ARRAY_BUFFER, sizeof(coords), NULL, GL_STREAM_DRAW);
+
+        // Buffer vertices
         glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_STREAM_DRAW);
+
+        // Draw text
         glDrawArrays(GL_TRIANGLES, 0, n);
 }
 

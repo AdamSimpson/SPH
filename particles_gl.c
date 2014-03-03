@@ -27,6 +27,9 @@ void update_particles(float *points, float radius, int num_points, PARTICLES_T *
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
+    // Orphan current buffer
+    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+
     // Fill buffer
     glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
 
