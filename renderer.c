@@ -605,7 +605,7 @@ void set_fluid_a(RENDER_T *render_state)
     }
 }
 
-// spring gas fluid
+// spring gas fluid...thing
 void set_fluid_b(RENDER_T *render_state)
 {
     int i;
@@ -613,7 +613,7 @@ void set_fluid_b(RENDER_T *render_state)
         render_state->master_params[i].g = 6.0f;
         render_state->master_params[i].k = 0.0f;
         render_state->master_params[i].k_near = 0.0f;
-        render_state->master_params[i].k_spring = 70.0f;
+        render_state->master_params[i].k_spring = 115.0f;
         render_state->master_params[i].sigma = 20.0f;
         render_state->master_params[i].beta = 2.0f;
         render_state->master_params[i].rest_density = 0.0f;
