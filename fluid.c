@@ -70,7 +70,7 @@ void start_simulation()
     // Boundary box
     // This simulation assumes in various spots min is 0.0
     boundary_global.min_x = 0.0f;
-    boundary_global.max_x = 20.0f;
+    boundary_global.max_x = 15.0f;
     boundary_global.min_y = 0.0f;
 
     // Receive aspect ratio to scale world y max
