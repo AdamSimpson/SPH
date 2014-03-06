@@ -40,10 +40,10 @@ void create_font_program(FONT_T *state)
 
     // Get coord attribute location
     state->coord_location = glGetAttribLocation(state->program, "coord");
+    // Get color attribute location
+    state->color_location = glGetAttribLocation(state->program, "color");
     // Get tex uniform location
     state->tex_location = glGetUniformLocation(state->program, "tex");
-    // Get color uniform location
-    state->color_location = glGetUniformLocation(state->program, "color");
 
     // Enable blend
     glEnable(GL_BLEND);
@@ -165,9 +165,10 @@ void create_font_atlas(FONT_T *state)
 } 
 
 // Render single string
+// Assumes arrays and program already steup
 void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy)
 {
-    TEXT_COORDS coords[6*strlen(text)];
+    TEXT_VERT verts[6*strlen(text)];
 
     int n = 0;
 
@@ -188,19 +189,19 @@ void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy
         if(!w || !h)
             continue;
 
-        coords[n++] = (TEXT_COORDS){x2, -y2, c[*p].tx, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
-        coords[n++] = (TEXT_COORDS){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
-        coords[n++] = (TEXT_COORDS){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height};
+        verts[n++] = (TEXT_VERT){x2, -y2, c[*p].tx, c[*p].ty, 1, 1, 1};
+        verts[n++] = (TEXT_VERT){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, 1, 1, 1};
+        verts[n++] = (TEXT_VERT){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
+        verts[n++] = (TEXT_VERT){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, 1, 1, 1};
+        verts[n++] = (TEXT_VERT){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
+        verts[n++] = (TEXT_VERT){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
     }
 
     // Orphan buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(coords), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), NULL, GL_STREAM_DRAW);
 
     // Buffer vertices
-    glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STREAM_DRAW);
 
     // Draw text
     glDrawArrays(GL_TRIANGLES, 0, n);
@@ -208,11 +209,15 @@ void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy
 
 // Add text coordinates to be rendered later
 // This allows multiple strings to be rendered with a single buffer and draw
-int add_text_coords(FONT_T *state, char *text, TEXT_COORDS* coords, float x, float y, float sx, float sy)
+int add_text_coords(FONT_T *state, char *text, TEXT_VERT* verts, float *color, float x, float y, float sx, float sy)
 {
     int n = 0;
 
     CHAR_INFO *c = state->char_info;
+
+    float r = color[0];
+    float g = color[1];
+    float b = color[2];
    
     char *p;
     for(p = text; *p; p++) {
@@ -229,12 +234,13 @@ int add_text_coords(FONT_T *state, char *text, TEXT_COORDS* coords, float x, flo
         if(!w || !h)
             continue;
 
-        coords[n++] = (TEXT_COORDS){x2, -y2, c[*p].tx, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
-        coords[n++] = (TEXT_COORDS){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty};
-        coords[n++] = (TEXT_COORDS){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height};
-        coords[n++] = (TEXT_COORDS){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height};
+        verts[n++] = (TEXT_VERT){x2, -y2, c[*p].tx, c[*p].ty, r, g, b};
+        verts[n++] = (TEXT_VERT){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, r, g, b};
+        verts[n++] = (TEXT_VERT){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, r, g, b};
+        verts[n++] = (TEXT_VERT){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, r, g, b};
+        verts[n++] = (TEXT_VERT){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, r, g, b};
+        verts[n++] = (TEXT_VERT){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, 
+                                 c[*p].ty + c[*p].bh/state->atlas_height, r, g, b};
     }
 
     return n;
@@ -245,7 +251,8 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
     // Setup environment
     glUseProgram(state->program);
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), 0);
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(4*sizeof(GLfloat)));
     glEnableVertexAttribArray(state->coord_location);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
@@ -256,7 +263,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
 
     // Text points
     // Max of 512 characters in total
-    TEXT_COORDS coords[6*512];
+    TEXT_VERT verts[6*512];
 
     // Font start
     float sx = 2.0f / state->screen_width;
@@ -270,39 +277,63 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
     density = render_state->master_params[0].rest_density;
     pressure = render_state->master_params[0].k;
     elasticity = render_state->master_params[0].k_spring;
-  
+
+    float unselected_color[3] = {1.0f ,1.0f, 1.0f};
+    float selected_color[3]   = {0.0f, 1.0f, 0.0f};  
+    float *color;
+
     // Total number of font coordinates
     int n = 0;
 
     // frames per second
     sprintf( buffer, "FPS: %.0f", fps);
-    n += add_text_coords(state, buffer, coords + n,  1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, unselected_color, 1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 
     // Gravity
     sprintf( buffer, "Gravity: %.1f", gravity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+    if(selected_param == GRAVITY)
+        color = selected_color;
+    else
+        color = unselected_color;
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 
     // Viscocity
     sprintf( buffer, "Viscosity: %.1f", viscosity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
+    if(selected_param == VISCOSITY)
+        color = selected_color;
+    else
+        color = unselected_color;
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
 
     // Density
     sprintf( buffer, "Density: %.1f", density);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+    if(selected_param == DENSITY)
+        color = selected_color;
+    else
+        color = unselected_color;
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
 
     // Pressure
     sprintf( buffer, "Pressure: %.1f", pressure);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
+    if(selected_param == PRESSURE)
+        color = selected_color;
+    else
+        color = unselected_color;
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
 
     // Elasticity
     sprintf( buffer, "Elasticity: %.1f", elasticity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+    if(selected_param == ELASTICITY)
+        color = selected_color;
+    else
+        color = unselected_color;
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
 
     // Orphan buffer
-    glBufferData(GL_ARRAY_BUFFER, n*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, n*sizeof(TEXT_VERT), NULL, GL_STREAM_DRAW);
 
     // Buffer vertices
-    glBufferData(GL_ARRAY_BUFFER, n*sizeof(GLfloat), coords, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, n*sizeof(TEXT_VERT), verts, GL_STREAM_DRAW);
 
     // Draw text
     glDrawArrays(GL_TRIANGLES, 0, n);

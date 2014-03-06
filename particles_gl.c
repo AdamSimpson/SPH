@@ -26,7 +26,7 @@ void init_particles(PARTICLES_T *state, int screen_width, int screen_height)
 }
 
 // Update coordinate of fluid points
-void update_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state)
+void render_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

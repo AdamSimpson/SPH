@@ -21,8 +21,8 @@ void init_mover(MOVER_T *state)
     create_rectangle_mover_program(state);
 }
 
-// Update coordinates of point mover
-void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
+// Update coordinates of point mover and then render
+void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
 {
      // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

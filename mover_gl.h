@@ -32,7 +32,7 @@ typedef struct
 } MOVER_T;
 
 void init_mover(MOVER_T *state);
-void update_mover(float *center, float *gl_dims, float *color, MOVER_T *state);
+void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state);
 void create_sphere_mover_program(MOVER_T *state);
 void create_rectangle_mover_program(MOVER_T *state);
 void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color);

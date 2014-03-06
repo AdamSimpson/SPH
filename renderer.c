@@ -222,10 +222,12 @@ void start_renderer()
         mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
 
         // Draw FPS
-        render_fps(&font_state, fps);
-
+//        render_fps(&font_state, fps);
         // Draw font parameters
-        render_parameters(&font_state, &render_state);
+//        render_parameters(&font_state, &render_state);
+
+        render_all_text(&font_state, &render_state, fps);
+
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
@@ -253,10 +255,10 @@ void start_renderer()
         }
 
 	// Draw particles
-        update_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+        render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
         // Render over particles to hide penetration
-        update_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
+        render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);

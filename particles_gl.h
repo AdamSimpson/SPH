@@ -28,7 +28,7 @@ typedef struct
 } PARTICLES_T;
 
 void init_particles(PARTICLES_T *state, int screen_width, int screen_height);
-void update_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state);
+void render_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state);
 void create_particle_shaders(PARTICLES_T *state);
 void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points);
 void create_particle_buffers(PARTICLES_T *state);
