@@ -18,7 +18,9 @@ void init_mover(MOVER_T *state)
 
     // Create shader programs
     create_sphere_mover_program(state);
-    create_rectangle_mover_program(state);
+
+    // Need to update shaders
+//    create_rectangle_mover_program(state);
 }
 
 // Update coordinates of point mover and then render

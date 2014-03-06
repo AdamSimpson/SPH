@@ -27,7 +27,7 @@ void main() {
     vec3 frag_to_light = light_position - frag_position;
 
     // cosine of angle of incidence
-    float cosAngleIncidence = clamp( dot(normal, frag_to_light) , 0, 1);
+    float cosAngleIncidence = clamp( dot(normal, frag_to_light) , 0.0, 1.0);
 
     // diffuse lighting
     vec3 sphere_color = color * light_intensity * cosAngleIncidence;

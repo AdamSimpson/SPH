@@ -15,10 +15,19 @@ clean:
 	rm -f ./*.o
 
 run: copy
-	cd $(HOME) && mpirun --host 192.168.3.100,192.168.3.101,192.168.3.103,192.168.3.102 -n 4 ./sph.out && cd SPH 
+	cd $(HOME) ; mpirun -f ~/pi_mpihostsfile -n 12 ~/sph.out ; cd $(HOME)/SPH
 
 copy:
-	scp ./bin/sph.out pi0:~/
 	scp ./bin/sph.out pi1:~/
 	scp ./bin/sph.out pi2:~/
 	scp ./bin/sph.out pi3:~/
+	scp ./bin/sph.out pi4:~/
+	scp ./bin/sph.out pi5:~/
+	scp ./bin/sph.out pi6:~/
+	scp ./bin/sph.out pi7:~/
+	scp ./bin/sph.out pi8:~/
+	scp ./bin/sph.out pi9:~/
+	scp ./bin/sph.out pi10:~/
+	scp ./bin/sph.out pi11:~/
+	scp ./bin/sph.out pi12:~/
+

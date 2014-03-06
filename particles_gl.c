@@ -101,9 +101,9 @@ void create_particle_shaders(PARTICLES_T *state)
     glEnable(GL_PROGRAM_POINT_SIZE);
     #endif
 
-   GLfloat fSizes[2];
-   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
-   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
+//   GLfloat fSizes[2];
+//   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
+//   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
 }
 
 void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points)
