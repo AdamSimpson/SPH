@@ -12,6 +12,13 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+typedef struct {
+        GLfloat x;
+        GLfloat y;
+        GLfloat s;
+        GLfloat t;
+} TEXT_COORDS;
+
 // Structure to hold cache glyph information
 typedef struct {
     float ax; // advance.x
@@ -62,5 +69,6 @@ void create_font_atlas(FONT_T *state);
 void init_font(FONT_T *state, int screen_width, int screen_height);
 void render_fps(FONT_T *state, float fps);
 void render_parameters(FONT_T *state, RENDER_T *render_state);
+int add_text_coords(FONT_T *state, char *text, TEXT_COORDS* coords, float x, float y, float sx, float sy);
 
 #endif
