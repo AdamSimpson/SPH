@@ -38,7 +38,6 @@ void create_font_program(FONT_T *state)
     glLinkProgram(state->program);
     show_program_log(state->program);
 
-
     // Get coord attribute location
     state->coord_location = glGetAttribLocation(state->program, "coord");
     // Get tex uniform location
@@ -65,6 +64,7 @@ void create_font_buffers(FONT_T *state)
     glGenBuffers(1, &state->vbo);
 }
 
+// Create font atlas texture
 void create_font_atlas(FONT_T *state)
 {
     glUseProgram(state->program);
@@ -111,7 +111,6 @@ void create_font_atlas(FONT_T *state)
     // final texture dimensions
     w = max(row_w, w);
     h += row_h;
-
 
     state->atlas_width = w;
     state->atlas_height = h;
@@ -208,7 +207,7 @@ void render_text(FONT_T *state, char *text, float x, float y, float sx, float sy
 }
 
 // Add text coordinates to be rendered later
-// This allows multiple lines of text with a single buffer and draw
+// This allows multiple strings to be rendered with a single buffer and draw
 int add_text_coords(FONT_T *state, char *text, TEXT_COORDS* coords, float x, float y, float sx, float sy)
 {
     int n = 0;
@@ -241,6 +240,75 @@ int add_text_coords(FONT_T *state, char *text, TEXT_COORDS* coords, float x, flo
     return n;
 }
 
+void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
+{
+    // Setup environment
+    glUseProgram(state->program);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(state->coord_location);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_location, 0);
+
+    // Buffer to hold individual string
+    char buffer[100];
+
+    // Text points
+    // Max of 512 characters in total
+    TEXT_COORDS coords[6*512];
+
+    // Font start
+    float sx = 2.0f / state->screen_width;
+    float sy = 2.0f / state->screen_height;
+
+    parameters selected_param = render_state->selected_parameter;
+    float gravity, viscosity, density, pressure, elasticity;
+
+    gravity = render_state->master_params[0].g;
+    viscosity = render_state->master_params[0].sigma;
+    density = render_state->master_params[0].rest_density;
+    pressure = render_state->master_params[0].k;
+    elasticity = render_state->master_params[0].k_spring;
+  
+    // Total number of font coordinates
+    int n = 0;
+
+    // frames per second
+    sprintf( buffer, "FPS: %.0f", fps);
+    n += add_text_coords(state, buffer, coords + n,  1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+
+    // Gravity
+    sprintf( buffer, "Gravity: %.1f", gravity);
+    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+
+    // Viscocity
+    sprintf( buffer, "Viscosity: %.1f", viscosity);
+    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
+
+    // Density
+    sprintf( buffer, "Density: %.1f", density);
+    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+
+    // Pressure
+    sprintf( buffer, "Pressure: %.1f", pressure);
+    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
+
+    // Elasticity
+    sprintf( buffer, "Elasticity: %.1f", elasticity);
+    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+
+    // Orphan buffer
+    glBufferData(GL_ARRAY_BUFFER, n*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+
+    // Buffer vertices
+    glBufferData(GL_ARRAY_BUFFER, n*sizeof(GLfloat), coords, GL_STREAM_DRAW);
+
+    // Draw text
+    glDrawArrays(GL_TRIANGLES, 0, n);
+}
+
+// Setup freetype font
 void init_font(FONT_T *state, int screen_width, int screen_height)
 {
     // Initialize FreeType library
@@ -272,101 +340,6 @@ void init_font(FONT_T *state, int screen_width, int screen_height)
     create_font_program(state);
     create_font_buffers(state);
     create_font_atlas(state);
-}
-
-void render_fps(FONT_T *state, float fps)
-{
-    // Setup environment
-    glUseProgram(state->program);
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(state->coord_location);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
-    glUniform1i(state->tex_location, 0);
-
-    // Set font color
-    GLfloat black[4] = {1, 1, 1, 1};
-    glUniform4fv(state->color_location, 1, black);
-
-    // Font start
-    float sx = 2.0f / state->screen_width;
-    float sy = 2.0f / state->screen_height;
-
-    // Buffer to create strings in
-    char buffer[64];
-    sprintf( buffer, "FPS: %.0f", fps);
-   
-    // Render text
-    render_text(state, buffer, 1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
-}
-
-void render_parameters(FONT_T *state, RENDER_T *render_state)
-{
-    // Setup environment
-    glUseProgram(state->program);
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(state->coord_location);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
-    glUniform1i(state->tex_location, 0);
-
-    // Set font color
-    GLfloat non_selected[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat selected[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-    glUniform4fv(state->color_location, 1, non_selected);
-
-    // Buffer to hold individual string
-    char buffer[100];
-
-    // Text points
-    // Max of 1024 characters in total
-    TEXT_COORDS coords[6*1024];
-
-    // Font start
-    float sx = 2.0f / state->screen_width;
-    float sy = 2.0f / state->screen_height;
-
-    parameters selected_param = render_state->selected_parameter;
-    float gravity, viscosity, density, pressure, elasticity;
-
-    gravity = render_state->master_params[0].g;
-    viscosity = render_state->master_params[0].sigma;
-    density = render_state->master_params[0].rest_density;
-    pressure = render_state->master_params[0].k;
-    elasticity = render_state->master_params[0].k_spring;
-  
-    int n = 0;
-
-    // Gravity
-    sprintf( buffer, "Gravity: %.1f", gravity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
-
-    // Viscocity
-    sprintf( buffer, "Viscosity: %.1f", viscosity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
-
-    // Density
-    sprintf( buffer, "Density: %.1f", density);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
-
-    // Pressure
-    sprintf( buffer, "Pressure: %.1f", pressure);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
-
-    // Elasticity
-    sprintf( buffer, "Elasticity: %.1f", elasticity);
-    n += add_text_coords(state, buffer, coords + n, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
-
-    // Orphan buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(coords), NULL, GL_STREAM_DRAW);
-
-    // Buffer vertices
-    glBufferData(GL_ARRAY_BUFFER, sizeof(coords), coords, GL_STREAM_DRAW);
-
-    // Draw text
-    glDrawArrays(GL_TRIANGLES, 0, n);
 }
 
 void remove_font(FONT_T *font_state)
