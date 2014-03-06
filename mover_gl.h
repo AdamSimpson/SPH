@@ -19,12 +19,14 @@ typedef struct
     // Locations
     GLint sphere_position_location;
     GLint sphere_center_location;
+    GLint sphere_tex_coord_location;
     GLint sphere_color_location;
     GLint sphere_radius_location;
 
     // Locations
     GLint rectangle_position_location;
     GLint rectangle_center_location;
+    GLint rectangle_tex_coord_location;
     GLint rectangle_color_location;
 
     // buffers

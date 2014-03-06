@@ -70,7 +70,7 @@ void start_renderer()
 
     // Calculate world unit to pixel
     float world_to_pix_scale = gl_state.screen_width/world_dims[0];
-    printf("global particles: %d\n", max_particles);
+//    printf("global particles: %d\n", max_particles);
 
     // Gatherv initial tunable parameters values
     int *param_counts = malloc(num_procs * sizeof(int));
@@ -221,13 +221,8 @@ void start_renderer()
         mover_gl_dims[0] = render_state.master_params[0].mover_width/(world_dims[0]*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
         mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
 
-        // Draw FPS
-//        render_fps(&font_state, fps);
-        // Draw font parameters
-//        render_parameters(&font_state, &render_state);
-
         render_all_text(&font_state, &render_state, fps);
-
+        //printf("fps: %f\n", fps);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);

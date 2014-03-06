@@ -1,34 +1,15 @@
 #version 150 core
 in vec2 position;
+in vec2 tex_coord;
 
 uniform float radius;
 uniform vec2 center;
 uniform vec3 color;
 
-out vec2 local_frag_coord;
+out vec2 frag_tex_coord;
 
 void main() {
-
-    switch(gl_VertexID)
-    {
-        case 0:
-            //Bottom-left
-            local_frag_coord = vec2(-1.0, -1.0);
-            break;
-        case 1:
-            //Top-left
-            local_frag_coord = vec2(-1.0, 1.0);
-            break;
-        case 2:
-            //Bottom-right
-            local_frag_coord = vec2(1.0, -1.0);
-            break;
-        case 3:
-            //Top-right
-            local_frag_coord = vec2(1.0, 1.0);
-            break;
-    }
-
+    frag_tex_coord = tex_coord;
     gl_Position = vec4(position, 0.0, 1.0);
 }
 

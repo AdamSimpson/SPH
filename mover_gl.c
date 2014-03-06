@@ -33,23 +33,33 @@ void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
     float half_width = gl_dims[0]*0.5;
     float half_height = gl_dims[1]*0.5;
     // Triangle strip Verticies for rectangle that contains circle
-    float verts[8];
+    float verts[4*4];
+
+    // Verticies = gl_x, gl_y, tex_x, tex_y
 
     // Bottom left
     verts[0] = center_x - half_width; 
     verts[1] = center_y - half_height;
+    verts[2] = -1.0;
+    verts[3] = -1.0;
     // Top left
-    verts[2] = center_x - half_width;
-    verts[3] = center_y + half_height;
+    verts[4] = center_x - half_width;
+    verts[5] = center_y + half_height;
+    verts[6] = -1.0;
+    verts[7] = 1.0;
     // Bottom right
-    verts[4] = center_x + half_width;
-    verts[5] = center_y - half_height;
+    verts[8] = center_x + half_width;
+    verts[9] = center_y - half_height;
+    verts[10] = 1.0;
+    verts[11] = -1.0;
     // Top right
-    verts[6] = center_x + half_width;
-    verts[7] = center_y + half_height;
+    verts[12] = center_x + half_width;
+    verts[13] = center_y + half_height;
+    verts[14] = 1.0;
+    verts[15] = 1.0;
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 8*sizeof(GLfloat), verts, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), verts, GL_STREAM_DRAW);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -105,6 +115,7 @@ void create_sphere_mover_program(MOVER_T *state)
 
     // Get position location
     state->sphere_position_location = glGetAttribLocation(state->sphere_program, "position");
+    state->sphere_tex_coord_location = glGetAttribLocation(state->sphere_program, "tex_coord");
 
     // Get color location
     state->sphere_color_location = glGetUniformLocation(state->sphere_program, "color");
@@ -148,6 +159,7 @@ void create_rectangle_mover_program(MOVER_T *state)
 
     // Get position location
     state->rectangle_position_location = glGetAttribLocation(state->rectangle_program, "position");
+    state->rectangle_tex_coord_location = glGetAttribLocation(state->rectangle_program, "tex_coord");
 
     // Get rectangle location
     state->rectangle_color_location = glGetUniformLocation(state->rectangle_program, "color");
@@ -174,7 +186,8 @@ void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Setup verticies
-    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->sphere_tex_coord_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
     glEnableVertexAttribArray(state->sphere_position_location);
 
     // Draw
@@ -200,8 +213,9 @@ void draw_rectangle_mover(MOVER_T *state, float *center, float *color)
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Setup verticies
-    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
-    glEnableVertexAttribArray(state->sphere_position_location);
+    glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
+    glEnableVertexAttribArray(state->rectangle_position_location);
 
     // Draw
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
