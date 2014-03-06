@@ -150,7 +150,7 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
 
     // Disable vsync for true FPS testing
     // Default limit 60 fps
-    glfwSwapInterval(0);
+//    glfwSwapInterval(0);
 
     // Set background color and clear buffers
     glClearColor(0.15f, 0.25f, 0.35f, 1.0f);
