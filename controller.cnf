@@ -8,10 +8,10 @@ dpad-as-button=true
 trigger-as-button=true
 
 [ui-axismap]
-x2=REL_X:10
-y2=REL_Y:-10
-x1=KEY_R:KEY_T
-y1=KEY_F:KEY_G
+x2=REL_WHEEL:-1:1
+y2=REL_WHEEl:-1:1
+x1=REL_X:15:20
+y1=REL_Y:15:20
 
 [ui-buttonmap]
 a=KEY_A
@@ -20,18 +20,18 @@ x=KEY_X
 y=KEY_Y
 
 [ui-buttonmap]
-lb=BTN_LEFT
-rb=BTN_RIGHT
+lb=KEY_PAGEDOWN
+rb=KEY_PAGEUP
 
 [ui-buttonmap]
 lt=KEY_L
 rt=KEY_R
 
 [ui-buttonmap]
-dl=KEY_4
-dr=KEY_2
-du=REL_WHEEL:-1:150
-dd=REL_WHEEL:1:150
+dl=KEY_LEFT
+dr=KEY_RIGHT
+du=KEY_UP
+dd=REL_DOWN
 
 [ui-buttonmap]
 back=KEY_TAB

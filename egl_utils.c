@@ -232,10 +232,10 @@ void check_key_press(GL_STATE_T *state)
             state->window_should_close = true;
             break;
         case KEY_PAGEUP:
-            remove_partition(render_state);
+            add_partition(render_state);
             break;
         case KEY_PAGEDOWN:
-            add_partition(render_state);
+            remove_partition(render_state);
             break;
         case KEY_X:
             set_fluid_x(render_state);
