@@ -160,12 +160,8 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
     ssize_t bytes_read;
 
     // Open file containing mouse events
-    if (state->mouse_fd < 0) {
-        state->mouse_fd = open("/dev/input/mouse0", O_NONBLOCK);
-        // Enable 4 byte mode for scroll wheel
-        static unsigned char mousedev_imps_seq[] = { 0xf3, 200, 0xf3, 100, 0xf3, 80 };
-        write(state->mouse_fd, mousedev_imps_seq, 6);
-    }
+    if (state->mouse_fd < 0)
+        state->mouse_fd = open("/dev/input/mice", O_NONBLOCK);
 
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
@@ -249,6 +245,18 @@ void check_key_press(GL_STATE_T *state)
         case KEY_B:
             set_fluid_b(render_state);
             break;
+        case BTN_LEFT:
+	    decrease_mover_width(render_state);
+            break;
+        case BTN_RIGHT:
+            increase_mover_width(render_state);
+            break;
+        case BTN_FORWARD:
+            increase_mover_height(render_state);
+            break;
+        case BTN_BACK:
+            decrease_mover_height(render_state);
+            break;
     }
 }
 
@@ -263,7 +271,7 @@ int get_key_press(GL_STATE_T *state)
     if (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY && event.value == 1 && event.code > 0)
+	if(event.type == EV_KEY && (event.value == 1 || event.value == 2) && event.code > 0)
 	    key_code = (int)event.code;
     }
 
