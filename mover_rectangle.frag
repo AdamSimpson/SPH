@@ -29,9 +29,6 @@ void main() {
     // ambient lighting
     rec_color += color * 0.3;
 
-    // Specular lighting
-//    rec_color += vec3(0.7, 0.7, 0.7)*pow(cosAngleIncidence, 40.0);
-
     out_color = vec4(rec_color, 1.0);
 }
 

@@ -40,8 +40,5 @@ void main() {
     // ambient lighting
     color += sphere_color * 0.2;
 
-    // Specular lighting
-//    color += vec3(0.7, 0.7, 0.7)*pow(cosAngleIncidence, 40.0);
-
     gl_FragColor = vec4(color, 1.0);
 }
