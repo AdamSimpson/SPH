@@ -165,6 +165,7 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
+
         bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
 
         if(bytes_read != sizeof(MOUSE_INPUT))
@@ -224,9 +225,6 @@ void check_key_press(GL_STATE_T *state)
         case KEY_DOWN:
             move_parameter_down(render_state);
             break;
-        case KEY_ESC:
-            state->window_should_close = true;
-            break;
         case KEY_PAGEUP:
             add_partition(render_state);
             break;
@@ -252,11 +250,15 @@ void check_key_press(GL_STATE_T *state)
             increase_mover_width(render_state);
             break;
         case BTN_FORWARD:
-            increase_mover_height(render_state);
+            increase_mover_width(render_state);
             break;
         case BTN_BACK:
-            decrease_mover_height(render_state);
+            decrease_mover_width(render_state);
             break;
+        case KEY_ESC:
+            state->window_should_close = true;
+            break;
+ 
     }
 }
 
@@ -271,7 +273,7 @@ int get_key_press(GL_STATE_T *state)
     if (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY && (event.value == 1 || event.value == 2) && event.code > 0)
+	if(event.type == EV_KEY && event.value == 1 && event.code > 0)
 	    key_code = (int)event.code;
     }
 
