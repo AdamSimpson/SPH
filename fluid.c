@@ -649,7 +649,7 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
     }
 
     // Boundary condition for rectangle mover
-    if(params->tunable_params.mover_type == RECTANGLE_MOVER)
+    else if(params->tunable_params.mover_type == RECTANGLE_MOVER)
     {
         float half_width = params->tunable_params.mover_width*0.5;
         float half_height = params->tunable_params.mover_height*0.5;

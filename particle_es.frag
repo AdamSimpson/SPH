@@ -22,7 +22,8 @@ void main() {
         discard;
 
     // Calculate 3D normal
-    vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - rad_squared)));
+    //vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - rad_squared)));
+    vec3 normal = normalize( vec3(local_frag_coord*local_frag_coord, 1.0 - rad_squared));
 
     // GL world coordinates
     vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);

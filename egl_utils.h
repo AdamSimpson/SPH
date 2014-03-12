@@ -32,6 +32,7 @@ typedef struct {
     char button;
     char dx;
     char dy;
+    char rel_wheel;
 } MOUSE_INPUT;
 
 void init_ogl(GL_STATE_T *state, RENDER_T *render_state);

@@ -160,8 +160,12 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
     ssize_t bytes_read;
 
     // Open file containing mouse events
-    if (state->mouse_fd < 0)
-        state->mouse_fd = open("/dev/input/mouse0", O_RDONLY|O_NONBLOCK);
+    if (state->mouse_fd < 0) {
+        state->mouse_fd = open("/dev/input/mouse0", O_NONBLOCK);
+        // Enable 4 byte mode for scroll wheel
+        static unsigned char mousedev_imps_seq[] = { 0xf3, 200, 0xf3, 100, 0xf3, 80 };
+        write(state->mouse_fd, mousedev_imps_seq, 6);
+    }
 
     if (state->mouse_fd >= 0) {
         MOUSE_INPUT event;
