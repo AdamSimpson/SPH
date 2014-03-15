@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "particles_gl.h"
 #include "mover_gl.h"
+#include "background_gl.h"
 #include "mpi.h"
 #include "geometry.h"
 #include "communication.h"
@@ -31,6 +32,10 @@ void start_renderer()
     // Initialize font atlas
     FONT_T font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize background OpenGL state
+    BACKGROUND_T background_state;
+    init_background(&background_state);
 
     // Number of processes
     int num_procs, num_compute_procs, num_compute_procs_active;
@@ -207,6 +212,9 @@ void start_renderer()
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // Draw background image
+        draw_background(&background_state);
 
         // update mover
         sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
