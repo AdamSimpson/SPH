@@ -258,6 +258,10 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->tex_location, 0);
 
+    // Blend is required to show cleared color when the frag shader draws transparent pixels
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Buffer to hold individual string
     char buffer[100];
 

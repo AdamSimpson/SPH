@@ -125,10 +125,6 @@ void create_sphere_mover_program(MOVER_T *state)
     state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "radius");
     // Get center location
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
-
-    // Blend is required to show cleared color when the frag shader draws transparent pixels
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 // Compile rectnagle program
@@ -192,6 +188,10 @@ void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color
     glVertexAttribPointer(state->sphere_tex_coord_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
     glEnableVertexAttribArray(state->sphere_position_location);
 
+    // Blend is required to show cleared color when the frag shader draws transparent pixels
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Draw
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -218,6 +218,10 @@ void draw_rectangle_mover(MOVER_T *state, float *center, float *color)
     glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
     glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
     glEnableVertexAttribArray(state->rectangle_position_location);
+
+    // Blend is required to show cleared color when the frag shader draws transparent pixels
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

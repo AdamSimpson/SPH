@@ -112,8 +112,8 @@ void create_background_texture(BACKGROUND_T *state)
     // Set texture parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Release image host memory
     free(image);
@@ -147,6 +147,9 @@ void draw_background(BACKGROUND_T *state)
     glVertexAttribPointer(state->tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
     glEnableVertexAttribArray(state->tex_coord_location);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
+
+    // Disable Blend
+    glDisable(GL_BLEND);
 
     // Setup texture
     glActiveTexture(GL_TEXTURE0);

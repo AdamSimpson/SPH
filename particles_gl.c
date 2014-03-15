@@ -92,10 +92,6 @@ void create_particle_shaders(PARTICLES_T *state)
     // Get pixel diameter location
     state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
 
-    // Blend is required to show cleared color when the frag shader draws transparent pixels
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     // Enable point size to be specified in the shader
     #ifndef GLES
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -124,6 +120,10 @@ void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points)
     glEnableVertexAttribArray(state->position_location);
     glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT),(void*)(2*sizeof(GL_FLOAT)));
     glEnableVertexAttribArray(state->color_location);
+
+    // Blend is required to show cleared color when the frag shader draws transparent pixels
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw
     glDrawArrays(GL_POINTS, 0, num_points);
