@@ -278,8 +278,8 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
     pressure = render_state->master_params[0].k;
     elasticity = render_state->master_params[0].k_spring;
 
-    float unselected_color[3] = {1.0f ,1.0f, 1.0f};
-    float selected_color[3]   = {0.0f, 1.0f, 0.0f};  
+    float unselected_color[3] = {0.0f ,0.0f, 0.0f};
+    float selected_color[3]   = {0.0f, 0.53f, 0.33f};  
     float *color;
 
     // Total number of font coordinates
@@ -287,7 +287,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
 
     // frames per second
     sprintf( buffer, "FPS: %.0f", fps);
-    n += add_text_coords(state, buffer, verts + n, unselected_color, 1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, unselected_color, 1.0f - 100.0f * sx, 1.0f - 25.0f * sy, sx, sy);
 
     // Gravity
     sprintf( buffer, "Gravity: %.1f", gravity);
@@ -295,7 +295,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
         color = selected_color;
     else
         color = unselected_color;
-    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
 
     // Viscocity
     sprintf( buffer, "Viscosity: %.1f", viscosity);
@@ -303,7 +303,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
         color = selected_color;
     else
         color = unselected_color;
-    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
 
     // Density
     sprintf( buffer, "Density: %.1f", density);
@@ -311,7 +311,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
         color = selected_color;
     else
         color = unselected_color;
-    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
 
     // Pressure
     sprintf( buffer, "Pressure: %.1f", pressure);
@@ -319,7 +319,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
         color = selected_color;
     else
         color = unselected_color;
-    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 300.0f * sy, sx, sy);
 
     // Elasticity
     sprintf( buffer, "Elasticity: %.1f", elasticity);
@@ -327,7 +327,7 @@ void render_all_text(FONT_T *state, RENDER_T *render_state, double fps)
         color = selected_color;
     else
         color = unselected_color;
-    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+    n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 350.0f * sy, sx, sy);
 
     // Orphan buffer
     glBufferData(GL_ARRAY_BUFFER, n*sizeof(TEXT_VERT), NULL, GL_STREAM_DRAW);
