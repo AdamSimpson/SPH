@@ -8,7 +8,7 @@ uniform vec2 center;
 uniform vec3 color;
 
 const vec3 light_intensity = vec3(0.7, 0.7, 0.7);
-const vec3 light_position = vec3(0.0, 0.0, 0.8);
+const vec3 light_position = vec3(0.5, 0.5, 0.8);
 
 void main() {
     // squared 2D distance from center of gl_point

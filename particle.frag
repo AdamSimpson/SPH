@@ -7,7 +7,7 @@ out vec4 out_color;
 uniform float radius_world;
 
 const vec3 light_intensity = vec3(1.0, 1.0, 1.0);
-const vec3 light_position = vec3(0.0, 0.0, 0.8);
+const vec3 light_position = vec3(0.5, 0.5, 0.8);
 
 void main() {
     // Convert from [0,1] to [-1, 1] coords
