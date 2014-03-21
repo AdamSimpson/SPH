@@ -36,7 +36,7 @@ void create_backround_program(background_t *state)
 
     // Get position attribute location
     state->position_location = glGetAttribLocation(state->program, "position");
-    // Get tec_coord location
+    // Get tex_coord location
     state->tex_coord_location = glGetAttribLocation(state->program, "tex_coord");
     // Get tex uniform location
     state->tex_location = glGetUniformLocation(state->program, "tex");
