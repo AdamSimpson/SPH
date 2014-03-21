@@ -12,13 +12,12 @@
 
 void start_renderer()
 {
-    // Setup initial OpenGL ES state
-    // OpenGL state
-    GL_STATE_T gl_state;
-    memset(&gl_state, 0, sizeof(GL_STATE_T));
+    // Setup initial OpenGL state
+    gl_t gl_state;
+    memset(&gl_state, 0, sizeof(gl_t));
 
     // Start OpenGL
-    RENDER_T render_state;
+    render_t render_state;
     init_ogl(&gl_state, &render_state);
 
     // Initialize particles OpenGL state
@@ -30,7 +29,7 @@ void start_renderer()
     init_mover(&mover_GLstate);
 
     // Initialize font atlas
-    FONT_T font_state;
+    font_t font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize background OpenGL state
@@ -273,7 +272,7 @@ void start_renderer()
 }
 
 // Move selected parameter up
-void move_parameter_up(RENDER_T *render_state)
+void move_parameter_up(render_t *render_state)
 {
     if(render_state->selected_parameter == MIN)
         render_state->selected_parameter = MAX;
@@ -282,7 +281,7 @@ void move_parameter_up(RENDER_T *render_state)
 }
 
 // Move selected parameter down
-void move_parameter_down(RENDER_T *render_state) 
+void move_parameter_down(render_t *render_state) 
 {
     if(render_state->selected_parameter == MAX)
         render_state->selected_parameter = MIN;
@@ -290,7 +289,7 @@ void move_parameter_down(RENDER_T *render_state)
         render_state->selected_parameter++;
 }
 
-void increase_parameter(RENDER_T *render_state)
+void increase_parameter(render_t *render_state)
 {
     switch(render_state->selected_parameter) {
         case GRAVITY:
@@ -311,7 +310,7 @@ void increase_parameter(RENDER_T *render_state)
     }
 }
 
-void decrease_parameter(RENDER_T *render_state)
+void decrease_parameter(render_t *render_state)
 {
     switch(render_state->selected_parameter) {
         case GRAVITY:
@@ -333,7 +332,7 @@ void decrease_parameter(RENDER_T *render_state)
 }
 
 // Increase gravity parameter
-void increase_gravity(RENDER_T *render_state)
+void increase_gravity(render_t *render_state)
 {
     static const float max_grav = -9.0f;
     if(render_state->master_params[0].g <= max_grav)
@@ -345,7 +344,7 @@ void increase_gravity(RENDER_T *render_state)
 }
 
 // Decreate gravity parameter
-void decrease_gravity(RENDER_T *render_state)
+void decrease_gravity(render_t *render_state)
 {
     static const float min_grav = 9.0f;
     if(render_state->master_params[0].g >= min_grav)
@@ -357,7 +356,7 @@ void decrease_gravity(RENDER_T *render_state)
 }
 
 // Increase density parameter
-void increase_density(RENDER_T *render_state)
+void increase_density(render_t *render_state)
 {
     static const float max_dens = 150.0f;
     if(render_state->master_params[0].rest_density >= max_dens)
@@ -369,7 +368,7 @@ void increase_density(RENDER_T *render_state)
 }
 
 // Decreate gravity parameter
-void decrease_density(RENDER_T *render_state)
+void decrease_density(render_t *render_state)
 {
     static const float min_dens = 0.0f;
     if(render_state->master_params[0].rest_density <= min_dens)
@@ -381,7 +380,7 @@ void decrease_density(RENDER_T *render_state)
 }
 
 // Increase viscosity parameter
-void increase_viscosity(RENDER_T *render_state)
+void increase_viscosity(render_t *render_state)
 {
     static const float max_viscosity = 100.0f;
     float viscosity = render_state->master_params[0].sigma;
@@ -397,7 +396,7 @@ void increase_viscosity(RENDER_T *render_state)
 }
 
 // Decreate viscosity parameter
-void decrease_viscosity(RENDER_T *render_state)
+void decrease_viscosity(render_t *render_state)
 {
     static const float min_viscosity = 0.0f;
     float viscosity = render_state->master_params[0].sigma;
@@ -413,7 +412,7 @@ void decrease_viscosity(RENDER_T *render_state)
 }
 
 // Increase pressure parameter
-void increase_pressure(RENDER_T *render_state)
+void increase_pressure(render_t *render_state)
 {
     static const float max_pressure = 1.0f;
     float pressure = render_state->master_params[0].k;
@@ -430,7 +429,7 @@ void increase_pressure(RENDER_T *render_state)
 }
 
 // Decreate pressure parameter
-void decrease_pressure(RENDER_T *render_state)
+void decrease_pressure(render_t *render_state)
 {
     static const float min_pressure = 0.0f;
     float pressure = render_state->master_params[0].k;
@@ -447,7 +446,7 @@ void decrease_pressure(RENDER_T *render_state)
 }
 
 // Increase elasticity parameter
-void increase_elasticity(RENDER_T *render_state)
+void increase_elasticity(render_t *render_state)
 {
     static const float max_elast = 200.0f;
     if(render_state->master_params[0].k_spring > max_elast)
@@ -459,7 +458,7 @@ void increase_elasticity(RENDER_T *render_state)
 }
 
 // Decreate elasticity parameter
-void decrease_elasticity(RENDER_T *render_state)
+void decrease_elasticity(render_t *render_state)
 {
     static const float min_elast = -50.0f;
     if(render_state->master_params[0].k_spring < min_elast)
@@ -471,7 +470,7 @@ void decrease_elasticity(RENDER_T *render_state)
 }
 
 // Increase mover x dimension
-void increase_mover_width(RENDER_T *render_state)
+void increase_mover_width(render_t *render_state)
 {
     // Maximum width of mover
     static const float max_width = 4.0f;
@@ -494,7 +493,7 @@ void increase_mover_width(RENDER_T *render_state)
 }
 
 // Decrease mover x dimension
-void decrease_mover_width(RENDER_T *render_state)
+void decrease_mover_width(render_t *render_state)
 {
     // Minimum width of mover
     static const float min_width = 1.0f;
@@ -517,7 +516,7 @@ void decrease_mover_width(RENDER_T *render_state)
 }
 
 // Increase mover y dimension
-void increase_mover_height(RENDER_T *render_state)
+void increase_mover_height(render_t *render_state)
 {
     // Maximum height of mover
     static const float max_height = 4.0f;
@@ -541,7 +540,7 @@ void increase_mover_height(RENDER_T *render_state)
 }
 
 // Decrease mover y dimension
-void decrease_mover_height(RENDER_T *render_state)
+void decrease_mover_height(render_t *render_state)
 {
     // Minimum height of mover
     static const float min_height = 1.0f;
@@ -566,7 +565,7 @@ void decrease_mover_height(RENDER_T *render_state)
 // Preset fluids based upon xbox controller buttons
 
 // Standard fluid
-void set_fluid_x(RENDER_T *render_state)
+void set_fluid_x(render_t *render_state)
 {
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
@@ -581,7 +580,7 @@ void set_fluid_x(RENDER_T *render_state)
 }
 
 // super goo
-void set_fluid_y(RENDER_T *render_state)
+void set_fluid_y(render_t *render_state)
 {
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
@@ -596,7 +595,7 @@ void set_fluid_y(RENDER_T *render_state)
 }
 
 // zero g high surface tension
-void set_fluid_a(RENDER_T *render_state)
+void set_fluid_a(render_t *render_state)
 {
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
@@ -611,7 +610,7 @@ void set_fluid_a(RENDER_T *render_state)
 }
 
 // spring gas fluid...thing
-void set_fluid_b(RENDER_T *render_state)
+void set_fluid_b(render_t *render_state)
 {
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
@@ -646,7 +645,7 @@ void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y
     *gl_y = y/half_height - 1.0f;
 }
 
-void update_node_params(RENDER_T *render_state)
+void update_node_params(render_t *render_state)
 {
     int i;
 	// Update all node parameters with master paramter values
@@ -657,7 +656,7 @@ void update_node_params(RENDER_T *render_state)
 // Checks for a balanced number of particles on each compute node
 // If unbalanced the partition between nodes will change
 // Check from left to right
-void check_partition_right(RENDER_T *render_state, int *particle_counts, int total_particles)
+void check_partition_right(render_t *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
     float h, dx, length, length_right;
@@ -696,7 +695,7 @@ void check_partition_right(RENDER_T *render_state, int *particle_counts, int tot
 // Checks for a balanced number of particles on each compute node
 // If unbalanced the partition between nodes will change 
 // Check from right to left
-void check_partition_left(RENDER_T *render_state, int *particle_counts, int total_particles)
+void check_partition_left(render_t *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
     float h, dx, length, length_left;   
@@ -733,7 +732,7 @@ void check_partition_left(RENDER_T *render_state, int *particle_counts, int tota
 
 // Set last partition to be outside of simulation bounds
 // Effectively removing it from the simulation
-void remove_partition(RENDER_T *render_state)
+void remove_partition(render_t *render_state)
 {
     if(render_state->num_compute_procs_active == 1) 
 	return;
@@ -752,7 +751,7 @@ void remove_partition(RENDER_T *render_state)
 }
 
 // Add on partition to right side that has been removed
-void add_partition(RENDER_T *render_state)
+void add_partition(render_t *render_state)
 {
     if(render_state->num_compute_procs_active == render_state->num_compute_procs)
 	return;

@@ -5,7 +5,7 @@
 #include "glfw_utils.h"
 #include "renderer.h"
 
-void check_key_press(GL_STATE_T *state)
+void check_key_press(gl_t *state)
 {
     // Poll GLFW for key press
     // If key has been pressed key_callback should be called
@@ -18,7 +18,7 @@ void error_callback(int error, const char* description)
 }
 
 
-bool window_should_close(GL_STATE_T *state)
+bool window_should_close(gl_t *state)
 {
     if(glfwWindowShouldClose(state->window))
 	return true;
@@ -29,7 +29,7 @@ bool window_should_close(GL_STATE_T *state)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     // Get render_state from GLFW user pointer
-    RENDER_T *render_state = glfwGetWindowUserPointer(window);
+    render_t *render_state = glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
     {
@@ -74,7 +74,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 // Return mouse position in OpenGL screen coordinates
 // x,y [-1, 1], center of screen is origin
-void get_mouse(float *x, float *y, GL_STATE_T *state)
+void get_mouse(float *x, float *y, gl_t *state)
 {
     double mx, my;
     glfwGetCursorPos(state->window, &mx, &my);
@@ -87,7 +87,7 @@ void get_mouse(float *x, float *y, GL_STATE_T *state)
 void wheel_callback(GLFWwindow* window, double x, double y)
 {
     // Get render_state from GLFW user pointer
-    RENDER_T *render_state = glfwGetWindowUserPointer(window);
+    render_t *render_state = glfwGetWindowUserPointer(window);
     
     // Call increase/decrease mover calls
     if(y > 0.0)
@@ -101,7 +101,7 @@ void wheel_callback(GLFWwindow* window, double x, double y)
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
+void init_ogl(gl_t *state, render_t *render_state)
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -157,14 +157,14 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
     glClear( GL_COLOR_BUFFER_BIT );
 }
 
-void swap_ogl(GL_STATE_T *state)
+void swap_ogl(gl_t *state)
 {
     glfwSwapBuffers(state->window);
 
     glfwPollEvents();
 }
 
-void exit_ogl(GL_STATE_T *state)
+void exit_ogl(gl_t *state)
 {
 //    glDeleteProgram(state->shaderProgram);
 //    glDeleteShader(fragmentShader);
