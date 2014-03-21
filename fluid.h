@@ -83,20 +83,20 @@ struct PARAM {
 // Function prototypes
 ////////////////////////////////////////////////
 void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
-void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
+void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                   AABB* water, int start_x, int number_particles_x, 
-		   edge *edges, int max_fluid_particles_local, float spacing, param* params);
+                   AABB_t *water, int start_x, int number_particles_x, 
+		   edge_t *edges, int max_fluid_particles_local, float spacing, param* params);
 
 void start_simulation();
 void calculate_density(fluid_particle *p, fluid_particle *q, float ratio);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
 void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params);
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
 void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void updateVelocity(fluid_particle *p, param *params);
-void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AABB *boundary_global, param *params);
+void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params);
 void checkVelocity(float *v_x, float *v_y);
-void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, AABB *boundary_global, param *params);
+void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params);
 
 #endif

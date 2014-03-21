@@ -91,7 +91,7 @@ void freeMpiTypes()
     MPI_Group_free(&group_compute);
 }
 
-void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
+void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge_t *edges, param *params)
 {
     int i;
     fluid_particle *p;
@@ -186,7 +186,7 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     free(indicies_right);
 }
 
-void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
+void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge_t *edges, param *params)
 {
     int i;
     // Wait for transfer to complete
@@ -220,7 +220,7 @@ void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle
 }
 
 // Transfer particles that are out of node bounds
-void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, param *params)
+void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, param *params)
 {
     int i;
     fluid_particle *p;

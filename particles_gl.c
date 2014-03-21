@@ -11,7 +11,7 @@
   #include "egl_utils.h"
 #endif
 
-void init_particles(PARTICLES_T *state, int screen_width, int screen_height)
+void init_particles(particles_t *state, int screen_width, int screen_height)
 {
     state->screen_width = screen_width;
     state->screen_height = screen_height;
@@ -26,7 +26,7 @@ void init_particles(PARTICLES_T *state, int screen_width, int screen_height)
 }
 
 // Update coordinate of fluid points
-void render_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state)
+void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -43,7 +43,7 @@ void render_particles(float *points, float diameter_pixels, int num_points, PART
     draw_particles(state, diameter_pixels, num_points);
 }
 
-void create_particle_buffers(PARTICLES_T *state)
+void create_particle_buffers(particles_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
     #ifndef GLES
@@ -56,7 +56,7 @@ void create_particle_buffers(PARTICLES_T *state)
     glGenBuffers(1, &state->vbo);
 }
 
-void create_particle_shaders(PARTICLES_T *state)
+void create_particle_shaders(particles_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -102,7 +102,7 @@ void create_particle_shaders(PARTICLES_T *state)
 //   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
 }
 
-void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points)
+void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 {
     // Bind circle shader program
     glUseProgram(state->program);

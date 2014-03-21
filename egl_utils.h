@@ -12,7 +12,7 @@
 #include "renderer.h"
 
 
-typedef struct {
+typedef struct gl_t {
     uint32_t screen_width;
     uint32_t screen_height;
 
@@ -26,7 +26,7 @@ typedef struct {
     void *user_pointer; // mimics GLFW user pointer
 
     bool window_should_close;
-} GL_STATE_T;
+} gl_t;
 
 typedef struct {
     char button;
@@ -34,12 +34,12 @@ typedef struct {
     char dy;
 } MOUSE_INPUT;
 
-void init_ogl(GL_STATE_T *state, RENDER_T *render_state);
-void exit_ogl(GL_STATE_T *state);
-void swap_ogl(GL_STATE_T *state);
-void check_key_press(GL_STATE_T *state);
-int get_key_press(GL_STATE_T *state);
-void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state);
-bool window_should_close(GL_STATE_T *state);
+void init_ogl(gl_t *state, RENDER_T *render_state);
+void exit_ogl(gl_t *state);
+void swap_ogl(gl_t *state);
+void check_key_press(gl_t *state);
+int get_key_press(gl_t *state);
+void get_mouse(float *x_pos, float *y_pos, gl_t *state);
+bool window_should_close(gl_t *state);
 
 #endif

@@ -7,7 +7,7 @@
 
 #include "ogl_utils.h"
 
-void create_backround_program(BACKGROUND_T *state)
+void create_backround_program(background_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -42,7 +42,7 @@ void create_backround_program(BACKGROUND_T *state)
     state->tex_location = glGetUniformLocation(state->program, "tex");
 }
 
-void create_background_buffers(BACKGROUND_T *state)
+void create_background_buffers(background_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
     #ifndef GLES
@@ -58,7 +58,7 @@ void create_background_buffers(BACKGROUND_T *state)
     glGenBuffers(1, &state->ebo);
 }
 
-void create_background_vertices(BACKGROUND_T *state)
+void create_background_vertices(background_t *state)
 {
     // Vertices: Pos(x,y) Tex(x,y)
     // For simplicity only single vbo is generated and offset used as needed
@@ -87,7 +87,7 @@ void create_background_vertices(BACKGROUND_T *state)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_STATIC_DRAW);
 }
 
-void create_background_texture(BACKGROUND_T *state)
+void create_background_texture(background_t *state)
 {
     // Read in background PNG
     unsigned error;
@@ -119,7 +119,7 @@ void create_background_texture(BACKGROUND_T *state)
     free(image);
 }
 
-void init_background(BACKGROUND_T *state)
+void init_background(background_t *state)
 {
     // Create program
     create_backround_program(state);
@@ -134,7 +134,7 @@ void init_background(BACKGROUND_T *state)
     create_background_texture(state);
 }
 
-void draw_background(BACKGROUND_T *state)
+void draw_background(background_t *state)
 {
     // Setup program
     glUseProgram(state->program);

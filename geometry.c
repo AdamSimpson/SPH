@@ -2,8 +2,8 @@
 #include "geometry.h"
 #include "fluid.h"
 
-void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB* fluid, int start_x, 
-			  int number_particles_x, edge *edges, float spacing, param *params)
+void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB_t *fluid, int start_x, 
+			  int number_particles_x, edge_t *edges, float spacing, param *params)
 {
     int num_y;
     
@@ -44,7 +44,7 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
 
 // Sets upper bound on number of particles, used for memory allocation
 // These numbers are set judiciously for TitanTitan as the number of particles is always small
-void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, oob *out_of_bounds, int number_particles_x, float spacing, param *params)
+void setParticleNumbers(AABB_t *boundary_global, AABB_t *fluid_global, edge_t *edges, oob_t *out_of_bounds, int number_particles_x, float spacing, param *params)
 {
     int num_x, num_y, max_y;
     
@@ -74,7 +74,7 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges, 
 }
 
 // Set local boundary and fluid particle
-void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start, int *length_x, float spacing, param *params)
+void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_start, int *length_x, float spacing, param *params)
 {
     int i;
     int rank;

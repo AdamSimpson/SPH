@@ -6,7 +6,7 @@
 #include "linux/input.h"
 #include "renderer.h"
 
-bool window_should_close(GL_STATE_T *state)
+bool window_should_close(gl_t *state)
 {
     if(state->window_should_close)
         return true;
@@ -15,13 +15,13 @@ bool window_should_close(GL_STATE_T *state)
 }
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
-void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
+void init_ogl(gl_t *state, RENDER_T *render_state)
 {
 
     bcm_host_init();
 
     // Initialize struct
-    memset(state, 0, sizeof(GL_STATE_T));
+    memset(state, 0, sizeof(gl_t));
     state->keyboard_fd = -1;
     state->mouse_fd = -1;
     state->window_should_close = false;
@@ -116,12 +116,12 @@ void init_ogl(GL_STATE_T *state, RENDER_T *render_state)
     assert(EGL_FALSE != result);
 }
 
-void swap_ogl(GL_STATE_T *state)
+void swap_ogl(gl_t *state)
 {
     eglSwapBuffers(state->display, state->surface);
 }
 
-void exit_ogl(GL_STATE_T *state)
+void exit_ogl(gl_t *state)
 {
    // clear screen
    glClear( GL_COLOR_BUFFER_BIT );
@@ -140,7 +140,7 @@ void exit_ogl(GL_STATE_T *state)
 
 // Return mouse position in OpenGL coordinates
 // This is different than default GLFW coordinates
-void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
+void get_mouse(float *x_pos, float *y_pos, gl_t *state)
 {
     // Screen dimensions in pixels
     const int width = state->screen_width;
@@ -204,7 +204,7 @@ void get_mouse(float *x_pos, float *y_pos, GL_STATE_T *state)
 }
 
 
-void check_key_press(GL_STATE_T *state)
+void check_key_press(gl_t *state)
 {
     RENDER_T *render_state = (RENDER_T*)state->user_pointer;
 
@@ -262,7 +262,7 @@ void check_key_press(GL_STATE_T *state)
     }
 }
 
-int get_key_press(GL_STATE_T *state)
+int get_key_press(gl_t *state)
 {
     int key_code = -1;
 

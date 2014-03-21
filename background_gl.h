@@ -7,7 +7,7 @@
   #include "egl_utils.h"
 #endif
 
-typedef struct {
+typedef struct background_t {
     GLuint program;
 
     // Program locations
@@ -24,13 +24,13 @@ typedef struct {
     // Element buffer
     GLuint ebo;
 
-} BACKGROUND_T;
+} background_t;
 
-void create_backround_program(BACKGROUND_T *state);
-void create_background_buffers(BACKGROUND_T *state);
-void create_background_vertices(BACKGROUND_T *state);
-void create_background_texture(BACKGROUND_T *state);
-void init_background(BACKGROUND_T *state);
-void draw_background(BACKGROUND_T *state);
+void create_backround_program(background_t *state);
+void create_background_buffers(background_t *state);
+void create_background_vertices(background_t *state);
+void create_background_texture(background_t *state);
+void init_background(background_t *state);
+void draw_background(background_t *state);
 
 #endif

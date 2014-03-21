@@ -8,8 +8,7 @@
     #include "egl_utils.h"
 #endif
 
-typedef struct
-{
+typedef struct particles_t {
     // Program handle
     GLuint program;
 
@@ -25,12 +24,12 @@ typedef struct
 
     // buffers
     GLuint vbo;
-} PARTICLES_T;
+} particles_t;
 
-void init_particles(PARTICLES_T *state, int screen_width, int screen_height);
-void render_particles(float *points, float diameter_pixels, int num_points, PARTICLES_T *state);
-void create_particle_shaders(PARTICLES_T *state);
-void draw_particles(PARTICLES_T *state, float diameter_pixels, int num_points);
-void create_particle_buffers(PARTICLES_T *state);
+void init_particles(particles_t *state, int screen_width, int screen_height);
+void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state);
+void create_particle_shaders(particles_t *state);
+void draw_particles(particles_t *state, float diameter_pixels, int num_points);
+void create_particle_buffers(particles_t *state);
 
 #endif

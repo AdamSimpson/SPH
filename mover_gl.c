@@ -11,7 +11,7 @@
   #include "egl_utils.h"
 #endif
 
-void init_mover(MOVER_T *state)
+void init_mover(mover_t *state)
 {
     // Create circle buffers
     create_mover_buffers(state);
@@ -24,7 +24,7 @@ void init_mover(MOVER_T *state)
 }
 
 // Update coordinates of point mover and then render
-void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
+void render_mover(float *center, float *gl_dims, float *color, mover_t *state)
 {
      // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -74,7 +74,7 @@ void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state)
         draw_rectangle_mover(state, center, color);
 }
 
-void create_mover_buffers(MOVER_T *state)
+void create_mover_buffers(mover_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
     #ifndef GLES
@@ -88,7 +88,7 @@ void create_mover_buffers(MOVER_T *state)
 }
 
 // Compile sphere program
-void create_sphere_mover_program(MOVER_T *state)
+void create_sphere_mover_program(mover_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -128,7 +128,7 @@ void create_sphere_mover_program(MOVER_T *state)
 }
 
 // Compile rectnagle program
-void create_rectangle_mover_program(MOVER_T *state)
+void create_rectangle_mover_program(mover_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -165,7 +165,7 @@ void create_rectangle_mover_program(MOVER_T *state)
     state->rectangle_center_location = glGetUniformLocation(state->rectangle_program, "center");
 }
 
-void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color)
+void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
 {
 
     // Bind sphere shader program
@@ -199,7 +199,7 @@ void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void draw_rectangle_mover(MOVER_T *state, float *center, float *color)
+void draw_rectangle_mover(mover_t *state, float *center, float *color)
 {
 
     // Bind rectangle shader program

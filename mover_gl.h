@@ -8,7 +8,7 @@
     #include "egl_utils.h"
 #endif
 
-typedef struct
+typedef struct mover_t
 {
     char mover_type;
 
@@ -31,14 +31,14 @@ typedef struct
 
     // buffers
     GLuint vbo;
-} MOVER_T;
+} mover_t;
 
-void init_mover(MOVER_T *state);
-void render_mover(float *center, float *gl_dims, float *color, MOVER_T *state);
-void create_sphere_mover_program(MOVER_T *state);
-void create_rectangle_mover_program(MOVER_T *state);
-void draw_circle_mover(MOVER_T *state, float *center, float radius, float *color);
-void draw_rectangle_mover(MOVER_T *state, float *center, float *color);
-void create_mover_buffers(MOVER_T *state);
+void init_mover(mover_t *state);
+void render_mover(float *center, float *gl_dims, float *color, mover_t *state);
+void create_sphere_mover_program(mover_t *state);
+void create_rectangle_mover_program(mover_t *state);
+void draw_circle_mover(mover_t *state, float *center, float radius, float *color);
+void draw_rectangle_mover(mover_t *state, float *center, float *color);
+void create_mover_buffers(mover_t *state);
 
 #endif

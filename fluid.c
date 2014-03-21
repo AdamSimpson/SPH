@@ -44,10 +44,10 @@ void start_simulation()
     printf("compute rank: %d, num compute procs: %d \n",rank, nprocs);
 
     param params;
-    AABB water_volume_global;
-    AABB boundary_global;
-    edge edges;
-    oob out_of_bounds;
+    AABB_t water_volume_global;
+    AABB_t boundary_global;
+    edge_t edges;
+    oob_t out_of_bounds;
 
     unsigned int i;
 
@@ -382,7 +382,7 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
 }
 
 // Identify out of bounds particles and send them to appropriate rank
-void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, AABB *boundary_global, param *params)
+void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
@@ -408,7 +408,7 @@ void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_part
 
 
 // Predict position
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB *boundary_global, param *params)
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
@@ -543,7 +543,7 @@ void updateVelocity(fluid_particle *p, param *params)
 }
 
 // Update particle position and check boundary
-void updateVelocities(fluid_particle **fluid_particle_pointers, edge *edges, AABB *boundary_global, param *params)
+void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params)
 {
     int i;
     fluid_particle *p;
@@ -606,7 +606,7 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
 }
 
 // Assume AABB with min point being axis origin
-void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
+void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
 {
 
     float center_x = params->tunable_params.mover_center_x;
@@ -727,8 +727,8 @@ void boundaryConditions(fluid_particle *p, AABB *boundary, param *params)
 
 // Initialize particles
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                   AABB* water, int start_x, int number_particles_x,    
-                   edge *edges, int max_fluid_particles_local, float spacing, param* params)
+                   AABB_t *water, int start_x, int number_particles_x,    
+                   edge_t *edges, int max_fluid_particles_local, float spacing, param* params)
 {
     int i;
     fluid_particle *p;

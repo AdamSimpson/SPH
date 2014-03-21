@@ -22,11 +22,11 @@ void start_renderer()
     init_ogl(&gl_state, &render_state);
 
     // Initialize particles OpenGL state
-    PARTICLES_T particle_GLstate;
+    particles_t particle_GLstate;
     init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize mover OpenGL state
-    MOVER_T mover_GLstate;
+    mover_t mover_GLstate;
     init_mover(&mover_GLstate);
 
     // Initialize font atlas
@@ -34,7 +34,7 @@ void start_renderer()
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize background OpenGL state
-    BACKGROUND_T background_state;
+    background_t background_state;
     init_background(&background_state);
 
     // Number of processes
