@@ -12,7 +12,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-typedef struct {
+typedef struct text_vert_t {
     GLfloat x;
     GLfloat y;
     GLfloat s;
@@ -20,10 +20,10 @@ typedef struct {
     GLfloat r;
     GLfloat g;
     GLfloat b;      
-} TEXT_VERT;
+} text_vert_t;
 
 // Structure to hold cache glyph information
-typedef struct {
+typedef struct char_info_t {
     float ax; // advance.x
     float ay; // advance.y
 
@@ -35,9 +35,9 @@ typedef struct {
 
     float tx; // x offset of glyph in texture coordinates
     float ty; // y offset of glyph in texture coordinates
-} CHAR_INFO;
+} char_info_t;
 
-typedef struct
+typedef struct font_t
 {
     FT_Library ft;
     FT_Face face;
@@ -60,18 +60,18 @@ typedef struct
     int screen_height;
     
     // Font atlas
-    CHAR_INFO char_info[128];
+    char_info_t char_info[128];
     int atlas_width;
     int atlas_height;
-} FONT_T;
+} font_t;
 
-void create_font_program(FONT_T *state);
-void create_font_buffers(FONT_T *state);
-void create_font_atlas(FONT_T *state);
-void init_font(FONT_T *state, int screen_width, int screen_height);
-void render_fps(FONT_T *state, float fps);
-void render_parameters(FONT_T *state, RENDER_T *render_state);
-int add_text_coords(FONT_T *state, char *text, TEXT_VERT* verts, float *color, float x, float y, float sx, float sy);
-void render_all_text(FONT_T *state, RENDER_T *render_state, double fps);
+void create_font_program(font_t *state);
+void create_font_buffers(font_t *state);
+void create_font_atlas(font_t *state);
+void init_font(font_t *state, int screen_width, int screen_height);
+void render_fps(font_t *state, float fps);
+void render_parameters(font_t *state, render_t *render_state);
+int add_text_coords(font_t *state, char *text, text_vert_t* verts, float *color, float x, float y, float sx, float sy);
+void render_all_text(font_t *state, render_t *render_state, double fps);
 
 #endif

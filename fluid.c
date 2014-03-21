@@ -556,6 +556,7 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, A
     }
 }
 
+/*
 void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params)
 {
     // Boundary friction
@@ -579,10 +580,8 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
     I_x = vx_norm - mu*vx_tan;
     I_y = vy_norm - mu*vy_tan;
 
-//    printf("pos(%f,%f) norm(%f,%f) V(%f,%f) I(%f,%f)\n", p->x, p->y, norm_x, norm_y, p->v_x, p->v_y,I_x, I_y);
 
     // Modify particle position
-
     if(signbit(p->v_x) ==  signbit(norm_x))
         I_x = -I_x;
     if(signbit(p->v_y) ==  signbit(norm_y))
@@ -591,19 +590,19 @@ void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *para
     p->x_prev = p->x;
     p->y_prev = p->y;
 
-/*
-    p->v_x -= I_x;
-    p->v_y -= I_y;
+//    p->v_x -= I_x;
+//    p->v_y -= I_y;
 
-    p->x += p->v_x * dt;
-    p->y += p->v_y * dt;
-*/
+//    p->x += p->v_x * dt;
+//    p->y += p->v_y * dt;
+
 
     p->x -= I_x * dt;
     p->y -= I_y * dt;
 
 //   printf("after pos(%f,%f)\n", p->x, p->y);
 }
+*/
 
 // Assume AABB with min point being axis origin
 void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)

@@ -74,7 +74,6 @@ void start_renderer()
 
     // Calculate world unit to pixel
     float world_to_pix_scale = gl_state.screen_width/world_dims[0];
-//    printf("global particles: %d\n", max_particles);
 
     // Gatherv initial tunable parameters values
     int *param_counts = malloc(num_procs * sizeof(int));

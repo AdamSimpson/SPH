@@ -82,7 +82,7 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
+//void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
 void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params);
 void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
                    AABB_t *water, int start_x, int number_particles_x, 

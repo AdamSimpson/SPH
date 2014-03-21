@@ -20,7 +20,7 @@ void create_backround_program(background_t *state)
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-        compile_shader(frag_shader, "SPH/background_es.frag");
+        compile_shader(frag_shader, "SPH/shaders/background_es.frag");
     #else
         compile_shader(frag_shader, "shaders/background.frag");
     #endif

@@ -6,21 +6,21 @@
 
 #include "renderer.h"
 
-typedef struct {
+typedef struct gl_t {
     int screen_width;
     int screen_height;
 
     GLFWwindow* window;
 
-} GL_STATE_T;
+} gl_t;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void error_callback(int error, const char* description);
-void check_key_press(GL_STATE_T *state);
-void get_mouse(float *x, float *y, GL_STATE_T *state);
-void init_ogl(GL_STATE_T *state, RENDER_T *render_state);
-void exit_ogl(GL_STATE_T *state);
-void swap_ogl(GL_STATE_T *state);
-bool window_should_close(GL_STATE_T *state);
+void check_key_press(gl_t *state);
+void get_mouse(float *x, float *y, gl_t *state);
+void init_ogl(gl_t *state, render_t *render_state);
+void exit_ogl(gl_t *state);
+void swap_ogl(gl_t *state);
+bool window_should_close(gl_t *state);
 
 #endif
