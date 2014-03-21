@@ -20,7 +20,7 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
 // MPI doesn't have a C enum type
-// So we use defines
+// So defines it is...
 #define SPHERE_MOVER 0
 #define RECTANGLE_MOVER 1
 

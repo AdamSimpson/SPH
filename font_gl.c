@@ -16,17 +16,17 @@ void create_font_program(FONT_T *state)
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
-        compile_shader(vertex_shader, "SPH/font_es.vert");
+        compile_shader(vertex_shader, "SPH/shaders/font_es.vert");
     #else
-        compile_shader(vertex_shader, "font.vert");
+        compile_shader(vertex_shader, "shaders/font.vert");
     #endif
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-        compile_shader(frag_shader, "SPH/font_es.frag");
+        compile_shader(frag_shader, "SPH/shaders/font_es.frag");
     #else
-        compile_shader(frag_shader, "font.frag");
+        compile_shader(frag_shader, "shaders/font.frag");
     #endif
 
     // Create shader program

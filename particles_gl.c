@@ -61,17 +61,17 @@ void create_particle_shaders(PARTICLES_T *state)
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef GLES
-      compile_shader(vertexShader, "SPH/particle_es.vert");
+      compile_shader(vertexShader, "SPH/shaders/particle_es.vert");
     #else
-      compile_shader(vertexShader, "particle.vert");
+      compile_shader(vertexShader, "shaders/particle.vert");
     #endif
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef GLES
-      compile_shader(fragmentShader, "SPH/particle_es.frag");
+      compile_shader(fragmentShader, "SPH/shaders/particle_es.frag");
     #else
-      compile_shader(fragmentShader, "particle.frag");
+      compile_shader(fragmentShader, "shaders/particle.frag");
     #endif
 
     // Create shader program
