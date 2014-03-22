@@ -110,7 +110,7 @@ void start_renderer()
     int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
 
     // Set background color
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0.15, 0.15, 0.15, 1.0);
 
     // Create color index, equally spaced around HSV
     float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
@@ -209,7 +209,7 @@ void start_renderer()
         check_partition_right(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
-//        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw background image
         draw_background(&background_state);
@@ -572,8 +572,8 @@ void set_fluid_x(render_t *render_state)
         render_state->master_params[i].k = 0.2f;
         render_state->master_params[i].k_near = 6.0f;
         render_state->master_params[i].k_spring = 10.0f;
-        render_state->master_params[i].sigma = 20.0f;
-        render_state->master_params[i].beta = 2.0f;
+        render_state->master_params[i].sigma = 5.0f;
+        render_state->master_params[i].beta = 0.5f;
         render_state->master_params[i].rest_density = 30.0f;  
     }
 }

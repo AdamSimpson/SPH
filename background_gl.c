@@ -64,10 +64,10 @@ void create_background_vertices(background_t *state)
     // For simplicity only single vbo is generated and offset used as needed
     float vertices[] = {
          // Full screen vertices
-        -1.0f,  1.0f, 0.0f, 0.0f, // Top left
-         1.0f,  1.0f, 1.0f, 0.0f, // Top right
-         1.0f, -1.0f, 1.0f, 1.0f, // Bottom right
-	-1.0f, -1.0f, 0.0f, 1.0f  // Bottom left
+        -0.3f,  0.8f, 0.0f, 0.0f, // Top left
+         0.3f,  0.8f, 1.0f, 0.0f, // Top right
+         0.3f, -0.4f, 1.0f, 1.0f, // Bottom right
+	-0.3f, -0.4f, 0.0f, 1.0f  // Bottom left
     };
 
     // Set buffer
@@ -94,7 +94,7 @@ void create_background_texture(background_t *state)
     unsigned char* image;
     unsigned width, height;
 
-    error = lodepng_decode32_file(&image, &width, &height, "Titan_bgnd.png");
+    error = lodepng_decode32_file(&image, &width, &height, "OakRidgeLeaf.png");
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
     printf("Background image loaded: %d x %d pixels\n",width, height);
@@ -112,8 +112,11 @@ void create_background_texture(background_t *state)
     // Set texture parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Create Mipmap
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     // Release image host memory
     free(image);
@@ -149,7 +152,9 @@ void draw_background(background_t *state)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
 
     // Disable Blend
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glDisable(GL_BLEND);
 
     // Setup texture
     glActiveTexture(GL_TEXTURE0);

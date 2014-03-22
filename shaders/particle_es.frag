@@ -29,7 +29,7 @@ void main() {
     vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
 
     // Vector from frag to light
-    vec3 frag_to_light = light_position - frag_position;
+    vec3 frag_to_light = normalize(light_position - frag_position);
 
     // cosine of angle of incidence
     float cosAngleIncidence = dot(normal, frag_to_light);

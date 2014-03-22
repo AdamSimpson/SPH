@@ -28,10 +28,10 @@ void main() {
     vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
 
     // Vector from frag to light
-    vec3 frag_to_light = light_position - frag_position;
+    vec3 frag_to_light = normalize(light_position - frag_position);
 
     // cosine of angle of incidence
-    float cosAngleIncidence = clamp( 1.0 * dot(normal, frag_to_light) , 0, 1);
+    float cosAngleIncidence = clamp( dot(normal, frag_to_light) , 0.0, 1.0);
 
     // diffuse lighting
     vec3 color = sphere_color * light_intensity * cosAngleIncidence;

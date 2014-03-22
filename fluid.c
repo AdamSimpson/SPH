@@ -57,8 +57,8 @@ void start_simulation()
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
-    params.tunable_params.sigma = 20.0f;
-    params.tunable_params.beta = 2.0f;
+    params.tunable_params.sigma = 5.0f;
+    params.tunable_params.beta = 0.5f;
     params.tunable_params.rest_density = 30.0f;
     params.tunable_params.mover_width = 1.0f;
     params.tunable_params.mover_height = 1.0f;
