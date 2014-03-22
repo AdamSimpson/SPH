@@ -1,4 +1,4 @@
-precision highp float;
+precision lowp float;
 
 varying vec2 frag_tex_coord;
 

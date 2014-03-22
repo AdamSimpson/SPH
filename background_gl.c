@@ -154,7 +154,6 @@ void draw_background(background_t *state)
     // Disable Blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//    glDisable(GL_BLEND);
 
     // Setup texture
     glActiveTexture(GL_TEXTURE0);

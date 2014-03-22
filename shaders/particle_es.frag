@@ -1,4 +1,4 @@
-precision highp float;
+precision lowp float;
 
 varying vec3 sphere_color;
 varying vec2 circle_center;
@@ -10,9 +10,9 @@ const vec3 light_position = vec3(0.0, 0.0, 2.0);
 
 void main() {
     // Convert from [0,1] to [-1, 1] coords
-    vec2 local_frag_coord = (2.0 * gl_PointCoord) - 1.0;
-
-    local_frag_coord.y = -local_frag_coord.y;
+    vec2 local_frag_coord;
+    local_frag_coord.x = (2.0 * gl_PointCoord.x) - 1.0;
+    local_frag_coord.y = -((2.0 * gl_PointCoord.y) - 1.0);
 
     // squared 2D distance from center of gl_point
     float rad_squared = dot(local_frag_coord, local_frag_coord);
@@ -22,8 +22,7 @@ void main() {
         discard;
 
     // Calculate 3D normal
-    //vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - rad_squared)));
-    vec3 normal = normalize( vec3(local_frag_coord*local_frag_coord, 1.0 - rad_squared));
+    vec3 normal = normalize( vec3(local_frag_coord, 1.0 - rad_squared));
 
     // GL world coordinates
     vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
