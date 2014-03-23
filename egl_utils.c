@@ -1,6 +1,4 @@
 /*
-For Modified portions of the code the following license applies
-
 The MIT License (MIT)
 
 Copyright (c) 2014 Adam Simpson
