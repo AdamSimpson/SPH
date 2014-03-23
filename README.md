@@ -1,7 +1,7 @@
 # TinySPH
 TinySPH is a parallel 2D Smoothed Particle Hydrodynamics(SPH) code, designed to run in real time on the Oak Ridge Leadership Computing Facilities "Tiny Titan" Raspberry Pi cluster. This application was designed to demonstrate distributed computing concepts and while it works best in a distributed environment it is possible to run on a shared memory system such as a single multicore processor. Although the code is designed for Tiny Titan it should, perhaps with some small build tweaks, compile and run on various flavors of Linux and OS X. The code makes use of MPI for distributed computing and requires at least two mpi processes(1 render, 1 compute).
 
-If you use this code for anything interesting i'd love to know, drop me a line at simpsonab@ornl.gov and let me know!
+If you find this code useful, find a bug, or use this code in an interesting way i'd love to hear about it, drop me a line at simpsonab@ornl.gov and let me know!
 
 ## Install
 
@@ -65,4 +65,12 @@ If you wish the modify the code here are a few things to keep in mind
 * The main computation loop lives in fluid.c ~lines 236
 * Initial parameters are largely set in fluid.c starting ~line 78
 * The shaders directory contains OpenGL and OpenGL ES 2.0 shaders
-* files with suffix _gl control OpenGL rendering
+* files with suffix \_gl control OpenGL rendering
+
+## Algorithm
+The SPH algorithm is based upon the work of (http://www.ligum.umontreal.ca/Clavet-2005-PVFS/pvfs.pdf" Clavet et al."). To run in real time on the Raspberry Pi a large timestep was neccessary as communication is extremely expensive. Several modifcations have been made to make the algorithm work on the RaspberryPi.
+
+* 2D was used instead of 3D.
+* The algorithm was parallelized, the prediction-relaxation algorithm does not have a trivial parallelization scheme.
+* The algorithm was completely symmetrized to reduce computation.
+* Plasticity is not used.
