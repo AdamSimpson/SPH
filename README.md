@@ -10,37 +10,37 @@ Several prerequisites are required before compiling the code. In a Linux environ
 
 Macintosh
 ---
-Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
+It is recomended that the XCode toolchain be used for compilation, this is freely available from (https://developer.apple.com/xcode/downloads/ "Apple") . Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
 
-$ brew install mpich
-$ brew install glfw
-$ brew install glew
-$ brew install freetype
+    $ brew install mpich
+    $ brew install glfw
+    $ brew install glew
+    $ brew install freetype
 
 Raspberry Pi
 ---
 On the RaspberryPi the following packages must be installed, all of which are availble through apt-get.
 
-$ sudo apt-get install mpich
-$ sudo apt-get install glew
+    $ sudo apt-get install mpich
+    $ sudo apt-get install glew
 
 Compile and run
 ===
-Once the prerequisites have been setup TitanSPH can be compiled.
+Once the prerequisites have been setup TitanSPH can be compiled and run.
 
 Macintosh
 ---
-$ make -f makefile_macos
+    $ make -f makefile_macos
 
 To run on a 4 core single socket computer:
 
-$ mpirun -n 4 ./bin/SPH
+    $ mpirun -n 4 ./bin/SPH
 
 Raspbery Pi
 ---
-$ make
+    $ make
 
 To run on TinyTitan
 
-$ make run
+    $ make run
 
