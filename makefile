@@ -30,4 +30,3 @@ copy:
 	scp ./bin/sph.out pi10:~/
 	scp ./bin/sph.out pi11:~/
 	scp ./bin/sph.out pi12:~/
-
