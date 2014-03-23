@@ -20,7 +20,7 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
 // MPI doesn't have a C enum type
-// So defines it is...
+// Defines will be ok for our use
 #define SPHERE_MOVER 0
 #define RECTANGLE_MOVER 1
 
@@ -28,6 +28,7 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
 // Structures
 ////////////////////////////////////////////////
 
+// Standard fluid particle paramaters
 struct FLUID_PARTICLE {
     float x_prev;
     float y_prev;

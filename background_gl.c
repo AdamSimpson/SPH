@@ -11,7 +11,7 @@ void create_backround_program(background_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
         compile_shader(vertex_shader, "SPH/shaders/background_es.vert");
     #else
         compile_shader(vertex_shader, "shaders/background.vert");
@@ -19,7 +19,7 @@ void create_backround_program(background_t *state)
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
         compile_shader(frag_shader, "SPH/shaders/background_es.frag");
     #else
         compile_shader(frag_shader, "shaders/background.frag");
@@ -45,7 +45,7 @@ void create_backround_program(background_t *state)
 void create_background_buffers(background_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef GLES
+    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);

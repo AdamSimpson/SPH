@@ -220,7 +220,7 @@ void start_simulation()
         // Advance to predicted position and set OOB particles
         predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
-	    // Make sure that async send to render node is complete
+        // Make sure that async send to render node is complete
         if(coords_req != MPI_REQUEST_NULL)
 	    MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
 
@@ -242,12 +242,12 @@ void start_simulation()
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
-	    // Add the halo particles to neighbor buckets
-	    // Also update density
+        // Add the halo particles to neighbor buckets
+        // Also update density
         hash_halo(fluid_particle_pointers, &neighbor_grid, &params, true);
 
         // double density relaxation
-	    // halo particles will be missing origin contributions to density/pressure
+        // halo particles will be missing origin contributions to density/pressure
         double_density_relaxation(fluid_particle_pointers, neighbors, &params);
 
         // update velocity
@@ -256,17 +256,21 @@ void start_simulation()
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
 
+        #ifndef RASPI
         // Exchange halo particles from relaxed positions
-//        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        #endif
 
         // We can hash during exchange as the density is not needed
         hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, false);
 
+        #ifndef RASPI
         // Finish asynch halo exchange
-//        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
 
         // Update hash with relaxed positions
-//        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
+        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
+        #endif
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost

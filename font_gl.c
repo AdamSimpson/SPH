@@ -15,7 +15,7 @@ void create_font_program(font_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
         compile_shader(vertex_shader, "SPH/shaders/font_es.vert");
     #else
         compile_shader(vertex_shader, "shaders/font.vert");
@@ -23,7 +23,7 @@ void create_font_program(font_t *state)
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
         compile_shader(frag_shader, "SPH/shaders/font_es.frag");
     #else
         compile_shader(frag_shader, "shaders/font.frag");
@@ -54,7 +54,7 @@ void create_font_program(font_t *state)
 void create_font_buffers(font_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef GLES
+    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -116,7 +116,7 @@ void create_font_atlas(font_t *state)
     state->atlas_height = h;
 
     // Allocate texture
-    #ifdef GLES
+    #ifdef RASPI
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, 0);
     #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
@@ -142,11 +142,11 @@ void create_font_atlas(font_t *state)
 	    }
 
 	    // fill texture with glyph
-#ifdef GLES
+            #ifdef RASPI
 	    glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE, g->bitmap.buffer);
-#else
+            #else
 	    glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer);	
-#endif
+            #endif
 
 	    // Cache values
 	    char_info[i].ax = g->advance.x >> 6;
@@ -282,8 +282,8 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 	pressure = render_state->master_params[0].k;
 	elasticity = render_state->master_params[0].k_spring;
 
-	float unselected_color[3] = {0.0f ,0.0f, 0.0f};
-	float selected_color[3]   = {0.0f, 0.53f, 0.33f};  
+	float unselected_color[3] = {1.0f ,1.0f, 1.0f};
+	float selected_color[3]   = {0.0f, 0.70f, 0.33f};  
 	float *color;
 
 	// Total number of font coordinates
@@ -291,7 +291,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 
 	// frames per second
 	sprintf( buffer, "FPS: %.0f", fps);
-	n += add_text_coords(state, buffer, verts + n, unselected_color, 1.0f - 100.0f * sx, 1.0f - 25.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, unselected_color, 1.0f - 100.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 
 	// Gravity
 	sprintf( buffer, "Gravity: %.1f", gravity);
@@ -299,7 +299,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 
 	// Viscocity
 	sprintf( buffer, "Viscosity: %.1f", viscosity);
@@ -307,7 +307,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
 
 	// Density
 	sprintf( buffer, "Density: %.1f", density);
@@ -315,7 +315,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
 
 	// Pressure
 	sprintf( buffer, "Pressure: %.1f", pressure);
@@ -323,7 +323,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 300.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
 
 	// Elasticity
 	sprintf( buffer, "Elasticity: %.1f", elasticity);
@@ -331,7 +331,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 350.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
 
 	// Orphan buffer
 	glBufferData(GL_ARRAY_BUFFER, n*sizeof(text_vert_t), NULL, GL_STREAM_DRAW);
@@ -356,17 +356,17 @@ void init_font(font_t *state, int screen_width, int screen_height)
 	state->screen_height = screen_height;
 
 	// Load font face
-#ifdef GLES
+        #ifdef RASPI
 	if(FT_New_Face(state->ft, "SPH/DroidSerif-Regular.ttf", 0, &state->face)) {
 		printf("Error loading font face\n");
 		exit(EXIT_FAILURE);
 	}
-#else
+        #else
 	if(FT_New_Face(state->ft, "DroidSerif-Regular.ttf", 0, &state->face)) {
 		printf("Error loading font face\n");
 		exit(EXIT_FAILURE);
 	}
-#endif
+        #endif
 
 	// Set pixel size
 	FT_Set_Pixel_Sizes(state->face, 0, 24);

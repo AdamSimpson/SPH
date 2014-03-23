@@ -46,7 +46,7 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
 void create_particle_buffers(particles_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef GLES
+    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -60,7 +60,7 @@ void create_particle_shaders(particles_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
       compile_shader(vertexShader, "SPH/shaders/particle_es.vert");
     #else
       compile_shader(vertexShader, "shaders/particle.vert");
@@ -68,7 +68,7 @@ void create_particle_shaders(particles_t *state)
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef GLES
+    #ifdef RASPI
       compile_shader(fragmentShader, "SPH/shaders/particle_es.frag");
     #else
       compile_shader(fragmentShader, "shaders/particle.frag");
@@ -93,7 +93,7 @@ void create_particle_shaders(particles_t *state)
     state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
 
     // Enable point size to be specified in the shader
-    #ifndef GLES
+    #ifndef RASPI
     glEnable(GL_PROGRAM_POINT_SIZE);
     #endif
 
