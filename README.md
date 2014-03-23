@@ -5,11 +5,11 @@ If you find this code useful, find a bug, or use this code in an interesting way
 
 ## Install
 
-Several prerequisites are required before compiling the code. In a Linux environment, such as Raspian, these may be obtained using your distros package management system. On Macintosh it is recomended that Homebrew be used: http://brew.sh
+Several prerequisites are required before compiling the code. In a Linux environment, such as Raspian, these may be obtained using your distros package management system. On Macintosh it is recomended that [Homebrew](http://brew.sh) be used.
 
 ### Macintosh
 
-It is assumed that the XCode toolchain has been installed, this is freely available from (https://developer.apple.com/xcode/downloads/ "Apple") . Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
+It is assumed that the XCode toolchain has been installed, this is freely available from [Apple](https://developer.apple.com/xcode/downloads/) . Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
 
     $ brew install mpich
     $ brew install glfw
@@ -68,7 +68,7 @@ If you wish the modify the code here are a few things to keep in mind
 * files with suffix \_gl control OpenGL rendering
 
 ## Algorithm
-The SPH algorithm is based upon the work of (http://www.ligum.umontreal.ca/Clavet-2005-PVFS/pvfs.pdf" Clavet et al."). To run in real time on the Raspberry Pi a large timestep was neccessary as communication is extremely expensive. Several modifcations have been made to make the algorithm work on the RaspberryPi.
+The SPH algorithm is based upon the work of [Clavet et al.](http://www.ligum.umontreal.ca/Clavet-2005-PVFS/pvfs.pdf). To run in real time on the Raspberry Pi a large timestep was neccessary as communication is extremely expensive. Several modifcations have been made to make the algorithm work on the RaspberryPi.
 
 * 2D was used instead of 3D.
 * The algorithm was parallelized, the prediction-relaxation algorithm does not have a trivial parallelization scheme.
