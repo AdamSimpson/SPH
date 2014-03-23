@@ -19,7 +19,7 @@ $ brew install freetype
 
 Raspberry Pi
 ---
-On the Pi the following packages must be installed, all of which are availble through apt-get.
+On the RaspberryPi the following packages must be installed, all of which are availble through apt-get.
 
 $ sudo apt-get install mpich
 $ sudo apt-get install glew
