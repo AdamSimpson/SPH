@@ -49,10 +49,10 @@ The controls are listed in GLFW_utils.c and EGL_utils.c for GLFW and Raspberry P
 
 Although subject to change generally keys should operate as follows:
 
-..* Arrow keys should change the paramaters in the top left of the screen
+* Arrow keys should change the paramaters in the top left of the screen
 
-..* The mouse controlls the mover sphere
+* The mouse controlls the mover sphere
 
-..* A,B,X,Y are fluid parameter presets
+* A,B,X,Y are fluid parameter presets
 
-..* on Mac [ ] control the number of processes while on the Pi it is page up and page down.
+* on Mac [ ] control the number of processes while on the Pi it is page up and page down.
