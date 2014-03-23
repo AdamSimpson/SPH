@@ -9,7 +9,7 @@ Install
 Several prerequisites are required before compiling the code. In a Linux environment, such as Raspian, these may be obtained using your distros package management system. On Macintosh it is recomended that Homebrew be used: http://brew.sh
 
 Macintosh
-===
+==
 Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
 
 $ brew install mpich
@@ -18,7 +18,7 @@ $ brew install glew
 $ brew install freetype
 
 Raspberry Pi
-===
+==
 On the Pi the following packages must be installed, all of which are availble through apt-get.
 
 $ sudo apt-get install mpich
@@ -29,7 +29,7 @@ Compile and run
 Once the prerequisites have been setup TitanSPH can be compiled.
 
 Macintosh
-===
+==
 $ make -f makefile_macos
 
 To run on a 4 core single socket computer:
@@ -37,7 +37,7 @@ To run on a 4 core single socket computer:
 $ mpirun -n 4 ./bin/SPH
 
 Raspbery Pi
-===
+==
 $ make
 
 To run on TinyTitan
