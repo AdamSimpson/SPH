@@ -72,5 +72,5 @@ The SPH algorithm is based upon the work of [Clavet et al.](http://www.ligum.umo
 
 * 2D was used instead of 3D.
 * The algorithm was parallelized, the prediction-relaxation algorithm does not have a trivial parallelization scheme.
-* The algorithm was completely symmetrized to reduce computation.
+* The algorithm was completely symmetrized to reduce computation/hash cost.
 * Plasticity is not used.
