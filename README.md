@@ -46,7 +46,7 @@ To run on TinyTitan
     $ make run
 
 ## Controls
-The controls are listed in GLFW\_utils.c and EGL\_utils.c for GLFW and Raspberry Pi platforms respectively. The Pi's controls are based upon using an XBox controller to handle input.
+The input controls are set in `GLFW_utils.c` and `EGL_utils.c` for GLFW and Raspberry Pi platforms respectively. The Pi's controls are based upon using an XBox controller to handle input.
 
 Although subject to change generally keys should operate as follows:
 
@@ -60,7 +60,7 @@ Although subject to change generally keys should operate as follows:
 
 * on Mac [ ] control the number of processes while on the Pi it is page up and page down.
 
-If the keyboard input for the RaspberyPi doesn't work you may need to correctly set /dev/input/event# in get\_key\_press() in egl\_util.c 
+If the keyboard input for the RaspberyPi doesn't work you may need to correctly set `/dev/input/event#` in `get_key_press()` in `egl_util.c` 
 
 ## Code
 If you wish the modify the code here are a few things to keep in mind
