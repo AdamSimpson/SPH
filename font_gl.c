@@ -307,7 +307,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 	elasticity = render_state->master_params[0].k_spring;
 
 	float unselected_color[3] = {1.0f ,1.0f, 1.0f};
-	float selected_color[3]   = {0.0f, 0.70f, 0.33f};  
+	float selected_color[3]   = {0.1f, 0.80f, 0.43f};  
 	float *color;
 
 	// Total number of font coordinates
