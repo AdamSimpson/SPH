@@ -1,6 +1,5 @@
 # TinySPH
-
-TinySPH is a parallel 2D Smoothed Particle Hydrodynamics(SPH) code, designed to run in real time on the Oak Ridge Leadership Computing Facilities "Tiny Titan" Raspberry Pi cluster. This application was designed to demonstrate distributed computing concepts and while it works best in a distributed environment it is possible to run on a shared memory system such as a single multicore processor. Although the code is designed for Tiny Titan it should, perhaps with some small build tweaks, compile and run on various flavors of linux and OS X. The code makes use of MPI for distributed computing and requires at least two mpi processes(1 render, 1 compute).
+TinySPH is a parallel 2D Smoothed Particle Hydrodynamics(SPH) code, designed to run in real time on the Oak Ridge Leadership Computing Facilities "Tiny Titan" Raspberry Pi cluster. This application was designed to demonstrate distributed computing concepts and while it works best in a distributed environment it is possible to run on a shared memory system such as a single multicore processor. Although the code is designed for Tiny Titan it should, perhaps with some small build tweaks, compile and run on various flavors of Linux and OS X. The code makes use of MPI for distributed computing and requires at least two mpi processes(1 render, 1 compute).
 
 ## Install
 
@@ -56,3 +55,12 @@ Although subject to change generally keys should operate as follows:
 * A,B,X,Y are fluid parameter presets
 
 * on Mac [ ] control the number of processes while on the Pi it is page up and page down.
+
+## Code
+If you wish the modify the code here are a few things to keep in mind
+
+* main() lives in fluid.c ~line 37
+* The main computation look lives in fluid.c ~lines 236
+* Initial parameters are largely set in fluid.c starting ~line 78
+* The shaders directory contains OpenGL and OpenGL ES 2.0 shaders
+* files with suffix _gl control OpenGL rendering
