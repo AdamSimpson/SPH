@@ -5,7 +5,7 @@ If you find this code useful, find a bug, or use this code in an interesting way
 
 The screenshot below shows TinySPH running on a four core MacBook Pro, running with 3 compute MPI processes and 1 MPI render process. The color of the particle indicates which processor core is responsable for it's computation. TinySPH includes a simple number of particle based load balancing scheme.
 
-![alt text](https://github.com/AdamSimpson/SPH/blob/master/SPH_Screenshot.png "SPH Screenshot")
+![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/SPH_Screenshot.png "SPH Screenshot")
 
 ## Install
 
