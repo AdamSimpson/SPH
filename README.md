@@ -3,7 +3,8 @@ TinySPH is a parallel 2D Smoothed Particle Hydrodynamics(SPH) code, designed to 
 
 If you find this code useful, find a bug, or use this code in an interesting way i'd love to hear about it, drop me a line at simpsonab@ornl.gov and let me know!
 
-The screenshot below shows TinySPH running on a four core MacBook Pro, running with 3 compute MPI processes and 1 MPI render process. The color of the particle indicates which processor core is responsable for it's computation. TinySPH includes a simple number of particle based load balancing scheme.
+## Screenshot
+The screenshot below shows TinySPH running on a four core MacBook Pro, running with 3 compute MPI processes and 1 MPI render process. The color of the particle indicates which processor core is responsable for it. TinySPH includes a simple number of particle based load balancing scheme.
 
 ![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/SPH_Screenshot.png "SPH Screenshot")
 
