@@ -65,9 +65,9 @@ If the keyboard input for the RaspberyPi doesn't work you may need to correctly 
 ## Code
 If you wish the modify the code here are a few things to keep in mind
 
-* main() lives in fluid.c ~line 37
-* The main computation loop lives in fluid.c ~lines 236
-* Initial parameters are largely set in fluid.c starting ~line 78
+* `main()` lives in `fluid.c` ~line 37
+* The main computation loop lives in `fluid.c` ~lines 236
+* Initial parameters are largely set in `fluid.c` starting ~line 78
 * The shaders directory contains OpenGL and OpenGL ES 2.0 shaders
 * files with suffix \_gl control OpenGL rendering
 
