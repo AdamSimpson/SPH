@@ -48,13 +48,19 @@ typedef struct background_t {
     // Element buffer
     GLuint ebo;
 
+    // Pixel dimensions
+    int screen_width;
+    int screen_height;
+
+    int background_width;
+    int background_height;
 } background_t;
 
+void init_background(background_t *state, int screen_width, int screen_height);
 void create_backround_program(background_t *state);
 void create_background_buffers(background_t *state);
 void create_background_vertices(background_t *state);
 void create_background_texture(background_t *state);
-void init_background(background_t *state);
 void draw_background(background_t *state);
 
 #endif

@@ -58,7 +58,7 @@ void start_renderer()
 
     // Initialize background OpenGL state
     background_t background_state;
-    init_background(&background_state);
+    init_background(&background_state, gl_state.screen_width, gl_state.screen_height);
 
     // Number of processes
     int num_procs, num_compute_procs, num_compute_procs_active;

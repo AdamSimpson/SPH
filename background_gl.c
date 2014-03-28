@@ -86,13 +86,30 @@ void create_background_vertices(background_t *state)
 {
     // Vertices: Pos(x,y) Tex(x,y)
     // For simplicity only single vbo is generated and offset used as needed
+
+    // Background image dimensions in gl screen coordinates
+    float bg_width = 2.0*(state->background_width/(float)state->screen_width);
+    float bg_height =  2.0*(state->background_height/(float)state->screen_height);
+
+    float lower_left_x = -bg_width/2.0;
+    float lower_left_y = -bg_height/2.0;
+    float lower_right_x = lower_left_x + bg_width;
+    float lower_right_y = lower_left_y;
+    float upper_right_x = lower_right_x;
+    float upper_right_y = lower_right_y + bg_height;
+    float upper_left_x = lower_left_x;
+    float upper_left_y = lower_left_y + bg_height;
+
     float vertices[] = {
          // Full screen vertices
-        -0.3f,  0.8f, 0.0f, 0.0f, // Top left
-         0.3f,  0.8f, 1.0f, 0.0f, // Top right
-         0.3f, -0.4f, 1.0f, 1.0f, // Bottom right
-	-0.3f, -0.4f, 0.0f, 1.0f  // Bottom left
+        upper_left_x,  upper_left_y, 0.0f, 0.0f, // Upper left
+        upper_right_x,  upper_right_y, 1.0f, 0.0f, // Upper right
+        lower_right_x, lower_right_y, 1.0f, 1.0f, // Lower right
+	lower_left_x, lower_left_y, 0.0f, 1.0f  // Lower left
     };
+
+    printf("Screen resolution %d, %d\n", state->screen_width, state->screen_height);
+    printf("ul (%f,%f), ur (%f, %f), ll (%f, %f), lr (%f, %f)\n", upper_left_x, upper_left_y, upper_right_x, upper_right_y, lower_left_x, lower_left_y, lower_right_x, lower_right_y);
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -121,7 +138,10 @@ void create_background_texture(background_t *state)
     error = lodepng_decode32_file(&image, &width, &height, "OakRidgeLeaf.png");
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
-    printf("Background image loaded: %d x %d pixels\n",width, height);
+    state->background_width = width;
+    state->background_height = height;
+
+    printf("Background image loaded: %d x %d pixels\n", width, height);
 
     // Generate texture
     glGenTextures(1, &state->tex_uniform);
@@ -146,19 +166,25 @@ void create_background_texture(background_t *state)
     free(image);
 }
 
-void init_background(background_t *state)
+void init_background(background_t *state, int screen_width, int screen_height)
 {
+    // Set screen with/height in pixels
+    state->screen_width = screen_width;
+    state->screen_height = screen_height;
+
     // Create program
     create_backround_program(state);
 
     // Generate buffers 
     create_background_buffers(state);  
 
+    // Create texture from image
+    // Must be called before create_background_verticies
+    // so image dimensions known
+    create_background_texture(state);
+
     // Set verticies
     create_background_vertices(state);
-
-    // Create texture from image
-    create_background_texture(state);
 }
 
 void draw_background(background_t *state)
