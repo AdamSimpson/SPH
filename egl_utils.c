@@ -66,7 +66,7 @@ bool window_should_close(gl_t *state)
 }
 
 // Description: Sets the display, OpenGL|ES context and screen stuff
-void init_ogl(gl_t *state, RENDER_T *render_state)
+void init_ogl(gl_t *state, render_t *render_state)
 {
 
     bcm_host_init();
@@ -257,7 +257,7 @@ void get_mouse(float *x_pos, float *y_pos, gl_t *state)
 
 void check_key_press(gl_t *state)
 {
-    RENDER_T *render_state = (RENDER_T*)state->user_pointer;
+    render_t *render_state = (render_t*)state->user_pointer;
 
     // Get key press
     int key = get_key_press(state);
