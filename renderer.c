@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "communication.h"
 #include "fluid.h"
 #include "font_gl.h"
+#include "dividers_gl.h"
 
 void start_renderer()
 {
@@ -52,13 +53,17 @@ void start_renderer()
     mover_t mover_GLstate;
     init_mover(&mover_GLstate);
 
-    // Initialize font atlas
+    // Initialize font OpenGL state
     font_t font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize background OpenGL state
     background_t background_state;
     init_background(&background_state, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize node divider OpenGL state
+    dividers_t dividers_state;
+    init_dividers(&dividers_state, gl_state.screen_width, gl_state.screen_height);
 
     // Number of processes
     int num_procs, num_compute_procs, num_compute_procs_active;
@@ -127,6 +132,9 @@ void start_renderer()
     // Allocate mover point array(position + color)
     float mover_center[2];
     float mover_color[3];
+
+    // Allocate space for node edges
+    float *node_edges = (float*)malloc(2*render_state.num_compute_procs*sizeof(float));
 
     // Number of coordinates received from each proc
     int *particle_coordinate_counts = malloc(num_compute_procs * sizeof(int));
@@ -215,7 +223,7 @@ void start_renderer()
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
-	    for(i=0; i<num_compute_procs; i++) {
+	    for(i=0; i<render_state.num_compute_procs; i++) {
 	        // Wait until message is ready from any proc
             MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
 	        // Retrieve probed values
@@ -253,6 +261,14 @@ void start_renderer()
 
         render_all_text(&font_state, &render_state, fps);
         //printf("fps: %f\n", fps);
+
+        // Convert node start/end parameters into GL coordinates and render
+        for(i=0; i<render_state.num_compute_procs_active; i++)
+        {
+            float start_gl_x, end_gl_x;
+            sim_to_opengl(world_dims, node_params->node_start_x, node_params->node_end_x, &start_gl_x, &end_gl_x);
+        }
+        render_dividers(&dividers_state, node_edges, render_state.num_compute_procs_active);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
