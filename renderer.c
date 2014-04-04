@@ -266,7 +266,11 @@ void start_renderer()
         for(i=0; i<render_state.num_compute_procs_active; i++)
         {
             float start_gl_x, end_gl_x;
-            sim_to_opengl(world_dims, node_params->node_start_x, node_params->node_end_x, &start_gl_x, &end_gl_x);
+            float null_y;
+            sim_to_opengl(world_dims, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
+            sim_to_opengl(world_dims, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
+            node_edges[2*i] = start_gl_x;
+            node_edges[2*i+1] = end_gl_x;
         }
         render_dividers(&dividers_state, node_edges, render_state.num_compute_procs_active);
 

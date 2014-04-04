@@ -52,14 +52,14 @@ void init_dividers(dividers_t *state, int screen_width, int screen_height)
 void render_dividers(dividers_t *state, float *node_edges, int num_nodes)
 {
     // 6 verticies per line, 5(x,y,r,g,b) elements per vertex, 2 lines per node
-    float *verticies =  (float*)malloc(sizeof(float)*2*6*2*num_nodes);
+    float *verticies =  (float*)malloc(sizeof(float)*12*2*num_nodes);
 
     // Create verticies
     int i, offset;
     float edge_x;
+    float half_width = 0.01f;
     for(i=0; i<2*num_nodes; i++) {
-        float edge = node_edges[i];
-        float half_width = 0.001;
+        edge_x = node_edges[i];
 
         // Left triangle
         offset = i*12;
@@ -72,9 +72,9 @@ void render_dividers(dividers_t *state, float *node_edges, int num_nodes)
 
         // Right triangle
         verticies[offset+6]  = edge_x + half_width;
-        verticies[offset+6]  = -1.0f;
-        verticies[offset+7]  = edge_x + half_width;
-        verticies[offset+8]  = 1.0f;
+        verticies[offset+7]  = -1.0f;
+        verticies[offset+8]  = edge_x + half_width;
+        verticies[offset+9]  = 1.0f;
         verticies[offset+10] = edge_x - half_width;
         verticies[offset+11] = 1.0f;
     }
@@ -83,13 +83,15 @@ void render_dividers(dividers_t *state, float *node_edges, int num_nodes)
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Orphan current buffer
-    glBufferData(GL_ARRAY_BUFFER, 6*2*2*num_nodes*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 12*2*num_nodes*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 6*2*2*num_nodes*sizeof(GLfloat), verticies, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 12*2*num_nodes*sizeof(GLfloat), verticies, GL_STREAM_DRAW);
 
     // Unbind buffer
     draw_dividers(state, num_nodes);
+
+    free(verticies);
 }
 
 void create_dividers_buffers(dividers_t *state)
@@ -110,17 +112,17 @@ void create_dividers_shaders(dividers_t *state)
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/dividers_es.vert");
+      compile_shader(vertexShader, "SPH/shaders/divider_es.vert");
     #else
-      compile_shader(vertexShader, "shaders/dividers.vert");
+      compile_shader(vertexShader, "shaders/divider.vert");
     #endif
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/dividers_es.frag");
+      compile_shader(fragmentShader, "SPH/shaders/divider_es.frag");
     #else
-      compile_shader(fragmentShader, "shaders/dividers.frag");
+      compile_shader(fragmentShader, "shaders/divider.frag");
     #endif
 
     // Create shader program
@@ -144,13 +146,13 @@ void draw_dividers(dividers_t *state, int num_nodes)
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(state->position_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glEnable(GL_BLEND);
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw, two triangles per line
-    glDrawArrays(GL_TRIANGLES, 0, 2*2*num_nodes);
+    glDrawArrays(GL_TRIANGLES, 0, 6*2*num_nodes);
 }
