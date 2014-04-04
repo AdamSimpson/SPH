@@ -135,7 +135,11 @@ void create_background_texture(background_t *state)
     unsigned char* image;
     unsigned width, height;
 
+    #ifdef RASPI
+    error = lodepng_decode32_file(&image, &width, &height, "SPH/OakRidgeLeaf.png");
+    #else
     error = lodepng_decode32_file(&image, &width, &height, "OakRidgeLeaf.png");
+    #endif
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
     state->background_width = width;

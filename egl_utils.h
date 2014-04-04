@@ -58,7 +58,7 @@ typedef struct {
     char dy;
 } MOUSE_INPUT;
 
-void init_ogl(gl_t *state, RENDER_T *render_state);
+void init_ogl(gl_t *state, render_t *render_state);
 void exit_ogl(gl_t *state);
 void swap_ogl(gl_t *state);
 void check_key_press(gl_t *state);
