@@ -57,7 +57,7 @@ void render_dividers(dividers_t *state, float *node_edges, float *colors_by_rank
     // Create verticies
     int i, offset;
     float edge_x;
-    float half_width = 0.0023f;
+    float half_width = state->screen_width*0.0000012;
     float *color;
     for(i=0; i<2*num_nodes; i++) {
         edge_x = node_edges[i];
