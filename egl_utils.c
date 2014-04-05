@@ -294,6 +294,8 @@ void check_key_press(gl_t *state)
         case KEY_B:
             set_fluid_b(render_state);
             break;
+        case KEY_D:
+            toggle_dividers(render_state);
         case BTN_LEFT:
 	    decrease_mover_width(render_state);
             break;

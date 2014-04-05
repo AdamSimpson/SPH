@@ -44,6 +44,7 @@ void start_renderer()
     // Start OpenGL
     render_t render_state;
     init_ogl(&gl_state, &render_state);
+    render_state.show_dividers = false;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -262,18 +263,20 @@ void start_renderer()
         render_all_text(&font_state, &render_state, fps);
         //printf("fps: %f\n", fps);
 
-        // Convert node start/end parameters into GL coordinates and render
-        for(i=0; i<render_state.num_compute_procs_active; i++)
+        if(render_state.show_dividers)
         {
-            float start_gl_x, end_gl_x;
-            float null_y;
-            sim_to_opengl(world_dims, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
-            sim_to_opengl(world_dims, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
-            node_edges[2*i] = start_gl_x;
-            node_edges[2*i+1] = end_gl_x;
+            // Convert node start/end parameters into GL coordinates and render
+            for(i=0; i<render_state.num_compute_procs_active; i++)
+            {
+                float start_gl_x, end_gl_x;
+                float null_y;
+                sim_to_opengl(world_dims, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
+                sim_to_opengl(world_dims, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
+                node_edges[2*i] = start_gl_x;
+                node_edges[2*i+1] = end_gl_x;
+            }
+            render_dividers(&dividers_state, node_edges, colors_by_rank, render_state.num_compute_procs_active);
         }
-
-        render_dividers(&dividers_state, node_edges, colors_by_rank, render_state.num_compute_procs_active);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
@@ -818,6 +821,11 @@ void add_partition(render_t *render_state)
     render_state->master_params[num_compute_procs_active].node_start_x = new_x;
 
     render_state->num_compute_procs_active += 1;
+}
+
+void toggle_dividers(render_t *state)
+{
+    state->show_dividers = !state->show_dividers;
 }
 
 // Convert hsv to rgb
