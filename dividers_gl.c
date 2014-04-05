@@ -49,44 +49,72 @@ void init_dividers(dividers_t *state, int screen_width, int screen_height)
 }
 
 // Update coordinate of dividers and render
-void render_dividers(dividers_t *state, float *node_edges, int num_nodes)
+void render_dividers(dividers_t *state, float *node_edges, float *colors_by_rank, int num_nodes)
 {
     // 6 verticies per line, 5(x,y,r,g,b) elements per vertex, 2 lines per node
-    float *verticies =  (float*)malloc(sizeof(float)*12*2*num_nodes);
+    float *verticies =  (float*)malloc(sizeof(float)*30*2*num_nodes);
 
     // Create verticies
     int i, offset;
     float edge_x;
-    float half_width = 0.01f;
+    float half_width = 0.0023f;
+    float *color;
     for(i=0; i<2*num_nodes; i++) {
         edge_x = node_edges[i];
 
+        // Node start
+        if(i%2 == 0)
+            edge_x += half_width;
+        else // Node end
+            edge_x -= half_width;
+        
+        // Set color same as particle color
+        color = &colors_by_rank[3*(i/2)];
+
         // Left triangle
-        offset = i*12;
+        offset = i*30;
         verticies[offset]   = edge_x - half_width;
         verticies[offset+1] = -1.0f;
-        verticies[offset+2] = edge_x + half_width;
-        verticies[offset+3] = -1.0f;
-        verticies[offset+4] = edge_x - half_width;
-        verticies[offset+5] = 1.0f;
-
-        // Right triangle
-        verticies[offset+6]  = edge_x + half_width;
-        verticies[offset+7]  = -1.0f;
-        verticies[offset+8]  = edge_x + half_width;
-        verticies[offset+9]  = 1.0f;
+        verticies[offset+2] = color[0];
+        verticies[offset+3] = color[1];
+        verticies[offset+4] = color[2];
+        verticies[offset+5] = edge_x + half_width;
+        verticies[offset+6] = -1.0f;
+        verticies[offset+7] = color[0];
+        verticies[offset+8] = color[1];
+        verticies[offset+9] = color[2];
         verticies[offset+10] = edge_x - half_width;
         verticies[offset+11] = 1.0f;
+        verticies[offset+12] = color[0];
+        verticies[offset+13] = color[1];
+        verticies[offset+14] = color[2];
+
+        // Right triangle
+        verticies[offset+15]  = edge_x + half_width;
+        verticies[offset+16]  = -1.0f;
+        verticies[offset+17] = color[0];
+        verticies[offset+18] = color[1];
+        verticies[offset+19] = color[2];
+        verticies[offset+20]  = edge_x + half_width;
+        verticies[offset+21]  = 1.0f;
+        verticies[offset+22] = color[0];
+        verticies[offset+23] = color[1];
+        verticies[offset+24] = color[2];
+        verticies[offset+25] = edge_x - half_width;
+        verticies[offset+26] = 1.0f;
+        verticies[offset+27] = color[0];
+        verticies[offset+28] = color[1];
+        verticies[offset+29] = color[2];
     }
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Orphan current buffer
-    glBufferData(GL_ARRAY_BUFFER, 12*2*num_nodes*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 30*2*num_nodes*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 12*2*num_nodes*sizeof(GLfloat), verticies, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 30*2*num_nodes*sizeof(GLfloat), verticies, GL_STREAM_DRAW);
 
     // Unbind buffer
     draw_dividers(state, num_nodes);
@@ -136,6 +164,8 @@ void create_dividers_shaders(dividers_t *state)
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
+    // Get color location
+    state->color_location = glGetAttribLocation(state->program, "color");
 }
 
 void draw_dividers(dividers_t *state, int num_nodes)
@@ -146,12 +176,10 @@ void draw_dividers(dividers_t *state, int num_nodes)
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), 0);
     glEnableVertexAttribArray(state->position_location);
-
-    // Blend is required to show cleared color when the frag shader draws transparent pixels
-//    glEnable(GL_BLEND);
-//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), (void*)(2*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->color_location);
 
     // Draw, two triangles per line
     glDrawArrays(GL_TRIANGLES, 0, 6*2*num_nodes);

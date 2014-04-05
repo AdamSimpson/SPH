@@ -219,16 +219,16 @@ void start_renderer()
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-        // Retrieve all particle coordinates (x,y)
+            // Retrieve all particle coordinates (x,y)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
 	    for(i=0; i<render_state.num_compute_procs; i++) {
 	        // Wait until message is ready from any proc
-            MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
+                MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
 	        // Retrieve probed values
-    	    src = status.MPI_SOURCE;
-            particle_coordinate_ranks[i] = src-1;
+                src = status.MPI_SOURCE;
+                particle_coordinate_ranks[i] = src-1;
 	        MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
 	        // Start async recv using probed values
 	        MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
@@ -272,7 +272,8 @@ void start_renderer()
             node_edges[2*i] = start_gl_x;
             node_edges[2*i+1] = end_gl_x;
         }
-        render_dividers(&dividers_state, node_edges, render_state.num_compute_procs_active);
+
+        render_dividers(&dividers_state, node_edges, colors_by_rank, render_state.num_compute_procs_active);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
@@ -336,8 +337,8 @@ void increase_parameter(render_t *render_state)
 {
     switch(render_state->selected_parameter) {
         case GRAVITY:
-	        increase_gravity(render_state);
-	        break;
+            increase_gravity(render_state);
+            break;
         case VISCOSITY:
             increase_viscosity(render_state);
             break;

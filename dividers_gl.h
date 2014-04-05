@@ -38,6 +38,7 @@ typedef struct dividers_t {
 
     // Locations
     GLint position_location;
+    GLint color_location;    
 
     // Screen dimensions
     int screen_width;
@@ -48,7 +49,7 @@ typedef struct dividers_t {
 } dividers_t;
 
 void init_dividers(dividers_t *state, int screen_width, int screen_height);
-void render_dividers(dividers_t *state, float *node_edges, int num_nodes);
+void render_dividers(dividers_t *state, float *node_edges, float *colors_by_rank, int num_nodes);
 void create_dividers_shaders(dividers_t *state);
 void draw_dividers(dividers_t *state, int num_nodes);
 void create_dividers_buffers(dividers_t *state);
