@@ -296,17 +296,11 @@ void check_key_press(gl_t *state)
             break;
         case KEY_D:
             toggle_dividers(render_state);
-        case BTN_LEFT:
-	    decrease_mover_width(render_state);
-            break;
-        case BTN_RIGHT:
-            increase_mover_width(render_state);
+        case BTN_BACK:
+	    toggle_dividers(render_state);
             break;
         case BTN_FORWARD:
-            increase_mover_width(render_state);
-            break;
-        case BTN_BACK:
-            decrease_mover_width(render_state);
+            toggle_dividers(render_state);
             break;
         case KEY_ESC:
             state->window_should_close = true;

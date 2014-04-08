@@ -725,13 +725,13 @@ void check_partition_right(render_t *render_state, int *particle_counts, int tot
         diff = particle_counts[rank] - even_particles;// particle_counts[rank+1];
 
         // current rank has too many particles
-        if( diff > max_diff && length > 4*h) {
+        if( diff > max_diff && length > 3*h) {
             master_params[rank].node_end_x -= dx;
             master_params[rank+1].node_start_x = master_params[rank].node_end_x;
 	    rank++;
         }
         // current rank has too few particles
-        else if (diff < -max_diff && length_right > 4*h) {
+        else if (diff < -max_diff && length_right > 3*h) {
             master_params[rank].node_end_x += dx;
             master_params[rank+1].node_start_x = master_params[rank].node_end_x;
 	    rank++;
