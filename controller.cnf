@@ -12,8 +12,6 @@ du=150
 dd=150
 dl=150
 dr=150
-lt=5
-rt=5
 
 [ui-axismap]
 x2=BTN_BACK:BTN_FORWARD
