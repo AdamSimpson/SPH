@@ -34,6 +34,10 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "communication.h"
 
+#ifdef LIGHT
+#include "rgb_light.h"
+#endif
+
 int main(int argc, char *argv[])
 {
      // Initialize MPI
@@ -103,7 +107,16 @@ void start_simulation()
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
     aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
     boundary_global.max_y = boundary_global.max_x / aspect_ratio;
-    
+
+    // Initialize RGB Light if present
+    #ifdef LIGHT
+    rgb_light_t light_state;
+    float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
+    MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    init_rgb_light(&light_state, particle_color[3*rank], particle_color[3*rank+1], particle_color[3*rank+2]);
+    free(colors_by_rank);
+    #endif    
+
     // water volume
     water_volume_global.min_x = 0.0f;
     water_volume_global.max_x = boundary_global.max_x;
