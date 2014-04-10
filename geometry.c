@@ -146,6 +146,8 @@ void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_star
     if (rank == nprocs-1)
         params->tunable_params.node_end_x   = boundary_global->max_x;
 
+    printf("Rank %d start_x: %f, end_x :%f\n", rank, params->tunable_params.node_start_x, params->tunable_params.node_end_x);
+
     // Update requested number of particles with actual value used
     int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
     int total_x = 0;

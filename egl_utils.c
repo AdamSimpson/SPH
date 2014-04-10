@@ -300,10 +300,10 @@ void check_key_press(gl_t *state)
         case BTN_FORWARD:
             toggle_dividers(render_state);
             break;
-        case KEY_P:
+        case KEY_ESC:
             toggle_pause(render_state);
             break;
-        case KEY_ESC:
+        case KEY_TAB:
             state->window_should_close = true;
             break;
  
