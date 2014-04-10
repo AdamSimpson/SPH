@@ -8,9 +8,9 @@ void pabort(const char *s)
     abort();
 }
 
-void set_off(rgb_light_t *state)
+void rgb_light_off(rgb_light_t *state)
 {
-
+//    transfer(state->fd, 0, 0, 0);
 }
 
 void transfer(rgb_light_t *state)
@@ -32,17 +32,19 @@ void transfer(rgb_light_t *state)
     ret = ioctl(state->fd, SPI_IOC_MESSAGE(1), &tr);
     if (ret < 1)
       pabort("can't send spi message");
-
 }
 
-void init_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
+void init_rgb_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
     int ret = 0;
 
     state->mode = 0;
     state->bits = 8;
     state->speed = 500000;
     state->delay = 0;
-    state->fd = open(state->device, O_RDWR);
+    state->fd = open("/dev/spidev0.0", O_RDWR);
+    state->color[0] = r;
+    state->color[1] = g;
+    state->color[2] = b;
     if (state->fd < 0)
         pabort("can't open device");
 
@@ -82,8 +84,11 @@ void init_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
     /* printf("spi mode: %d\n", mode); */
     /* printf("bits per word: %d\n", bits); */
     /* printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000); */
+
+    transfer(state);
 }
 
-void shutdown_rgb(rgb_light_t *state) {
+void shutdown_rgb_light(rgb_light_t *state) {
+//  transfer(state->fd, 0, 0, 0);
   close(state->fd);
 }

@@ -108,15 +108,6 @@ void start_simulation()
     aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
     boundary_global.max_y = boundary_global.max_x / aspect_ratio;
 
-    // Initialize RGB Light if present
-    #ifdef LIGHT
-    rgb_light_t light_state;
-    float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
-    MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
-    init_rgb_light(&light_state, particle_color[3*rank], particle_color[3*rank+1], particle_color[3*rank+2]);
-    free(colors_by_rank);
-    #endif    
-
     // water volume
     water_volume_global.min_x = 0.0f;
     water_volume_global.max_x = boundary_global.max_x;
@@ -237,6 +228,15 @@ void start_simulation()
     int *null_recvcnts = NULL;
     int *null_displs = NULL;
     MPI_Gatherv(&params.tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
+
+    // Initialize RGB Light if present
+    #ifdef LIGHT
+    rgb_light_t light_state;
+    float *colors_by_rank = malloc(3*nprocs*sizeof(float));
+    MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    init_rgb_light(&light_state, 255*colors_by_rank[3*rank], 255*colors_by_rank[3*rank+1], 255*colors_by_rank[3*rank+2]);
+    free(colors_by_rank);
+    #endif    
 
     fluid_particle *p;
     unsigned int n = 0;
