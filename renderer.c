@@ -217,8 +217,9 @@ void start_renderer()
             while(render_state.pause)
                 check_key_press(&gl_state);
         }
-        else
+        else {
             check_key_press(&gl_state);
+        }
 
         // Update node params with master param values
         update_node_params(&render_state);
