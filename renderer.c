@@ -45,6 +45,7 @@ void start_renderer()
     render_t render_state;
     init_ogl(&gl_state, &render_state);
     render_state.show_dividers = false;
+    render_state.pause = false;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -212,7 +213,12 @@ void start_renderer()
 
         // Get keyboard key press
         // process appropriately
-        check_key_press(&gl_state);
+        if(render_state.pause) {
+            while(render_state.pause)
+                check_key_press(&gl_state);
+        }
+        else
+            check_key_press(&gl_state);
 
         // Update node params with master param values
         update_node_params(&render_state);
@@ -826,6 +832,11 @@ void add_partition(render_t *render_state)
 void toggle_dividers(render_t *state)
 {
     state->show_dividers = !state->show_dividers;
+}
+
+void toggle_pause(render_t *state)
+{
+    state->pause = !state->pause;
 }
 
 // Convert hsv to rgb

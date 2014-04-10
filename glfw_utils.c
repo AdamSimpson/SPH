@@ -95,6 +95,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             case GLFW_KEY_D:
                 toggle_dividers(render_state);
                 break;
+            case GLFW_KEY_P:
+                toggle_pause(render_state);
+                break;
         }
     }
 }

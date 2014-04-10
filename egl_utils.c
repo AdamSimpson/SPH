@@ -294,13 +294,14 @@ void check_key_press(gl_t *state)
         case KEY_B:
             set_fluid_b(render_state);
             break;
-        case KEY_D:
-            toggle_dividers(render_state);
         case BTN_BACK:
 	    toggle_dividers(render_state);
             break;
         case BTN_FORWARD:
             toggle_dividers(render_state);
+            break;
+        case KEY_P:
+            toggle_pause(render_state);
             break;
         case KEY_ESC:
             state->window_should_close = true;

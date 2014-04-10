@@ -46,6 +46,7 @@ typedef struct render_t {
     int num_compute_procs;
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
     bool show_dividers;
+    bool pause;
 } render_t;
 
 void start_renderer();
@@ -82,5 +83,6 @@ void set_fluid_y(render_t *render_state);
 void set_fluid_a(render_t *render_state);
 void set_fluid_b(render_t *render_state);
 void toggle_dividers(render_t *state);
+void toggle_pause(render_t *state);
 
 #endif
