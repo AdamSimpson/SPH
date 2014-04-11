@@ -213,12 +213,11 @@ void start_renderer()
 
         // Get keyboard key press
         // process appropriately
+        check_key_press(&gl_state);
         if(render_state.pause) {
             while(render_state.pause)
                 check_key_press(&gl_state);
         }
-        else
-            check_key_press(&gl_state);
 
         // Update node params with master param values
         update_node_params(&render_state);
