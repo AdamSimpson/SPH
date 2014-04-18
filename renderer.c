@@ -35,6 +35,10 @@ THE SOFTWARE.
 #include "font_gl.h"
 #include "dividers_gl.h"
 
+#ifdef LIGHT
+#include "rgb_light.h"
+#endif
+
 void start_renderer()
 {
     // Setup initial OpenGL state
@@ -66,6 +70,12 @@ void start_renderer()
     // Initialize node divider OpenGL state
     dividers_t dividers_state;
     init_dividers(&dividers_state, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize RGB Light if present
+    #ifdef LIGHT
+    rgb_light_t light_state;
+    init_rgb_light(&light_state, 255, 255, 255);
+    #endif
 
     // Number of processes
     int num_procs, num_compute_procs, num_compute_procs_active;
@@ -152,15 +162,19 @@ void start_renderer()
     float HSV[3];
     for(i=0; i<render_state.num_compute_procs; i++)
     {
-	if(i%2)
-	    HSV[0] = angle_space*i;
-	else
-	    HSV[0] = angle_space*i + 0.5f;
+        if(i%2)
+            HSV[0] = angle_space*i;
+        else
+            HSV[0] = angle_space*i + 0.5f;
         HSV[1] = 1.0f;
-	HSV[2] = 0.8f;
+        HSV[2] = 0.8f;
         hsv_to_rgb(HSV, colors_by_rank+3*i);
     }
  
+    #ifdef LIGHT
+    MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    #endif
+
     int num_coords_rank;
     int current_rank, num_parts;
     float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
