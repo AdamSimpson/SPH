@@ -181,7 +181,11 @@ void start_renderer()
     float mover_gl_dims[2];
 
     int frames_per_fps = 30;
+    #ifdef RASPI
     int frames_per_check = 1;
+    #else
+    int frames_per_check = 5;
+    #endif
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -751,13 +755,13 @@ void check_partition_right(render_t *render_state, int *particle_counts, int tot
         diff = particle_counts[rank] - even_particles;// particle_counts[rank+1];
 
         // current rank has too many particles
-        if( diff > max_diff && length > 3*h) {
+        if( diff > max_diff && length > 2*h) {
             master_params[rank].node_end_x -= dx;
             master_params[rank+1].node_start_x = master_params[rank].node_end_x;
 	    rank++;
         }
         // current rank has too few particles
-        else if (diff < -max_diff && length_right > 3*h) {
+        else if (diff < -max_diff && length_right > 2*h) {
             master_params[rank].node_end_x += dx;
             master_params[rank+1].node_start_x = master_params[rank].node_end_x;
 	    rank++;
@@ -790,12 +794,12 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
         diff = particle_counts[rank] - even_particles;//particle_counts[rank-1];
 
         // current rank has too many particles
-        if( diff > max_diff && length > 4*h) {
+        if( diff > max_diff && length > 2*h) {
             master_params[rank].node_start_x += dx;
             master_params[rank-1].node_end_x = master_params[rank].node_start_x;
         }
         // current rank has too few particles
-        else if (diff < -max_diff && length_left > 4*h) {
+        else if (diff < -max_diff && length_left > 2*h) {
             master_params[rank].node_start_x -= dx;
             master_params[rank-1].node_end_x = master_params[rank].node_start_x;
         }
@@ -840,7 +844,7 @@ void add_partition(render_t *render_state)
     float h = render_state->master_params[0].smoothing_radius;
 
     // If the last partition is too small we can't split it and another
-    if(length < 6*h)
+    if(length < 2.5*h)
 	return;
 
     // Set end of added partition to current end location
