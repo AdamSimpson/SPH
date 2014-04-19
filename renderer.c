@@ -196,6 +196,10 @@ void start_renderer()
 
     MPI_Status status;
 
+    // Remove all partitions but one initially
+    for(i=0; i<render_state.num_compute_procs-1; i++)
+        remove_partition(&render_state);
+
     while(1){
         // Every frames_per_fps steps calculate FPS
         if(num_steps%frames_per_fps == 0) {
