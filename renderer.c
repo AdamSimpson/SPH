@@ -184,7 +184,7 @@ void start_renderer()
     #ifdef RASPI
     int frames_per_check = 1;
     #else
-    int frames_per_check = 5;
+    int frames_per_check = 4;
     #endif
     int num_steps = 0;
     double current_time;
@@ -269,7 +269,8 @@ void start_renderer()
 
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
-        check_partition_right(&render_state, particle_coordinate_counts, coords_recvd);
+        if(num_steps%frames_per_check==0)
+            check_partition_right(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
