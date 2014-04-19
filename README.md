@@ -17,7 +17,7 @@ Several prerequisites are required before compiling the code. In a Linux environ
 It is assumed that the XCode toolchain has been installed, this is freely available from [Apple](https://developer.apple.com/xcode/downloads/) . Once Homebrew has been installed The following commands may be run in Terminal.app to setup the prerequisties.
 
     $ brew install mpich
-    $ brew install glfw
+    $ brew install homebrew/versions/glfw3
     $ brew install glew
     $ brew install freetype
 
