@@ -184,7 +184,7 @@ void start_renderer()
     #ifdef RASPI
     int frames_per_check = 1;
     #else
-    int frames_per_check = 4;
+    int frames_per_check = 2;
     #endif
     int num_steps = 0;
     double current_time;
@@ -270,7 +270,7 @@ void start_renderer()
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
         if(num_steps%frames_per_check==0)
-            check_partition_right(&render_state, particle_coordinate_counts, coords_recvd);
+            check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClear(GL_COLOR_BUFFER_BIT);
@@ -741,11 +741,11 @@ void check_partition_right(render_t *render_state, int *particle_counts, int tot
 
     // Particles per proc if evenly divided
     int even_particles = total_particles/render_state->num_compute_procs_active;
-    int max_diff = even_particles/15.0f;
+    int max_diff = even_particles/10.0f;
 
     // Fixed distance to move partition is 1/2 smoothing radius
     h = render_state->master_params[0].smoothing_radius;
-    dx = h*0.5;
+    dx = h*0.25;
 
     tunable_parameters *master_params = render_state->master_params;
 
