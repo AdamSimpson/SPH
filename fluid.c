@@ -80,6 +80,7 @@ void start_simulation()
     unsigned int i;
 
     params.tunable_params.kill_sim = false;
+    params.tunable_params.active = true;
     params.tunable_params.g = 6.0f;
     params.tunable_params.time_step = 1.0f/30.0f;
     params.tunable_params.k = 0.2f;
@@ -261,8 +262,22 @@ void start_simulation()
         if(coords_req != MPI_REQUEST_NULL)
 	    MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
 
+        #ifdef LIGHT
+        char previously_active = params.tunable_params.active;
+        #endif
+
         // Receive updated paramaters from render nodes
         MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
+
+        #ifdef LIGHT
+        // If recently added to computation turn light to light state color
+        // If recently taken out of computation turn light to white
+        char currently_active = params.tunable_params.active;
+        if (!previous_active && currently_active)
+            rgb_light_reset(&rgb_light_state);
+        elseif (!currently_active && previous_active)
+            rgb_light_white(&rgb_light_state);
+        #endif
 
 	if(params.tunable_params.kill_sim)
 	    break;

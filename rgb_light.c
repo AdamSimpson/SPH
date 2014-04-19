@@ -8,17 +8,28 @@ void pabort(const char *s)
     abort();
 }
 
+// Set light color off
 void rgb_light_off(rgb_light_t *state)
 {
-//    transfer(state->fd, 0, 0, 0);
+    transfer(state->fd, 0, 0, 0);
 }
 
-void transfer(rgb_light_t *state)
+// Set light to white
+void rgb_light_white(rgb_light_t *state)
+{
+    transfer(state->fd, 255, 255, 255);
+}
+
+// Reset color to state stored color
+void rgb_light_reset(rgb_light_t *state)
+{
+    transfer(state->fd, state->color[0], state->color[1], state->color[2]);
+}
+
+void transfer(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b)
 {
     int ret;
-    uint8_t tx[] = {
-      state->color[0], state->color[1], state->color[2],
-    };
+    uint8_t tx[] = {r, g, b};
     uint8_t rx[ARRAY_SIZE(tx)] = {0, };
     struct spi_ioc_transfer tr = {
       .tx_buf = (unsigned long)tx,
@@ -85,10 +96,10 @@ void init_rgb_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
     /* printf("bits per word: %d\n", bits); */
     /* printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000); */
 
-    transfer(state);
+    transfer(state, state->color[0], state->color[1], state->color[2]);
 }
 
 void shutdown_rgb_light(rgb_light_t *state) {
-//  transfer(state->fd, 0, 0, 0);
+  rgb_light_off(state);
   close(state->fd);
 }

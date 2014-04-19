@@ -74,7 +74,7 @@ void start_renderer()
     // Initialize RGB Light if present
     #ifdef LIGHT
     rgb_light_t light_state;
-    init_rgb_light(&light_state, 255, 255, 255);
+    init_rgb_light(&light_state, 255, 0, 0);
     #endif
 
     // Number of processes
@@ -808,13 +808,18 @@ void remove_partition(render_t *render_state)
 
     int num_compute_procs_active = render_state->num_compute_procs_active;
 
+    int removed_rank = num_compute_procs_active-1;
+
     // Set new end position of last active proc to end of simulation
-    render_state->master_params[num_compute_procs_active-2].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
+    render_state->master_params[removed_rank-1].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
 
     // Send start and end x out of sim bounds
-    float position = render_state->master_params[num_compute_procs_active-1].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
-    render_state->master_params[num_compute_procs_active-1].node_start_x = position;
-    render_state->master_params[num_compute_procs_active-1].node_end_x = position;
+    float position = render_state->master_params[removed_rank].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
+    render_state->master_params[removed_rank].node_start_x = position;
+    render_state->master_params[removed_rank].node_end_x = position;
+
+    // Set active to false for removed rank
+    render_state->master_params[removed_rank].active = false;
 
     render_state->num_compute_procs_active -= 1;
 }
@@ -841,6 +846,9 @@ void add_partition(render_t *render_state)
     float new_x = render_state->master_params[num_compute_procs_active-1].node_start_x + length*0.5;
     render_state->master_params[num_compute_procs_active-1].node_end_x = new_x;
     render_state->master_params[num_compute_procs_active].node_start_x = new_x;
+
+    // Set active to true for added rank
+    render_state->master_params[num_compute_procs_active].active = true;
 
     render_state->num_compute_procs_active += 1;
 }

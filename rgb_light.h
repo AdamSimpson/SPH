@@ -21,7 +21,10 @@ typedef struct rgb_light_t {
 } rgb_light_t;
 
 void pabort(const char *s);
-void transfer(rgb_light_t *state);
+void transfer(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b);
+void rgb_light_off(rgb_light_t *state);
+void rgb_light_white(rgb_light_t *state);
+void rgb_light_reset(rgb_light_t *state);
 void init_rgb_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b);
 void rgb_light_off(rgb_light_t *state);
 void shutdown_rgb_light(rgb_light_t *state);

@@ -93,6 +93,7 @@ struct TUNABLE_PARAMETERS {
     float mover_height;
     char mover_type;
     char kill_sim;
+    char active;
 };
 
 // Full parameters struct for simulation
