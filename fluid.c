@@ -619,54 +619,6 @@ void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, A
     }
 }
 
-/*
-void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params)
-{
-    // Boundary friction
-    const static float mu = 1.0f;
-    float dt = params->tunable_params.time_step;
-
-    float v_dot_n, vx_norm, vy_norm, vx_tan, vy_tan, I_x, I_y;
-
-    // v.n
-    v_dot_n = p->v_x*norm_x + p->v_y*norm_y;
-
-    // Velocity normal to surface
-    vx_norm = v_dot_n*norm_x;
-    vy_norm = v_dot_n*norm_y;
-
-    // Velocity tangential to surface
-    vx_tan = p->v_x - vx_norm;
-    vy_tan = p->v_y - vy_norm;
-
-    // Impulse
-    I_x = vx_norm - mu*vx_tan;
-    I_y = vy_norm - mu*vy_tan;
-
-
-    // Modify particle position
-    if(signbit(p->v_x) ==  signbit(norm_x))
-        I_x = -I_x;
-    if(signbit(p->v_y) ==  signbit(norm_y))
-        I_y = -I_y;
-
-    p->x_prev = p->x;
-    p->y_prev = p->y;
-
-//    p->v_x -= I_x;
-//    p->v_y -= I_y;
-
-//    p->x += p->v_x * dt;
-//    p->y += p->v_y * dt;
-
-
-    p->x -= I_x * dt;
-    p->y -= I_y * dt;
-
-//   printf("after pos(%f,%f)\n", p->x, p->y);
-}
-*/
-
 // Assume AABB with min point being axis origin
 void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
 {
@@ -695,19 +647,8 @@ void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
             float pen_dist = radius - d;
             p->x -= pen_dist * norm_x;
             p->y -= pen_dist * norm_y;
-
-           // collisionImpulse(p, norm_x, norm_y, params);
         }
 
-        // Make sure particle is outside of circle
-        /*
-        d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
-        if(d2 <= radius*radius) {
-            float pen_dist = radius - sqrt(d2);
-            p->x -= pen_dist * norm_x;
-            p->y -= pen_dist * norm_y;
-        }
-        */
     }
 
     // Boundary condition for rectangle mover
@@ -751,23 +692,6 @@ void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
             }
         }
     }
- 
-    // Boundary seems more stable without collision impulse
-    /*
-    // Update velocity
-    if(p->x <= boundary->min_x) {
-        collisionImpulse(p,1.0,0.0,params);
-    }
-    else if(p->x >= boundary->max_x){
-        collisionImpulse(p, -1.0, 0.0, params);
-    }
-    if(p->y <= boundary->min_y) {
-        collisionImpulse(p,0.0,1.0,params);
-    }
-    else if(p->y >= boundary->max_y){
-        collisionImpulse(p,0.0,-1.0,params);
-    }
-    */
 
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash potentially won't pick it up
