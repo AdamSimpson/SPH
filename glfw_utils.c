@@ -28,11 +28,11 @@ THE SOFTWARE.
 
 #include "glfw_utils.h"
 #include "renderer.h"
+#include "controls.h"
 
-void check_key_press(gl_t *state)
+void check_user_input()
 {
-    // Poll GLFW for key press
-    // If key has been pressed key_callback should be called
+    // Poll GLFW for key press or mouse input
     glfwPollEvents();
 }
 
@@ -45,9 +45,9 @@ void error_callback(int error, const char* description)
 bool window_should_close(gl_t *state)
 {
     if(glfwWindowShouldClose(state->window))
-	return true;
+	    return true;
     else
-	return false;
+	    return false;
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -102,15 +102,17 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
-// Return mouse position in OpenGL screen coordinates
-// x,y [-1, 1], center of screen is origin
-void get_mouse(float *x, float *y, gl_t *state)
+static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    double mx, my;
-    glfwGetCursorPos(state->window, &mx, &my);
-    *y = (state->screen_height - my); // Flip y = 0
-    *y = *y/(0.5*state->screen_height) - 1.0;
-    *x = mx/(0.5*state->screen_width) - 1.0;
+    // Get render_state from GLFW user pointer
+    render_t *render_state = glfwGetWindowUserPointer(window);
+
+    float new_x, new_y;
+    new_y = (render_state->screen_height - ypos); // Flip y = 0
+    new_y = new_y/(0.5*render_state->screen_height) - 1.0;
+    new_x = xpos/(0.5*render_state->screen_width) - 1.0;
+
+    set_mover_center(render_state, new_x, new_y);
 }
 
 // scroll wheel callback
@@ -121,9 +123,9 @@ void wheel_callback(GLFWwindow* window, double x, double y)
     
     // Call increase/decrease mover calls
     if(y > 0.0)
-	increase_mover_height(render_state);
+	    increase_mover_height(render_state);
     else if(y < 0.0)
-	decrease_mover_height(render_state);
+	    decrease_mover_height(render_state);
     if(x > 0.0)
         increase_mover_width(render_state);
     else if(x < 0.0)
@@ -170,6 +172,9 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);
+
+    // Set mouse cursor callback
+    glfwSetCursorPosCallback(state->window, mouse_callback);
 
     // Set scroll wheel callback
     glfwSetScrollCallback(state->window, wheel_callback);

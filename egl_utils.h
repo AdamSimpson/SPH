@@ -34,6 +34,7 @@ THE SOFTWARE.
 
 #include "bcm_host.h"
 #include "renderer.h"
+#include "controls.h"
 
 
 typedef struct gl_t {

@@ -34,9 +34,10 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "font_gl.h"
 #include "dividers_gl.h"
+#include "renderer.h"
 
 #ifdef LIGHT
-#include "rgb_light.h"
+    #include "rgb_light.h"
 #endif
 
 void start_renderer()
@@ -50,6 +51,8 @@ void start_renderer()
     init_ogl(&gl_state, &render_state);
     render_state.show_dividers = false;
     render_state.pause = false;
+    render_state.screen_width = gl_state.screen_width;
+    render_state.screen_height = gl_state.screen_height;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -106,15 +109,17 @@ void start_renderer()
     pixel_dims[1] = (short)gl_state.screen_height;
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
  
-    // Recv world dimensions from global rank 1
-    float world_dims[2];
-    MPI_Recv(world_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // Recv simulation world dimensions from global rank 1
+    float sim_dims[2];
+    MPI_Recv(sim_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    render_state.sim_width = sim_dims[0];
+    render_state.sim_height = sim_dims[1];
     // Receive number of global particles
     int max_particles;
     MPI_Recv(&max_particles, 1, MPI_INT, 1, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     // Calculate world unit to pixel
-    float world_to_pix_scale = gl_state.screen_width/world_dims[0];
+    float world_to_pix_scale = gl_state.screen_width/render_state.sim_width;
 
     // Gatherv initial tunable parameters values
     int *param_counts = malloc(num_procs * sizeof(int));
@@ -177,14 +182,13 @@ void start_renderer()
 
     int num_coords_rank;
     int current_rank, num_parts;
-    float mouse_x, mouse_y, mouse_x_scaled, mouse_y_scaled;
     float mover_gl_dims[2];
 
     int frames_per_fps = 30;
     #ifdef RASPI
     int frames_per_check = 1;
     #else
-    int frames_per_check = 2;
+    int frames_per_check = 1;
     #endif
     int num_steps = 0;
     double current_time;
@@ -223,26 +227,14 @@ void start_renderer()
             break;
         }    
 
-        // Update mover position
-        get_mouse(&mouse_x, &mouse_y, &gl_state);
-        pixel_to_sim(world_dims, mouse_x, mouse_y, &mouse_x_scaled, &mouse_y_scaled);
-
-        // Mover position in sim coordinates
-        for(i=0; i<render_state.num_compute_procs; i++) {
-            render_state.master_params[i].mover_center_x = mouse_x_scaled;
-            render_state.master_params[i].mover_center_y = mouse_y_scaled;
-        }
-
-        // Get keyboard key press
-        // process appropriately
-        check_key_press(&gl_state);
+        // Check for user keyboard/mouse input
+        check_user_input(&gl_state);
         if(render_state.pause) {
             while(render_state.pause)
-                check_key_press(&gl_state);
+                check_user_input(&gl_state);
         }
-        else {
-            check_key_press(&gl_state);
-        }
+        else
+            check_user_input(&gl_state);
 
         // Update node params with master param values
         update_node_params(&render_state);
@@ -250,7 +242,7 @@ void start_renderer()
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-            // Retrieve all particle coordinates (x,y)
+        // Retrieve all particle coordinates (x,y)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
@@ -269,7 +261,7 @@ void start_renderer()
 
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
-        if(num_steps%frames_per_check==0)
+        if(num_steps%frames_per_check == 0)
             check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
@@ -279,20 +271,18 @@ void start_renderer()
         draw_background(&background_state);
 
         // update mover
-        sim_to_opengl(world_dims, mouse_x_scaled, mouse_y_scaled, &gl_x, &gl_y);
+        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
         mover_center[0] = gl_x;
         mover_center[1] = gl_y;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
-
         // Mover bounding rectangle half width/height lengths in ogl system
         // Subtract off particle diamter so no particle/mover penetration
-        mover_gl_dims[0] = render_state.master_params[0].mover_width/(world_dims[0]*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
-        mover_gl_dims[1] = render_state.master_params[0].mover_height/(world_dims[1]*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
+        mover_gl_dims[0] = render_state.master_params[0].mover_width/(render_state.sim_width*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
+        mover_gl_dims[1] = render_state.master_params[0].mover_height/(render_state.sim_height*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
 
         render_all_text(&font_state, &render_state, fps);
-        //printf("fps: %f\n", fps);
 
         if(render_state.show_dividers)
         {
@@ -301,8 +291,8 @@ void start_renderer()
             {
                 float start_gl_x, end_gl_x;
                 float null_y;
-                sim_to_opengl(world_dims, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
-                sim_to_opengl(world_dims, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
+                sim_to_opengl(&render_state, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
+                sim_to_opengl(&render_state, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
                 node_edges[2*i] = start_gl_x;
                 node_edges[2*i+1] = end_gl_x;
             }
@@ -313,7 +303,7 @@ void start_renderer()
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	i = 0;
+	    i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
@@ -334,7 +324,7 @@ void start_renderer()
 
         }
 
-	// Draw particles
+	    // Draw particles
         render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
         // Render over particles to hide penetration
@@ -349,375 +339,22 @@ void start_renderer()
     exit_ogl(&gl_state);
 }
 
-// Move selected parameter up
-void move_parameter_up(render_t *render_state)
-{
-    if(render_state->selected_parameter == MIN)
-        render_state->selected_parameter = MAX;
-    else
-	render_state->selected_parameter--;
-}
-
-// Move selected parameter down
-void move_parameter_down(render_t *render_state) 
-{
-    if(render_state->selected_parameter == MAX)
-        render_state->selected_parameter = MIN;
-    else
-        render_state->selected_parameter++;
-}
-
-void increase_parameter(render_t *render_state)
-{
-    switch(render_state->selected_parameter) {
-        case GRAVITY:
-            increase_gravity(render_state);
-            break;
-        case VISCOSITY:
-            increase_viscosity(render_state);
-            break;
-        case DENSITY:
-            increase_density(render_state);
-            break;
-        case PRESSURE:
-            increase_pressure(render_state);
-            break;
-         case ELASTICITY:
-            increase_elasticity(render_state);
-            break;
-    }
-}
-
-void decrease_parameter(render_t *render_state)
-{
-    switch(render_state->selected_parameter) {
-        case GRAVITY:
-            decrease_gravity(render_state);
-            break;
-        case VISCOSITY:
-            decrease_viscosity(render_state);
-            break;
-        case DENSITY:
-            decrease_density(render_state);
-            break;
-        case PRESSURE:
-            decrease_pressure(render_state);
-            break;
-        case ELASTICITY:
-            decrease_elasticity(render_state);
-            break;
-    }
-}
-
-// Increase gravity parameter
-void increase_gravity(render_t *render_state)
-{
-    static const float max_grav = -9.0f;
-    if(render_state->master_params[0].g <= max_grav)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].g -= 1.0f;
-}
-
-// Decreate gravity parameter
-void decrease_gravity(render_t *render_state)
-{
-    static const float min_grav = 9.0f;
-    if(render_state->master_params[0].g >= min_grav)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].g += 1.0f;
-}
-
-// Increase density parameter
-void increase_density(render_t *render_state)
-{
-    static const float max_dens = 150.0f;
-    if(render_state->master_params[0].rest_density >= max_dens)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].rest_density += 5.0f;
-}
-
-// Decreate gravity parameter
-void decrease_density(render_t *render_state)
-{
-    static const float min_dens = 0.0f;
-    if(render_state->master_params[0].rest_density <= min_dens)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].rest_density -= 5.0f;
-}
-
-// Increase viscosity parameter
-void increase_viscosity(render_t *render_state)
-{
-    static const float max_viscosity = 100.0f;
-    float viscosity = render_state->master_params[0].sigma;
-
-    if(viscosity > max_viscosity)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].sigma += 5.0f;
-        render_state->master_params[i].beta += 0.5f;
-    }
-}
-
-// Decreate viscosity parameter
-void decrease_viscosity(render_t *render_state)
-{
-    static const float min_viscosity = 0.0f;
-    float viscosity = render_state->master_params[0].sigma;
-
-    if(viscosity <= min_viscosity)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].sigma -= 5.0f;
-        render_state->master_params[i].beta -= 0.5f;
-    }
-}
-
-// Increase pressure parameter
-void increase_pressure(render_t *render_state)
-{
-    static const float max_pressure = 1.0f;
-    float pressure = render_state->master_params[0].k;
-    float pressure_near = render_state->master_params[0].k_near;
-
-    if(pressure > max_pressure)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].k += 0.1f;
-        render_state->master_params[i].k_near += 0.5f;
-    }
-}
-
-// Decreate pressure parameter
-void decrease_pressure(render_t *render_state)
-{
-    static const float min_pressure = 0.0f;
-    float pressure = render_state->master_params[0].k;
-    float pressure_near = render_state->master_params[0].k_near;
-
-    if(pressure <= min_pressure)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].k -= 0.1f;
-        render_state->master_params[i].k_near -= 0.5f;
-    }
-}
-
-// Increase elasticity parameter
-void increase_elasticity(render_t *render_state)
-{
-    static const float max_elast = 200.0f;
-    if(render_state->master_params[0].k_spring > max_elast)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].k_spring += 5.0f;
-}
-
-// Decreate elasticity parameter
-void decrease_elasticity(render_t *render_state)
-{
-    static const float min_elast = -50.0f;
-    if(render_state->master_params[0].k_spring < min_elast)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].k_spring -= 5.0f;
-}
-
-// Increase mover x dimension
-void increase_mover_width(render_t *render_state)
-{
-    // Maximum width of mover
-    static const float max_width = 4.0f;
-
-    if(render_state->master_params[0].mover_width > max_width)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        // Increase sphere
-        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height += 0.2f;
-            render_state->master_params[i].mover_width += 0.2f;
-        }
-        else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_width += 0.2f;
-        }
-    }
-
-}
-
-// Decrease mover x dimension
-void decrease_mover_width(render_t *render_state)
-{
-    // Minimum width of mover
-    static const float min_width = 1.0f;
-
-    if(render_state->master_params[0].mover_width - min_width < 0.001f)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        // Decrease sphere radius
-        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height -= 0.2f;
-            render_state->master_params[i].mover_width -= 0.2f;
-        }
-        // Decrease rectangle width
-        else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_width -= 0.2f;
-        }
-    }
-}
-
-// Increase mover y dimension
-void increase_mover_height(render_t *render_state)
-{
-    // Maximum height of mover
-    static const float max_height = 4.0f;
-
-    if(render_state->master_params[0].mover_height > max_height)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        // Increase sphere radius
-        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height += 0.2f;
-            render_state->master_params[i].mover_width += 0.2f;
-        }
-        // Increase rectangle height
-        else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_height += 0.2f;
-        }
-    }
-
-}
-
-// Decrease mover y dimension
-void decrease_mover_height(render_t *render_state)
-{
-    // Minimum height of mover
-    static const float min_height = 1.0f;
-
-    if(render_state->master_params[0].mover_height - min_height < 0.001f)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        // Decrease sphere radius
-        if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height -= 0.2f;
-            render_state->master_params[i].mover_width -= 0.2f;
-        }
-        // Decrease rectangle height
-        else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_height -= 0.2f;
-        }
-    }
-}
-
-// Preset fluids based upon xbox controller buttons
-
-// Standard fluid
-void set_fluid_x(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].k_near = 6.0f;
-        render_state->master_params[i].k_spring = 10.0f;
-        render_state->master_params[i].sigma = 5.0f;
-        render_state->master_params[i].beta = 0.5f;
-        render_state->master_params[i].rest_density = 30.0f;  
-    }
-}
-
-// super goo
-void set_fluid_y(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.1f;
-        render_state->master_params[i].k_near = 3.0f;
-        render_state->master_params[i].k_spring = -30.0f;
-        render_state->master_params[i].sigma = 100.0f;
-        render_state->master_params[i].beta = 10.0f;
-        render_state->master_params[i].rest_density = 30.0f;
-    }
-}
-
-// zero g high surface tension
-void set_fluid_a(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 0.0f;
-        render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].k_near = 6.0f;
-        render_state->master_params[i].k_spring = 10.0f;
-        render_state->master_params[i].sigma = 20.0f;
-        render_state->master_params[i].beta = 2.0f;
-        render_state->master_params[i].rest_density = 55.0f;
-    }
-}
-
-// spring gas fluid...thing
-void set_fluid_b(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.0f;
-        render_state->master_params[i].k_near = 0.0f;
-        render_state->master_params[i].k_spring = 115.0f;
-        render_state->master_params[i].sigma = 20.0f;
-        render_state->master_params[i].beta = 2.0f;
-        render_state->master_params[i].rest_density = 0.0f;
-    }
-}
-
-// Translate between pixel coordinates with origin at screen center
+// Translate between OpenGL coordinates with origin at screen center
 // to simulation coordinates
-void pixel_to_sim(float *world_dims, float x, float y, float *sim_x, float *sim_y)
+void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y)
 {
-    float half_width = world_dims[0]*0.5f;
-    float half_height = world_dims[1]*0.5f;
+    float half_width = render_state->sim_width*0.5f;
+    float half_height = render_state->sim_height*0.5f;
 
     *sim_x = x*half_width + half_width;
     *sim_y = y*half_height + half_height;
 }
 
 // Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
-void sim_to_opengl(float *world_dims, float x, float y, float *gl_x, float *gl_y)
+void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float *gl_y)
 {
-    float half_width = world_dims[0]*0.5f;
-    float half_height = world_dims[1]*0.5f;
+    float half_width = render_state->sim_width*0.5f;
+    float half_height = render_state->sim_height*0.5f;
 
     *gl_x = x/half_width - 1.0f;
     *gl_y = y/half_height - 1.0f;
@@ -732,57 +369,18 @@ void update_node_params(render_t *render_state)
 }
 
 // Checks for a balanced number of particles on each compute node
-// If unbalanced the partition between nodes will change
-// Check from left to right
-void check_partition_right(render_t *render_state, int *particle_counts, int total_particles)
-{
-    int rank, diff;
-    float h, dx, length, length_right;
-
-    // Particles per proc if evenly divided
-    int even_particles = total_particles/render_state->num_compute_procs_active;
-    int max_diff = even_particles/10.0f;
-
-    // Fixed distance to move partition is 1/2 smoothing radius
-    h = render_state->master_params[0].smoothing_radius;
-    dx = h*0.25;
-
-    tunable_parameters *master_params = render_state->master_params;
-
-    for(rank=0; rank<(render_state->num_compute_procs_active-1); rank++)
-    {
-        length =  master_params[rank].node_end_x - master_params[rank].node_start_x; 
-        length_right =  master_params[rank+1].node_end_x - master_params[rank+1].node_start_x; 
-        diff = particle_counts[rank] - even_particles;// particle_counts[rank+1];
-
-        // current rank has too many particles
-        if( diff > max_diff && length > 2*h) {
-            master_params[rank].node_end_x -= dx;
-            master_params[rank+1].node_start_x = master_params[rank].node_end_x;
-	    rank++;
-        }
-        // current rank has too few particles
-        else if (diff < -max_diff && length_right > 2*h) {
-            master_params[rank].node_end_x += dx;
-            master_params[rank+1].node_start_x = master_params[rank].node_end_x;
-	    rank++;
-        }    
-    }
-}
-
-// Checks for a balanced number of particles on each compute node
 // If unbalanced the partition between nodes will change 
 // Check from right to left
 void check_partition_left(render_t *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
-    float h, dx, length, length_left;   
+    float h, dx, length, length_left, length_right;   
 
     // Particles per proc if evenly divided
     int even_particles = total_particles/render_state->num_compute_procs_active;
-    int max_diff = even_particles/10.0f;
+    int max_diff = even_particles/15.0f;
 
-    // Fixed distance to move partition is 1/2 smoothing radius
+    // Fixed distance to move partition is 0.125*smoothing radius
     h = render_state->master_params[0].smoothing_radius;
     dx = h*0.125;
 
@@ -792,7 +390,7 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
     {
         length =  master_params[rank].node_end_x - master_params[rank].node_start_x;
         length_left =  master_params[rank-1].node_end_x - master_params[rank-1].node_start_x;
-        diff = particle_counts[rank] - even_particles;//particle_counts[rank-1];
+        diff = particle_counts[rank] - even_particles;
 
         // current rank has too many particles
         if( diff > max_diff && length > 2*h) {
@@ -804,72 +402,22 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
             master_params[rank].node_start_x -= dx;
             master_params[rank-1].node_end_x = master_params[rank].node_start_x;
         }
-
     }
-}
 
-// Set last partition to be outside of simulation bounds
-// Effectively removing it from the simulation
-void remove_partition(render_t *render_state)
-{
-    if(render_state->num_compute_procs_active == 1) 
-	return;
+    // Left most partition has a tendency to not balance correctly so we test it explicitly
+    length =  master_params[0].node_end_x - master_params[0].node_start_x;
+    length_right =  master_params[1].node_end_x - master_params[1].node_start_x;
+    diff = particle_counts[0] - even_particles;
 
-    int num_compute_procs_active = render_state->num_compute_procs_active;
-
-    int removed_rank = num_compute_procs_active-1;
-
-    // Set new end position of last active proc to end of simulation
-    render_state->master_params[removed_rank-1].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
-
-    // Send start and end x out of sim bounds
-    float position = render_state->master_params[removed_rank].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds
-    render_state->master_params[removed_rank].node_start_x = position;
-    render_state->master_params[removed_rank].node_end_x = position;
-
-    // Set active to false for removed rank
-    render_state->master_params[removed_rank].active = false;
-
-    render_state->num_compute_procs_active -= 1;
-}
-
-// Add on partition to right side that has been removed
-void add_partition(render_t *render_state)
-{
-    if(render_state->num_compute_procs_active == render_state->num_compute_procs)
-	return;
-
-    // Length of currently last partiion
-    int num_compute_procs_active = render_state->num_compute_procs_active;
-    float length = render_state->master_params[num_compute_procs_active-1].node_end_x - render_state->master_params[num_compute_procs_active-1].node_start_x;
-    float h = render_state->master_params[0].smoothing_radius;
-
-    // If the last partition is too small we can't split it and another
-    if(length < 2.5*h)
-	return;
-
-    // Set end of added partition to current end location
-    render_state->master_params[num_compute_procs_active].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
-    
-    // Divide the current last partition in half
-    float new_x = render_state->master_params[num_compute_procs_active-1].node_start_x + length*0.5;
-    render_state->master_params[num_compute_procs_active-1].node_end_x = new_x;
-    render_state->master_params[num_compute_procs_active].node_start_x = new_x;
-
-    // Set active to true for added rank
-    render_state->master_params[num_compute_procs_active].active = true;
-
-    render_state->num_compute_procs_active += 1;
-}
-
-void toggle_dividers(render_t *state)
-{
-    state->show_dividers = !state->show_dividers;
-}
-
-void toggle_pause(render_t *state)
-{
-    state->pause = !state->pause;
+    // current rank has too many particles
+    if( diff > max_diff && length > 2*h) {
+        master_params[0].node_end_x -= dx;
+        master_params[1].node_start_x = master_params[0].node_end_x;
+    }
+    else if (diff < -max_diff && length_right > 2*h) {
+        master_params[0].node_end_x += dx;
+        master_params[1].node_start_x = master_params[0].node_end_x;
+    }
 }
 
 // Convert hsv to rgb

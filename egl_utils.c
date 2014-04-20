@@ -56,6 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "egl_utils.h"
 #include "linux/input.h"
 #include "renderer.h"
+#include "controls.h"
 
 bool window_should_close(gl_t *state)
 {
@@ -68,7 +69,6 @@ bool window_should_close(gl_t *state)
 // Description: Sets the display, OpenGL|ES context and screen stuff
 void init_ogl(gl_t *state, render_t *render_state)
 {
-
     bcm_host_init();
 
     // Initialize struct
@@ -208,7 +208,7 @@ void get_mouse(float *x_pos, float *y_pos, gl_t *state)
     float x_scaled;
     float y_scaled;
 
-    ssize_t bytes_read;
+    size_t bytes_read;
 
     // Open file containing mouse events
     if (state->mouse_fd < 0)
@@ -254,13 +254,17 @@ void get_mouse(float *x_pos, float *y_pos, gl_t *state)
     *y_pos = y_scaled;
 }
 
-
 void check_key_press(gl_t *state)
 {
-    render_t *render_state = (render_t*)state->user_pointer;
-
     // Get key press
     int key = get_key_press(state);
+
+    process_key(key, state);
+}
+
+void process_key(int key, gl_t *state)
+{
+    render_t *render_state = (render_t*)state->user_pointer;
 
     switch(key)
     {
@@ -295,7 +299,7 @@ void check_key_press(gl_t *state)
             set_fluid_b(render_state);
             break;
         case BTN_BACK:
-	    toggle_dividers(render_state);
+            toggle_dividers(render_state);
             break;
         case BTN_FORWARD:
             toggle_dividers(render_state);
@@ -306,7 +310,6 @@ void check_key_press(gl_t *state)
         case KEY_TAB:
             state->window_should_close = true;
             break;
- 
     }
 }
 
@@ -318,7 +321,7 @@ int get_key_press(gl_t *state)
     // event0 or event1 depends on the USB PORT!!!!
     if (state->keyboard_fd < 0)
         state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
-    if (state->keyboard_fd >= 0) {
+    else (state->keyboard_fd >= 0) {
         struct input_event event;
         read(state->keyboard_fd, &event, sizeof(struct input_event));
 	if(event.type == EV_KEY && event.value == 1 && event.code > 0)
@@ -327,3 +330,60 @@ int get_key_press(gl_t *state)
 
     return key_code;
 }
+
+// Handle key press
+void handle_key(struct input_event *event, gl_t *state)
+{
+    // Recognize single key press events
+    if(event.value == 1 && event.code > 0)
+        process_key(event.code);
+}
+
+// Handle mouse movement
+void handle_mouse(struct input_event *event, gl_t *state)
+{
+    // Handle mouse movement
+    switch(event.code)
+    {
+        case REL_X:
+            move_mover(event.value, 0);
+            break;
+        case REL_Y:
+           move_mover(0, event.value);
+           break;
+        case REL_WHEEL:
+            break;
+        case REL_HWHEEL:
+            break;
+    }
+}
+
+// Poll /dev/input for any event
+// https://www.kernel.org/doc/Documentation/input/input.txt
+void poll_input(gl_t *state)
+{
+    struct input_event events[5];
+    int bytes, i, length;
+
+    // Read in events
+    bytes = read(state->keyboard_fd, &events, sizeof(events));
+    length =  bytes/sizeof(struct input_event);
+
+    // Process events based on type
+    for(i=0; i<length; i++)
+    {
+        switch(events[i].type) 
+        {
+            case EV_KEY:
+                handle_key(&events[i], state);
+                break;
+            case EV_ABS:
+                handle_joystick(events[i], state);
+                break;
+            case EV_REL:
+                handle_mouse(events[i], state);
+                break;
+        }
+    }     
+}
+

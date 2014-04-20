@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <GLFW/glfw3.h>
 
 #include "renderer.h"
+#include "controls.h"
 
 typedef struct gl_t {
     int screen_width;
@@ -39,9 +40,9 @@ typedef struct gl_t {
 } gl_t;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void error_callback(int error, const char* description);
-void check_key_press(gl_t *state);
-void get_mouse(float *x, float *y, gl_t *state);
+void check_user_input();
 void init_ogl(gl_t *state, render_t *render_state);
 void exit_ogl(gl_t *state);
 void swap_ogl(gl_t *state);
