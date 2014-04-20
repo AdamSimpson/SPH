@@ -144,7 +144,7 @@ void start_renderer()
 
     // Allocate points array(position + color)
     int point_size = 5 * sizeof(float);
-    float *points = (float*)malloc(point_size*max_particles);
+    float *points = malloc(point_size*max_particles);
 
     // Allocate mover point array(position + color)
     float mover_center[2];
@@ -335,7 +335,21 @@ void start_renderer()
         num_steps++;
     }
 
+    #ifdef LIGHT
+    rgb_light_off(light_state);
+    #endif
+
+    // Clean up memory
     exit_ogl(&gl_state);
+    free(node_params);
+    free(master_params);
+    free(param_counts);
+    free(param_displs);
+    free(particle_coords);
+    free(points);
+    free(particle_coordinate_counts);
+    free(particle_coordinate_ranks);
+    free(colors_by_rank);
 }
 
 // Translate between OpenGL coordinates with origin at screen center

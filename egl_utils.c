@@ -301,7 +301,7 @@ void handle_mouse(gl_t *state, struct input_event *event)
 
 void handle_joystick(gl_t *state, struct input_event *event)
 {
-    printf("No joystick handling\n");    
+    printf("No joystick handling son\n");    
 }
 
 // Poll /dev/input for any input event

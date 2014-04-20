@@ -279,8 +279,8 @@ void start_simulation()
             rgb_light_white(&rgb_light_state);
         #endif
 
-	if(params.tunable_params.kill_sim)
-	    break;
+        if(params.tunable_params.kill_sim)
+            break;
 
         // Identify out of bounds particles and send them to appropriate rank
         identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &boundary_global, &params);
@@ -328,29 +328,36 @@ void start_simulation()
         // to reduce communication cost
 
         // Pack fluid particle coordinates
-	// This should be sent as short in pixel coordinates
+        // This should be sent as short in pixel coordinates
         for(i=0; i<params.number_fluid_particles_local; i++) {
             p = fluid_particle_pointers[i];
             fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
             fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
         }
-	// Async send fluid particle coordinates to render node
-	MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+        // Async send fluid particle coordinates to render node
+        MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
 
         // iterate sim loop counter
         n++;
     }
 
     // Release memory
-/*
-    free(fluid_particle_pointers);
     free(fluid_particles);
+    free(fluid_particle_coords);
+    free(fluid_particle_pointers);
     free(neighbors);
-    free(hash);
+    free(fluid_neighbors);
+    free(grid_buckets);
+    free(bucket_particles);
+    free(edges.edge_pointers_left);
+    free(edges.edge_pointers_right);
+    free(out_of_bounds.oob_pointer_indicies_left);
+    free(out_of_bounds.oob_pointer_indicies_right);
+    free(out_of_bounds.vacant_indicies);
 
     // Close MPI
     freeMpiTypes();
-*/
+
 }
 
 // This should go into the hash, perhaps with the viscocity?
