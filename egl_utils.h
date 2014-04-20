@@ -62,9 +62,10 @@ typedef struct {
 void init_ogl(gl_t *state, render_t *render_state);
 void exit_ogl(gl_t *state);
 void swap_ogl(gl_t *state);
-void check_key_press(gl_t *state);
-int get_key_press(gl_t *state);
-void get_mouse(float *x_pos, float *y_pos, gl_t *state);
+void check_user_input(gl_t *state);
+void handle_key(gl_t *state, struct input_event *event);
+void handle_mouse(gl_t *state, struct input_event *event);
+void handle_joystick(gl_t *state, struct input_event *event);
 bool window_should_close(gl_t *state);
 
 #endif

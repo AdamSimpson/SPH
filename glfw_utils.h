@@ -42,7 +42,7 @@ typedef struct gl_t {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void error_callback(int error, const char* description);
-void check_user_input();
+void check_user_input(gl_t *state);
 void init_ogl(gl_t *state, render_t *render_state);
 void exit_ogl(gl_t *state);
 void swap_ogl(gl_t *state);

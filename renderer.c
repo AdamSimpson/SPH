@@ -228,7 +228,6 @@ void start_renderer()
         }    
 
         // Check for user keyboard/mouse input
-        check_user_input(&gl_state);
         if(render_state.pause) {
             while(render_state.pause)
                 check_user_input(&gl_state);

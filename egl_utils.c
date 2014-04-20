@@ -78,7 +78,6 @@ void init_ogl(gl_t *state, render_t *render_state)
     state->window_should_close = false;
 
     // Set a user pointer up
-    // This mimics GLFW
     state->user_pointer = render_state;
 
     int32_t success = 0;
@@ -121,7 +120,6 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // get an appropriate EGL frame buffer configuration
     result = eglChooseConfig(state->display, attribute_list, &config, 1, &num_config);
-//    result = eglSaneChooseConfigBRCM(state->display, attribute_list, &config, 1, &num_config);
     assert(EGL_FALSE != result);
 
     // get an appropriate EGL frame buffer configuration
@@ -130,7 +128,6 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // create an EGL rendering context
     state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, context_attributes);
-//    state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, NULL);
     assert(state->context!=EGL_NO_CONTEXT);
 
     // create an EGL window surface
@@ -165,6 +162,10 @@ void init_ogl(gl_t *state, render_t *render_state)
     // connect the context to the surface
     result = eglMakeCurrent(state->display, state->surface, state->surface, state->context);
     assert(EGL_FALSE != result);
+
+    // Open input event
+    gl_state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
+
 }
 
 void swap_ogl(gl_t *state)
@@ -189,178 +190,123 @@ void exit_ogl(gl_t *state)
    printf("close\n");
 }
 
-// Return mouse position in OpenGL coordinates
-// This is different than default GLFW coordinates
-void get_mouse(float *x_pos, float *y_pos, gl_t *state)
+// Handle key press
+void handle_key(gl_t *state, struct input_event *event)
 {
-    // Screen dimensions in pixels
-    const int width = state->screen_width;
-    const int height = state->screen_height;
-
-    // Used to determine what direction dx,dy is in
-    const int XSIGN = 1<<4;
-    const int YSIGN = 1<<5;
-
-    // Initialize coordinates
-    static int x = 0;
-    static int y = 0;
-
-    float x_scaled;
-    float y_scaled;
-
-    size_t bytes_read;
-
-    // Open file containing mouse events
-    if (state->mouse_fd < 0)
-        state->mouse_fd = open("/dev/input/mice", O_NONBLOCK);
-
-    if (state->mouse_fd >= 0) {
-        MOUSE_INPUT event;
-
-        bytes_read = read(state->mouse_fd, &event, sizeof(MOUSE_INPUT));
-
-        if(bytes_read != sizeof(MOUSE_INPUT))
-            return;
-
-        int speed_multiplier = 2;
-
-        // Increment pixel positions
-        x+=speed_multiplier*event.dx;
-        y+=speed_multiplier*event.dy;
-
-        if(event.button&XSIGN)
-            x -= speed_multiplier*256;
-        if(event.button&YSIGN)
-            y -= speed_multiplier*256;
-
-        // Make sure not to go out of bounds
-        if(x < 0)
-            x = 0.0;
-        else if(x > width)
-            x = width;
-        if(y < 0)
-            y = 0.0;
-        else if(y > height)
-            y = height;
-
-        // convert to OpenGL screen coordinates from pixels
-        x_scaled = (float)x/(0.5f*width) - 1.0f;
-        y_scaled = (float)y/(0.5f*height) - 1.0f;
-
-//        debug_print("pixels(%d,%d) scaled(%f,%f)\n", x,y,x_scaled,y_scaled);
-    }
-
-    *x_pos = x_scaled;
-    *y_pos = y_scaled;
-}
-
-void check_key_press(gl_t *state)
-{
-    // Get key press
-    int key = get_key_press(state);
-
-    process_key(key, state);
-}
-
-void process_key(int key, gl_t *state)
-{
+    // Get render_state from gl_state
     render_t *render_state = (render_t*)state->user_pointer;
 
-    switch(key)
-    {
-        case KEY_RIGHT:
-            increase_parameter(render_state);
-            break;
-        case KEY_LEFT:
-            decrease_parameter(render_state);
-            break;
-        case KEY_UP:
-            move_parameter_up(render_state);
-            break;
-        case KEY_DOWN:
-            move_parameter_down(render_state);
-            break;
-        case KEY_PAGEUP:
-            add_partition(render_state);
-            break;
-        case KEY_PAGEDOWN:
-            remove_partition(render_state);
-            break;
-        case KEY_X:
-            set_fluid_x(render_state);
-            break;
-        case KEY_Y:
-            set_fluid_y(render_state);
-            break;
-        case KEY_A:
-            set_fluid_a(render_state);
-            break;
-        case KEY_B:
-            set_fluid_b(render_state);
-            break;
-        case BTN_BACK:
-            toggle_dividers(render_state);
-            break;
-        case BTN_FORWARD:
-            toggle_dividers(render_state);
-            break;
-        case KEY_ESC:
-            toggle_pause(render_state);
-            break;
-        case KEY_TAB:
-            state->window_should_close = true;
-            break;
-    }
-}
-
-int get_key_press(gl_t *state)
-{
-    int key_code = -1;
-
-    // Open file containing keyboard events
-    // event0 or event1 depends on the USB PORT!!!!
-    if (state->keyboard_fd < 0)
-        state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
-    else (state->keyboard_fd >= 0) {
-        struct input_event event;
-        read(state->keyboard_fd, &event, sizeof(struct input_event));
-	if(event.type == EV_KEY && event.value == 1 && event.code > 0)
-	    key_code = (int)event.code;
-    }
-
-    return key_code;
-}
-
-// Handle key press
-void handle_key(struct input_event *event, gl_t *state)
-{
     // Recognize single key press events
     if(event.value == 1 && event.code > 0)
-        process_key(event.code);
+        switch(event.code)
+        {
+            case KEY_RIGHT:
+                increase_parameter(render_state);
+                break;
+            case KEY_LEFT:
+                decrease_parameter(render_state);
+                break;
+            case KEY_UP:
+                move_parameter_up(render_state);
+                break;
+            case KEY_DOWN:
+                move_parameter_down(render_state);
+                break;
+            case KEY_PAGEUP:
+                add_partition(render_state);
+                break;
+            case KEY_PAGEDOWN:
+                remove_partition(render_state);
+                break;
+            case KEY_X:
+                set_fluid_x(render_state);
+                break;
+            case KEY_Y:
+                set_fluid_y(render_state);
+                break;
+            case KEY_A:
+                set_fluid_a(render_state);
+                break;
+            case KEY_B:
+                set_fluid_b(render_state);
+                break;
+            case BTN_BACK:
+                toggle_dividers(render_state);
+                break;
+            case BTN_FORWARD:
+                toggle_dividers(render_state);
+                break;
+            case KEY_ESC:
+                toggle_pause(render_state);
+                break;
+            case KEY_TAB:
+                state->window_should_close = true;
+                break;
+        }
+    }
 }
 
 // Handle mouse movement
-void handle_mouse(struct input_event *event, gl_t *state)
+void handle_mouse(gl_t *state, struct input_event *event)
 {
+    // Get render_state from gl_state
+    render_t *render_state = (render_t*)state->user_pointer;
+
+    // Initialize mouse position
+    static int x = state->screen_width/2.0;
+    static int y = state->screen_height/2.0;
+
+    const int speed_multiplier = 2.0;
+
     // Handle mouse movement
     switch(event.code)
     {
         case REL_X:
-            move_mover(event.value, 0);
+            x += speed_multiplier*event.value;
+            // Make sure not to go out of bounds
+            if(x < 0.0f)
+                x = 0.0f;
+            else if(x > width)
+                x = width;
+            // convert to OpenGL screen coordinates from pixels
+            ogl_x = (float)x/(0.5f*state->screen_width) - 1.0f;
+            ogl_y = (float)y/(0.5f*state->screen_height) - 1.0f;
+            set_mover_gl_center(render_state, ogl_x, ogl_y);
             break;
         case REL_Y:
-           move_mover(0, event.value);
-           break;
+            y += speed_multiplier*event.value;
+            if(y < 0.0f)
+                y = 0.0f;
+            else if(y > height)
+                y = height;
+            // convert to OpenGL screen coordinates from pixels
+            ogl_x = (float)x/(0.5f*state->screen_width) - 1.0f;
+            ogl_y = (float)y/(0.5f*state->screen_height) - 1.0f;
+            set_mover_gl_center(render_state, ogl_x, ogl_y);
+            break;
         case REL_WHEEL:
+            if(event.value > 0.0f)
+                increase_mover_height(render_state);
+            else if(event.value < 0.0f)
+                decrease_mover_height(render_state);
             break;
         case REL_HWHEEL:
+            if(event.value > 0.0f)
+                increase_mover_width(render_state);
+            else if(event.value < 0.0f)
+                decrease_mover_width(render_state);
             break;
     }
 }
 
-// Poll /dev/input for any event
+void handle_joystick(gl_t *state, struct input_event *event)
+{
+    printf("No joystick handling\n");    
+}
+
+// Poll /dev/input for any input event
 // https://www.kernel.org/doc/Documentation/input/input.txt
-void poll_input(gl_t *state)
+void get_user_input(gl_t *state)
 {
     struct input_event events[5];
     int bytes, i, length;

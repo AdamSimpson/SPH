@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include "renderer.h"
 #include "controls.h"
 
-void check_user_input()
+void check_user_input(gl_t *state)
 {
     // Poll GLFW for key press or mouse input
     glfwPollEvents();
@@ -112,7 +112,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     new_y = new_y/(0.5*render_state->screen_height) - 1.0;
     new_x = xpos/(0.5*render_state->screen_width) - 1.0;
 
-    set_mover_center(render_state, new_x, new_y);
+    set_mover_gl_center(render_state, new_x, new_y);
 }
 
 // scroll wheel callback

@@ -224,7 +224,7 @@ void decrease_elasticity(render_t *render_state)
 }
 
 // Set center of mover, input is openGL coordinates
-void set_mover_center(render_t *render_state, float ogl_x, float ogl_y)
+void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y)
 {
     float sim_x, sim_y;
     opengl_to_sim(render_state, ogl_x, ogl_y, &sim_x, &sim_y);
