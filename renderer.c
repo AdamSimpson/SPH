@@ -335,6 +335,10 @@ void start_renderer()
         num_steps++;
     }
 
+    #ifdef LIGHT
+    rgb_light_off(&light_state);
+    #endif
+
     // Clean up memory
     exit_ogl(&gl_state);
     free(node_params);

@@ -57,10 +57,6 @@ int main(int argc, char *argv[])
     else
         start_simulation();
 
-    #ifdef LIGHT
-    rgb_light_off(&light_state);
-    #endif
-
     MPI_Finalize();
     return 0;
 }
@@ -343,6 +339,10 @@ void start_simulation()
         // iterate sim loop counter
         n++;
     }
+
+    #ifdef LIGHT
+    rgb_light_off(&light_state);
+    #endif
 
     // Release memory
     free(fluid_particles);
