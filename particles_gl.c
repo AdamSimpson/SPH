@@ -214,7 +214,6 @@ void create_particle_shaders(particles_t *state)
 
 void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 {
-/*
     // Bind circle shader program
     glUseProgram(state->program);
 
@@ -247,7 +246,6 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Draw to texture
     glDrawArrays(GL_POINTS, 0, num_points);
 
-
     //////
     // Second phase
     /////
@@ -274,5 +272,4 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 
     // Draw texture to screen
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
-*/
 }
