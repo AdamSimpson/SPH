@@ -36,11 +36,22 @@ typedef struct particles_t {
     // Program handle
     GLuint program;
 
+    // Program to render texture to screen
+    GLuint tex_program;
+
     // Locations
     GLint position_location;
     GLint color_location;
     GLint diameter_pixels_location;
     GLint radius_world_location;
+
+    // Locations
+    GLint tex_position_location;
+    GLint tex_location;
+    GLint tex_coord_location;
+
+    // Uniforms
+    GLuint tex_uniform;
 
     // Screen dimensions
     int screen_width;
@@ -48,6 +59,14 @@ typedef struct particles_t {
 
     // buffers
     GLuint vbo;
+    GLuint tex_vbo;
+
+    GLuint tex_ebo;
+
+    // buffers for meta ball render to texture
+    GLuint frame_buffer;
+    GLuint tex_color_buffer;
+
 } particles_t;
 
 void init_particles(particles_t *state, int screen_width, int screen_height);
@@ -55,5 +74,6 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
 void create_particle_shaders(particles_t *state);
 void draw_particles(particles_t *state, float diameter_pixels, int num_points);
 void create_particle_buffers(particles_t *state);
+void create_texture_verticies(particles_t *state);
 
 #endif

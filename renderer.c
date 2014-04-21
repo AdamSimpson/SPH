@@ -158,9 +158,6 @@ void start_renderer()
     // Keep track of order in which particles received
     int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
 
-    // Set background color
-    glClearColor(0.15, 0.15, 0.15, 1.0);
-
     // Create color index, equally spaced around HSV
     float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
     float angle_space = 0.5f/(float)render_state.num_compute_procs;
@@ -200,7 +197,7 @@ void start_renderer()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125;
+    float particle_diameter_pixels = gl_state.screen_width * 0.015;
 
     MPI_Status status;
 
@@ -263,12 +260,6 @@ void start_renderer()
         if(num_steps%frames_per_check == 0)
             check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
-        // Clear background
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Draw background image
-        draw_background(&background_state);
-
         // update mover
         sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
         mover_center[0] = gl_x;
@@ -280,6 +271,15 @@ void start_renderer()
         // Subtract off particle diamter so no particle/mover penetration
         mover_gl_dims[0] = render_state.master_params[0].mover_width/(render_state.sim_width*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
         mover_gl_dims[1] = render_state.master_params[0].mover_height/(render_state.sim_height*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
+
+
+        // Set background color
+        glClearColor(0.15, 0.15, 0.15, 1.0);
+        // Clear background
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Draw background image
+        draw_background(&background_state);
 
         render_all_text(&font_state, &render_state, fps);
 
@@ -323,7 +323,7 @@ void start_renderer()
 
         }
 
-	    // Draw particles
+	// Draw particles
         render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
         // Render over particles to hide penetration

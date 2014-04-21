@@ -40,13 +40,15 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
     state->screen_width = screen_width;
     state->screen_height = screen_height;
 
-
     // Create circle buffers
     create_particle_buffers(state);
 
     // Create and set particle shaders
     // Also links particle program
     create_particle_shaders(state);
+
+    // Set verticies
+    create_texture_verticies(state);
 }
 
 // Update coordinate of fluid points
@@ -78,11 +80,63 @@ void create_particle_buffers(particles_t *state)
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
+    glGenBuffers(1, &state->tex_vbo);
+    // Generate element buffer
+    glGenBuffers(1, &state->tex_ebo);
+
+    // Create frame buffer object for render to texture
+    glGenFramebuffers(1, &state->frame_buffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
+
+    // Create texture color buffers
+    glGenTextures(1, &state->tex_uniform);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width, state->screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Attach image to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->tex_uniform, 0);
+
+    // Reset frame buffer and texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void create_texture_verticies(particles_t *state)
+{
+
+   // Vertices: Pos(x,y) Tex(x,y)
+    float vertices[] = {
+        -1.0f, -1.0f, 0.0f, 1.0f,  // Bottom left
+         1.0f, -1.0f, 1.0f, 1.0f, // Bottom right
+         1.0f,  1.0f, 1.0f, 0.0f, // Top right
+        -1.0f,  1.0f, 0.0f, 0.0f // Top left
+    };
+
+   // Set buffer
+    glBindBuffer(GL_ARRAY_BUFFER, state->tex_vbo);
+    // Fill buffer
+    glBufferData(GL_ARRAY_BUFFER, 3*4*4*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+
+    // Elements
+    GLubyte elements[] = {
+        2, 3, 0,
+        0, 1, 2
+    };
+
+    // Set buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
+    // Fill buffer
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_STATIC_DRAW);
+
 }
 
 void create_particle_shaders(particles_t *state)
 {
-    // Compile vertex shader
+    // Compile metaball vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef RASPI
       compile_shader(vertexShader, "SPH/shaders/particle_es.vert");
@@ -90,7 +144,7 @@ void create_particle_shaders(particles_t *state)
       compile_shader(vertexShader, "shaders/particle.vert");
     #endif
 
-    // Compile frag shader
+    // Compile metaball frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
       compile_shader(fragmentShader, "SPH/shaders/particle_es.frag");
@@ -98,7 +152,7 @@ void create_particle_shaders(particles_t *state)
       compile_shader(fragmentShader, "shaders/particle.frag");
     #endif
 
-    // Create shader program
+    // Create metaball shader program
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
@@ -106,6 +160,31 @@ void create_particle_shaders(particles_t *state)
     // Link and use program
     glLinkProgram(state->program);
     show_program_log(state->program);
+
+    // Compile texture vertex shader
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    #ifdef RASPI
+      compile_shader(vertexShader, "SPH/shaders/render_texture_es.vert");
+    #else
+      compile_shader(vertexShader, "shaders/render_texture.vert");
+    #endif
+
+    // Compile texture frag shader
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    #ifdef RASPI
+      compile_shader(fragmentShader, "SPH/shaders/render_texture_es.frag");
+    #else
+      compile_shader(fragmentShader, "shaders/render_texture.frag");
+    #endif
+
+    // Create texture shader program
+    state->tex_program = glCreateProgram();
+    glAttachShader(state->tex_program, vertexShader);
+    glAttachShader(state->tex_program, fragmentShader);
+
+    // Link and use program
+    glLinkProgram(state->tex_program);
+    show_program_log(state->tex_program);
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
@@ -115,6 +194,13 @@ void create_particle_shaders(particles_t *state)
     state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
     // Get pixel diameter location
     state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
+
+    // Get position location
+    state->tex_position_location = glGetAttribLocation(state->tex_program, "position");
+    // Get tex_coord location
+    state->tex_coord_location = glGetAttribLocation(state->tex_program, "tex_coord");
+    // Get tex uniform location
+    state->tex_location = glGetUniformLocation(state->tex_program, "tex");
 
     // Enable point size to be specified in the shader
     #ifndef RASPI
@@ -128,6 +214,7 @@ void create_particle_shaders(particles_t *state)
 
 void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 {
+/*
     // Bind circle shader program
     glUseProgram(state->program);
 
@@ -149,6 +236,43 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Draw
+    // Bind frame buffer for render to texture
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
+
+    // Set background color
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    // Clear background
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw to texture
     glDrawArrays(GL_POINTS, 0, num_points);
+
+
+    //////
+    // Second phase
+    /////
+
+    // Bind default frame buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Bind texture program
+    glUseProgram(state->tex_program);
+
+    // Setup buffers
+    size_t vert_size = 4*sizeof(GL_FLOAT);
+    glBindBuffer(GL_ARRAY_BUFFER, state->tex_vbo);
+    glVertexAttribPointer(state->tex_position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
+    glEnableVertexAttribArray(state->tex_position_location);
+    glVertexAttribPointer(state->tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->tex_coord_location);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
+
+    // Setup texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->tex_location, 0);
+
+    // Draw texture to screen
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+*/
 }
