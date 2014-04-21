@@ -16,8 +16,8 @@ dr=150
 [ui-axismap]
 x2=REL_WHEEL:5:10
 y2=REL_WHEEL:-5:10
-x1=REL_X:30:20
-y1=REL_Y:-30:20
+x1=REL_X:50:20
+y1=REL_Y:-50:20
 
 [ui-buttonmap]
 a=KEY_A
