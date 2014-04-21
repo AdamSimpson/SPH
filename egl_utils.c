@@ -315,7 +315,7 @@ void check_user_input(gl_t *state)
 
     // Read in events
     bytes = read(state->keyboard_fd, events, sizeof(events));
-    if(length > 0)
+    if(bytes > 0)
     {
         length =  bytes/sizeof(struct input_event);
 

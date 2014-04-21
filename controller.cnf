@@ -14,10 +14,10 @@ dl=150
 dr=150
 
 [ui-axismap]
-x2=BTN_BACK:BTN_FORWARD
-y2=BTN_LEFT:BTN_RIGHT
-x1=REL_X:15:20
-y1=REL_Y:15:20
+x2=REL_WHEEL:5:10
+y2=REL_WHEEL:-5:10
+x1=REL_X:15:10
+y1=REL_Y:-15:10
 
 [ui-buttonmap]
 a=KEY_A
