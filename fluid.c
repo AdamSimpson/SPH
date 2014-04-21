@@ -463,7 +463,7 @@ void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_part
         // Set OOB particle indicies and update number
         if (p->x < params->tunable_params.node_start_x)
             out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x >= params->tunable_params.node_end_x)
+        else if (p->x > params->tunable_params.node_end_x)
             out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  

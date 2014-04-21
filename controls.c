@@ -403,7 +403,7 @@ void remove_partition(render_t *render_state)
     int removed_rank = num_compute_procs_active-1;
 
     // Set new end position of last active proc to end of simulation
-    render_state->master_params[removed_rank-1].node_end_x = render_state->master_params[num_compute_procs_active-1].node_end_x;
+    render_state->master_params[removed_rank-1].node_end_x = render_state->master_params[removed_rank].node_end_x;
 
     // Send start and end x out of sim bounds
     float position = render_state->master_params[removed_rank].node_end_x + 1.0; // +1.0 ensures it's out of the simulation bounds

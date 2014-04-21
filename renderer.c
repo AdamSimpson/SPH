@@ -254,8 +254,8 @@ void start_renderer()
 	        MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
 	        // Start async recv using probed values
 	        MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
-            // Update total number of floats recvd
-            coords_recvd += particle_coordinate_counts[src-1];
+                // Update total number of floats recvd
+                coords_recvd += particle_coordinate_counts[src-1];
 	    }
 
         // Ensure a balanced partition
@@ -418,18 +418,21 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
     }
 
     // Left most partition has a tendency to not balance correctly so we test it explicitly
-    length =  master_params[0].node_end_x - master_params[0].node_start_x;
-    length_right =  master_params[1].node_end_x - master_params[1].node_start_x;
-    diff = particle_counts[0] - even_particles;
+    if(render_state->num_compute_procs_active > 1)
+    {
+        length =  master_params[0].node_end_x - master_params[0].node_start_x;
+        length_right =  master_params[1].node_end_x - master_params[1].node_start_x;
+        diff = particle_counts[0] - even_particles;
 
-    // current rank has too many particles
-    if( diff > max_diff && length > 2*h) {
-        master_params[0].node_end_x -= dx;
-        master_params[1].node_start_x = master_params[0].node_end_x;
-    }
-    else if (diff < -max_diff && length_right > 2*h) {
-        master_params[0].node_end_x += dx;
-        master_params[1].node_start_x = master_params[0].node_end_x;
+        // current rank has too many particles
+        if( diff > max_diff && length > 2*h) {
+            master_params[0].node_end_x -= dx;
+            master_params[1].node_start_x = master_params[0].node_end_x;
+        }
+        else if (diff < -max_diff && length_right > 2*h) {
+            master_params[0].node_end_x += dx;
+            master_params[1].node_start_x = master_params[0].node_end_x;
+        }
     }
 }
 
