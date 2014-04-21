@@ -164,8 +164,7 @@ void init_ogl(gl_t *state, render_t *render_state)
     assert(EGL_FALSE != result);
 
     // Open input event
-    gl_state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
-
+    state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
 }
 
 void swap_ogl(gl_t *state)
@@ -197,8 +196,9 @@ void handle_key(gl_t *state, struct input_event *event)
     render_t *render_state = (render_t*)state->user_pointer;
 
     // Recognize single key press events
-    if(event.value == 1 && event.code > 0)
-        switch(event.code)
+    if(event->value == 1 && event->code > 0)
+    {
+        switch(event->code)
         {
             case KEY_RIGHT:
                 increase_parameter(render_state);
@@ -253,47 +253,49 @@ void handle_mouse(gl_t *state, struct input_event *event)
     render_t *render_state = (render_t*)state->user_pointer;
 
     // Initialize mouse position
-    static int x = state->screen_width/2.0;
-    static int y = state->screen_height/2.0;
+    static int x = 1920/2;
+    static int y = 1080/2;
 
     const int speed_multiplier = 2.0;
+   
+    float ogl_x, ogl_y;
 
     // Handle mouse movement
-    switch(event.code)
+    switch(event->code)
     {
         case REL_X:
-            x += speed_multiplier*event.value;
+            x += speed_multiplier*event->value;
             // Make sure not to go out of bounds
             if(x < 0.0f)
                 x = 0.0f;
-            else if(x > width)
-                x = width;
+            else if(x > state->screen_width)
+                x = state->screen_width;
             // convert to OpenGL screen coordinates from pixels
             ogl_x = (float)x/(0.5f*state->screen_width) - 1.0f;
             ogl_y = (float)y/(0.5f*state->screen_height) - 1.0f;
             set_mover_gl_center(render_state, ogl_x, ogl_y);
             break;
         case REL_Y:
-            y += speed_multiplier*event.value;
+            y += speed_multiplier*event->value;
             if(y < 0.0f)
                 y = 0.0f;
-            else if(y > height)
-                y = height;
+            else if(y > state->screen_height)
+                y = state->screen_height;
             // convert to OpenGL screen coordinates from pixels
             ogl_x = (float)x/(0.5f*state->screen_width) - 1.0f;
             ogl_y = (float)y/(0.5f*state->screen_height) - 1.0f;
             set_mover_gl_center(render_state, ogl_x, ogl_y);
             break;
         case REL_WHEEL:
-            if(event.value > 0.0f)
+            if(event->value > 0.0f)
                 increase_mover_height(render_state);
-            else if(event.value < 0.0f)
+            else if(event->value < 0.0f)
                 decrease_mover_height(render_state);
             break;
         case REL_HWHEEL:
-            if(event.value > 0.0f)
+            if(event->value > 0.0f)
                 increase_mover_width(render_state);
-            else if(event.value < 0.0f)
+            else if(event->value < 0.0f)
                 decrease_mover_width(render_state);
             break;
     }
@@ -306,30 +308,32 @@ void handle_joystick(gl_t *state, struct input_event *event)
 
 // Poll /dev/input for any input event
 // https://www.kernel.org/doc/Documentation/input/input.txt
-void get_user_input(gl_t *state)
+void check_user_input(gl_t *state)
 {
     struct input_event events[5];
     int bytes, i, length;
 
     // Read in events
-    bytes = read(state->keyboard_fd, &events, sizeof(events));
-    length =  bytes/sizeof(struct input_event);
-
-    // Process events based on type
-    for(i=0; i<length; i++)
+    bytes = read(state->keyboard_fd, events, sizeof(events));
+    if(length > 0)
     {
-        switch(events[i].type) 
-        {
-            case EV_KEY:
-                handle_key(&events[i], state);
-                break;
-            case EV_ABS:
-                handle_joystick(events[i], state);
-                break;
-            case EV_REL:
-                handle_mouse(events[i], state);
-                break;
-        }
-    }     
-}
+        length =  bytes/sizeof(struct input_event);
 
+        // Process events based on type
+        for(i=0; i<length; i++)
+        {
+            switch(events[i].type) 
+            {
+                case EV_KEY:
+                    handle_key(state, &events[i]);
+                    break;
+                case EV_ABS:
+                    handle_joystick(state, &events[i]);
+                    break;
+                case EV_REL:
+                    handle_mouse(state, &events[i]);
+                    break;
+            }
+        }
+    }       
+}

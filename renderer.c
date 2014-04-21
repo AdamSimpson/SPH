@@ -336,7 +336,7 @@ void start_renderer()
     }
 
     #ifdef LIGHT
-    rgb_light_off(light_state);
+    rgb_light_off(&light_state);
     #endif
 
     // Clean up memory

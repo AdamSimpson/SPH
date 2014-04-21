@@ -273,10 +273,10 @@ void start_simulation()
         // If recently added to computation turn light to light state color
         // If recently taken out of computation turn light to white
         char currently_active = params.tunable_params.active;
-        if (!previous_active && currently_active)
-            rgb_light_reset(&rgb_light_state);
-        elseif (!currently_active && previous_active)
-            rgb_light_white(&rgb_light_state);
+        if (!previously_active && currently_active)
+            rgb_light_reset(&light_state);
+        else if (!currently_active && previously_active)
+            rgb_light_white(&light_state);
         #endif
 
         if(params.tunable_params.kill_sim)

@@ -11,19 +11,19 @@ void pabort(const char *s)
 // Set light color off
 void rgb_light_off(rgb_light_t *state)
 {
-    transfer(state->fd, 0, 0, 0);
+    transfer(state, 0, 0, 0);
 }
 
 // Set light to white
 void rgb_light_white(rgb_light_t *state)
 {
-    transfer(state->fd, 255, 255, 255);
+    transfer(state, 255, 255, 255);
 }
 
 // Reset color to state stored color
 void rgb_light_reset(rgb_light_t *state)
 {
-    transfer(state->fd, state->color[0], state->color[1], state->color[2]);
+    transfer(state, state->color[0], state->color[1], state->color[2]);
 }
 
 void transfer(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b)
