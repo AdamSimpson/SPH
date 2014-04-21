@@ -256,15 +256,13 @@ void handle_mouse(gl_t *state, struct input_event *event)
     static int x = 1920/2;
     static int y = 1080/2;
 
-    const int speed_multiplier = 2.0;
-   
     float ogl_x, ogl_y;
 
     // Handle mouse movement
     switch(event->code)
     {
         case REL_X:
-            x += speed_multiplier*event->value;
+            x += event->value;
             // Make sure not to go out of bounds
             if(x < 0.0f)
                 x = 0.0f;
@@ -276,7 +274,7 @@ void handle_mouse(gl_t *state, struct input_event *event)
             set_mover_gl_center(render_state, ogl_x, ogl_y);
             break;
         case REL_Y:
-            y += speed_multiplier*event->value;
+            y += event->value;
             if(y < 0.0f)
                 y = 0.0f;
             else if(y > state->screen_height)

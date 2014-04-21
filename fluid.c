@@ -57,7 +57,10 @@ int main(int argc, char *argv[])
     else
         start_simulation();
 
-    printf("Global rank %d\n", rank);
+    #ifdef LIGHT
+    rgb_light_off(&light_state);
+    #endif
+
     MPI_Finalize();
     return 0;
 }
