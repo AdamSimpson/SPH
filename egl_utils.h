@@ -60,6 +60,7 @@ typedef struct {
 } MOUSE_INPUT;
 
 void init_ogl(gl_t *state, render_t *render_state);
+void process_controller_events(gl_t *state, int controller_fd);
 void exit_ogl(gl_t *state);
 void swap_ogl(gl_t *state);
 void check_user_input(gl_t *state);

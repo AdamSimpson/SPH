@@ -75,7 +75,6 @@ void init_ogl(gl_t *state, render_t *render_state)
     memset(state, 0, sizeof(gl_t));
     state->controller_1_fd = -1;
     state->controller_2_fd = -1;
-    state->mouse_fd = -1;
     state->window_should_close = false;
 
     // Set a user pointer up
@@ -307,7 +306,7 @@ void handle_joystick(gl_t *state, struct input_event *event)
     printf("No joystick handling\n");    
 }
 
-void process_controller_events(int controller_fd)
+void process_controller_events(gl_t *state, int controller_fd)
 {
     struct input_event events[5];
     int bytes, i, length;
@@ -343,7 +342,7 @@ void check_user_input(gl_t *state)
 {
     // If controllers are open process their events
     if(state->controller_1_fd > 0)
-        void process_controller_events(state->controller_1_fd);
+        process_controller_events(state, state->controller_1_fd);
     if(state->controller_2_fd > 0)
-        void process_controller_events(state->controller_2_fd);
+        process_controller_events(state, state->controller_2_fd);
 }
