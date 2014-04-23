@@ -36,6 +36,7 @@ THE SOFTWARE.
 
 #ifdef LIGHT
 #include "rgb_light.h"
+#include <time.h>
 #endif
 
 int main(int argc, char *argv[])
@@ -236,6 +237,8 @@ void start_simulation()
     MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     init_rgb_light(&light_state, 255*colors_by_rank[3*rank], 255*colors_by_rank[3*rank+1], 255*colors_by_rank[3*rank+2]);
     free(colors_by_rank);
+    // Without this pause the lights can sometimes change color too quickly the first time step
+    nanosleep(2000);
     #endif    
 
     fluid_particle *p;
