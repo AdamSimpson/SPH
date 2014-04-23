@@ -45,8 +45,8 @@ typedef struct gl_t {
     EGLSurface surface;
     EGLContext context;
 
-    int keyboard_fd;
-    int mouse_fd;
+    int controller_1_fd;
+    int controller_2_fd;;
 
     void *user_pointer; // mimics GLFW user pointer
 

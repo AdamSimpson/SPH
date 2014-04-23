@@ -73,7 +73,8 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // Initialize struct
     memset(state, 0, sizeof(gl_t));
-    state->keyboard_fd = -1;
+    state->controller_1_fd = -1;
+    state->controller_2_fd = -1;
     state->mouse_fd = -1;
     state->window_should_close = false;
 
@@ -164,7 +165,8 @@ void init_ogl(gl_t *state, render_t *render_state)
     assert(EGL_FALSE != result);
 
     // Open input event
-    state->keyboard_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
+    state->controller_1_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
+    state->controller_2_fd = open("/dev/input/event2",O_RDONLY|O_NONBLOCK);
 }
 
 void swap_ogl(gl_t *state)
@@ -184,7 +186,8 @@ void exit_ogl(gl_t *state)
    eglDestroyContext( state->display, state->context );
    eglTerminate( state->display );
 
-   close(state->keyboard_fd);
+   close(state->controller_2_fd);
+   close(state->controller_1_fd);
 
    printf("close\n");
 }
@@ -301,18 +304,16 @@ void handle_mouse(gl_t *state, struct input_event *event)
 
 void handle_joystick(gl_t *state, struct input_event *event)
 {
-    printf("No joystick handling son\n");    
+    printf("No joystick handling\n");    
 }
 
-// Poll /dev/input for any input event
-// https://www.kernel.org/doc/Documentation/input/input.txt
-void check_user_input(gl_t *state)
+void process_controller_events(int controller_fd)
 {
     struct input_event events[5];
     int bytes, i, length;
 
     // Read in events
-    bytes = read(state->keyboard_fd, events, sizeof(events));
+    bytes = read(controller_fd, events, sizeof(events));
     if(bytes > 0)
     {
         length =  bytes/sizeof(struct input_event);
@@ -320,7 +321,7 @@ void check_user_input(gl_t *state)
         // Process events based on type
         for(i=0; i<length; i++)
         {
-            switch(events[i].type) 
+            switch(events[i].type)
             {
                 case EV_KEY:
                     handle_key(state, &events[i]);
@@ -333,5 +334,16 @@ void check_user_input(gl_t *state)
                     break;
             }
         }
-    }       
+    }
+}
+
+// Poll /dev/input for any input event
+// https://www.kernel.org/doc/Documentation/input/input.txt
+void check_user_input(gl_t *state)
+{
+    // If controllers are open process their events
+    if(state->controller_1_fd > 0)
+        void process_controller_events(state->controller_1_fd);
+    if(state->controller_2_fd > 0)
+        void process_controller_events(state->controller_2_fd);
 }
