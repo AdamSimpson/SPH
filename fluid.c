@@ -81,7 +81,7 @@ void start_simulation()
     params.tunable_params.kill_sim = false;
     params.tunable_params.active = true;
     params.tunable_params.g = 6.0f;
-    params.tunable_params.time_step = 1.0f/30.0f;
+    params.tunable_params.time_step = 1.0f/35.0f;
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
@@ -93,7 +93,7 @@ void start_simulation()
     params.tunable_params.mover_type = SPHERE_MOVER;
 
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 1000;
+    params.number_fluid_particles_global = 1500;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
