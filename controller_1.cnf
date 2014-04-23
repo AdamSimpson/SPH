@@ -43,4 +43,7 @@ dd=KEY_DOWN
 back=KEY_TAB
 start=KEY_ESC
 
+[ui-buttonmap]
+guide=exec:/home/pi/startsph
+
 # EOF #

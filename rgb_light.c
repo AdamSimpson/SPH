@@ -50,7 +50,7 @@ void init_rgb_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
 
     state->mode = 0;
     state->bits = 8;
-    state->speed = 500000;
+    state->speed = 2000000;
     state->delay = 0;
     state->fd = open("/dev/spidev0.0", O_RDWR);
     state->color[0] = r;

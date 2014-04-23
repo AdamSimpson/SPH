@@ -238,7 +238,7 @@ void start_simulation()
     init_rgb_light(&light_state, 255*colors_by_rank[3*rank], 255*colors_by_rank[3*rank+1], 255*colors_by_rank[3*rank+2]);
     free(colors_by_rank);
     // Without this pause the lights can sometimes change color too quickly the first time step
-    usleep(2);
+    sleep(1);
     #endif    
 
     fluid_particle *p;
