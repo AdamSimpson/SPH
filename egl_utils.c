@@ -146,10 +146,15 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     dispman_display = vc_dispmanx_display_open( 0 /* LCD */);
     dispman_update = vc_dispmanx_update_start( 0 );
-         
+
+    VC_DISPMANX_ALPHA_T alpha;
+    alpha.flags = DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS;
+    alpha.opacity = 255;
+    alpha.mask = 0;         
+        
     dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,
       0/*layer*/, &dst_rect, 0/*src*/,
-      &src_rect, DISPMANX_PROTECTION_NONE, 0 /*alpha*/, 0/*clamp*/, 0/*transform*/);
+      &src_rect, DISPMANX_PROTECTION_NONE, &alpha, 0/*clamp*/, 0/*transform*/);
       
     nativewindow.element = dispman_element;
     nativewindow.width = state->screen_width;
