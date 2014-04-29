@@ -7,6 +7,12 @@ CFLAGS= -DRASPI -DLIGHT -mfloat-abi=hard -mfpu=vfp -O3 -lm -ffast-math
 all:
 	mkdir -p bin
 	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c rgb_light.c dividers_gl.c lodepng.c background_gl.c font_gl.c particles_gl.c mover_gl.c controls.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+
+debug:
+	mkdir -p bin
+	mpecc -mpilog -Wall -g -DRASPI -DLIGHT $(INCLUDES) $(LDFLAGS) ogl_utils.c egl_utils.c rgb_light.c dividers_gl.c lodepng.c background_gl.c font_gl.c particles_gl.c mover_gl.c controls.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+
+
 clean:
 	rm -f ./bin/sph.out
 	rm -f ./*.o
