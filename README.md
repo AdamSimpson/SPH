@@ -39,7 +39,7 @@ To compile
 
 To run on a 4 core single socket computer:
 
-    $ mpirun -n 4 ./bin/SPH
+    $ mpirun -n 4 ./bin/sph.out
 
 ### Raspbery Pi
 To Compile
