@@ -52,11 +52,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "egl_utils.h"
 #include "linux/input.h"
 #include "renderer.h"
 #include "controls.h"
+#include "exit_menu_gl.h"
 
 bool window_should_close(gl_t *state)
 {
@@ -233,7 +235,7 @@ void handle_key(gl_t *state, struct input_event *event)
                 break;
             case KEY_A:
                 if(render_state->quit_mode)
-                    exit_with_selected_program(render_state, window);
+                    exit_with_selected_program(render_state, state);
                 set_fluid_a(render_state);
                 break;
             case KEY_B:
@@ -371,18 +373,18 @@ void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y
 }
 
 // Exit and set return value for specific program if one selected
-void exit_with_selected_program(render_t *render_state, GLFWwindow* window)
+void exit_with_selected_program(render_t *render_state, gl_t *gl_state)
 {
     if(render_state->exit_menu_state->mandelbrot_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
+        gl_state->window_should_close = true;
         render_state->return_value = 10;
     }
     else if (render_state->exit_menu_state->sph_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
+	gl_state->window_should_close = true;
         render_state->return_value = 20;
     }
     else if (render_state->exit_menu_state->terminal_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
+        gl_state->window_should_close = true;
         render_state->return_value = 0;
     }
 }

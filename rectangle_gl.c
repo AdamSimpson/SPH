@@ -110,7 +110,7 @@ void create_rectangle_program(rectangle_t *state)
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
-      compile_shader(fragmentShader, "shaders/rectangle_es.frag");
+      compile_shader(fragmentShader, "SPH/shaders/rectangle_es.frag");
     #else
       compile_shader(fragmentShader, "shaders/rectangle.frag");
     #endif

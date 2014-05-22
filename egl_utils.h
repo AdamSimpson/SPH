@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "bcm_host.h"
 #include "renderer.h"
 #include "controls.h"
+#include <stdbool.h>
 
 typedef struct gl_t {
     uint32_t screen_width;
@@ -45,7 +46,7 @@ typedef struct gl_t {
     EGLContext context;
 
     int controller_1_fd;
-    int controller_2_fd;;
+    int controller_2_fd;
 
     void *user_pointer; // mimics GLFW user pointer
 
@@ -68,6 +69,6 @@ void handle_mouse(gl_t *state, struct input_event *event);
 void handle_joystick(gl_t *state, struct input_event *event);
 bool window_should_close(gl_t *state);
 void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y);
-void exit_with_selected_program(render_t *render_state, GLFWwindow* window);
+void exit_with_selected_program(render_t *render_state, gl_t *gl_state);
 
 #endif
