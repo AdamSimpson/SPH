@@ -1,5 +1,3 @@
-#version 150 core
-
 varying vec2 frag_tex_coord;
 varying vec2 blur_tex_coords[14];
 
