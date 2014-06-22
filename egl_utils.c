@@ -316,10 +316,16 @@ void process_controller_events(gl_t *state, int controller_fd)
     struct input_event events[5];
     int bytes, i, length;
 
+    // Get render_state from gl_state
+    render_t *render_state = (render_t*)state->user_pointer;
+
     // Read in events
     bytes = read(controller_fd, events, sizeof(events));
     if(bytes > 0)
     {
+        // Let renderer know of activity
+        set_activity_time(render_state);
+
         length =  bytes/sizeof(struct input_event);
 
         // Process events based on type

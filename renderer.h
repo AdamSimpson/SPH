@@ -51,6 +51,7 @@ typedef struct render_t {
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
     bool show_dividers;
     bool pause;
+    double last_activity_time; // Used to determine if simulation is being used or not
 } render_t;
 
 void start_renderer();
@@ -60,5 +61,8 @@ void update_node_params(render_t *render_state);
 void checkPartitions(render_t *render_state, int *particle_counts, int total_particles);
 void hsv_to_rgb(float* hsv, float *rgb);
 void check_partition_left(render_t *render_state, int *particle_counts, int total_particles);
+void set_activity_time(render_t *render_state);
+bool input_is_active(render_t *render_state);
+void update_inactive_state(render_t *render_state);
 
 #endif
