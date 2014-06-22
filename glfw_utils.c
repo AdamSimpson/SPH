@@ -57,6 +57,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
     {
+
+        // Let renderer know of activity
+        set_activity_time(render_state);
+
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
@@ -107,6 +111,9 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     // Get render_state from GLFW user pointer
     render_t *render_state = glfwGetWindowUserPointer(window);
 
+    // Let renderer know of activity
+    set_activity_time(render_state);
+
     float new_x, new_y;
     new_y = (render_state->screen_height - ypos); // Flip y = 0
     new_y = new_y/(0.5*render_state->screen_height) - 1.0;
@@ -120,7 +127,10 @@ void wheel_callback(GLFWwindow* window, double x, double y)
 {
     // Get render_state from GLFW user pointer
     render_t *render_state = glfwGetWindowUserPointer(window);
-    
+
+    // Let renderer know of activity
+    set_activity_time(render_state);    
+
     // Call increase/decrease mover calls
     if(y > 0.0)
 	    increase_mover_height(render_state);

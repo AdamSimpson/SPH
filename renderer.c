@@ -51,6 +51,7 @@ void start_renderer()
     init_ogl(&gl_state, &render_state);
     render_state.show_dividers = false;
     render_state.pause = false;
+    set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
 
@@ -234,6 +235,10 @@ void start_renderer()
         }
         else
             check_user_input(&gl_state);
+
+        // Check if inactive
+        if(!input_is_active(&render_state))
+            update_inactive_state(&render_state);
 
         // Update node params with master param values
         update_node_params(&render_state);
@@ -434,6 +439,43 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
             master_params[1].node_start_x = master_params[0].node_end_x;
         }
     }
+}
+
+// Set time of last user input
+void set_activity_time(render_t *render_state)
+{
+    render_state->last_activity_time = MPI_Wtime();
+}
+
+// Return if simulation has active input or not
+bool input_is_active(render_t *render_state)
+{
+    double time_since_active = MPI_Wtime() - render_state->last_activity_time;
+    return time_since_active < 120;
+}
+
+// Renderer will move mover if annactive
+void update_inactive_state(render_t *render_state)
+{
+   float gl_x, gl_y;
+   sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
+
+   float dx = 0.01f;
+
+   // This is dirty...
+   // Static to hold direction while inactive
+   static int direction = 1;
+
+   gl_x += dx*direction;
+
+   // If outside boundary switch direction
+   if (gl_x > 1.0f || gl_x < -1.0f)
+       direction *= -1;
+
+   // Move in sin pattern
+   gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
+
+   set_mover_gl_center(render_state, gl_x, gl_y);
 }
 
 // Convert hsv to rgb
