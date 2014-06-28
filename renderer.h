@@ -51,6 +51,7 @@ typedef struct render_t {
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
     bool show_dividers;
     bool pause;
+    bool quit_mode;
     double last_activity_time; // Used to determine if simulation is being used or not
 } render_t;
 
