@@ -64,7 +64,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(window, GL_TRUE);
+                if(render_state->quit_mode)
+                    glfwSetWindowShouldClose(window, GL_TRUE);
+                toggle_quit_mode(render_state);              
 	        break;
             case GLFW_KEY_RIGHT:
                 increase_parameter(render_state);
@@ -221,4 +223,14 @@ void exit_ogl(gl_t *state)
     glfwTerminate();
 
     printf("close\n");
+}
+
+// Convert pixel coordinates, lower left origin, to gl coordinates, center origin
+void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y)
+{
+    float half_x = state->screen_width/2.0;
+    float half_y = state->screen_height/2.0;
+    *gl_x = pixel_x/half_x - 1.0;
+    *gl_y = pixel_y/half_y - 1.0;
+
 }

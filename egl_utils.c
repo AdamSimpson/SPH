@@ -357,3 +357,13 @@ void check_user_input(gl_t *state)
     if(state->controller_2_fd > 0)
         process_controller_events(state, state->controller_2_fd);
 }
+
+// Convert pixel coordinates, lower left origin, to gl coordinates, center origin
+void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y)
+{
+    float half_x = state->screen_width/2.0;
+    float half_y = state->screen_height/2.0;
+    *gl_x = pixel_x/half_x - 1.0;
+    *gl_y = pixel_y/half_y - 1.0;
+
+}
