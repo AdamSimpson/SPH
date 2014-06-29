@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "stdbool.h"
 
-struct exit_menu_t;
+struct exit_menu_t; //blarg...
 
 // enum of displayed parameter values
 typedef enum {

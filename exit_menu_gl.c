@@ -23,15 +23,15 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #ifdef RASPI
     init_image(state->mandelbrot_state,
                gl_state,
-               "SPH/mandelbrot.png",
-               "SPH/mandelbrot-selected.png",
+               "SPH/images/mandelbrot.png",
+               "SPH/images/mandelbrot-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #else
     init_image(state->mandelbrot_state,
                gl_state,
-               "mandelbrot.png",
-               "mandelbrot-selected.png",
+               "images/mandelbrot.png",
+               "images/mandelbrot-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #endif
@@ -41,15 +41,15 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #ifdef RASPI
     init_image(state->terminal_state,
                gl_state,
-               "SPH/terminal.png",
-               "SPH/terminal-selected.png",
+               "SPH/images/terminal.png",
+               "SPH/images/terminal-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #else
     init_image(state->terminal_state,
                gl_state,
-               "terminal.png",
-               "terminal-selected.png",
+               "images/terminal.png",
+               "images/terminal-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #endif
@@ -59,15 +59,15 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #ifdef RASPI
     init_image(state->sph_state,
                gl_state,
-               "SPH/sph.png",
-               "SPH/sph-selected.png",
+               "SPH/images/sph.png",
+               "SPH/images/sph-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #else
     init_image(state->sph_state,
                gl_state,
-               "sph.png",
-               "sph-selected.png",
+               "images/sph.png",
+               "images/sph-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
     #endif
@@ -77,9 +77,9 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     int cursor_width = 30;
     int cursor_height = 40;
     #ifdef RASPI
-    init_cursor(state->cursor_state, gl_state, "SPH/cursor.png", cursor_width, cursor_height);
+    init_cursor(state->cursor_state, gl_state, "SPH/images/cursor.png", cursor_width, cursor_height);
     #else
-    init_cursor(state->cursor_state, gl_state, "cursor.png", cursor_width, cursor_height); 
+    init_cursor(state->cursor_state, gl_state, "images/cursor.png", cursor_width, cursor_height); 
     #endif
 }
 
