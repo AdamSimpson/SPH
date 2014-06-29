@@ -41,7 +41,9 @@ THE SOFTWARE.
 
 int main(int argc, char *argv[])
 {
-     // Initialize MPI
+    int return_value;
+
+    // Initialize MPI
     MPI_Init(&argc, &argv);
     int rank;
 
@@ -54,12 +56,12 @@ int main(int argc, char *argv[])
 
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0)
-        start_renderer();
+        return_value = start_renderer();
     else
         start_simulation();
 
     MPI_Finalize();
-    return 0;
+    return return_value;
 }
 
 void start_simulation()

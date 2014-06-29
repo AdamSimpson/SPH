@@ -41,7 +41,7 @@ THE SOFTWARE.
     #include "rgb_light.h"
 #endif
 
-void start_renderer()
+int start_renderer()
 {
     // Setup initial OpenGL state
     gl_t gl_state;
@@ -80,6 +80,7 @@ void start_renderer()
     // Initialize exit menu
     exit_menu_t exit_menu_state;
     init_exit_menu(&exit_menu_state, &gl_state);
+    render_state.exit_menu_state = &exit_menu_state;
 
     // Initialize RGB Light if present
     #ifdef LIGHT
@@ -107,6 +108,7 @@ void start_renderer()
     render_state.num_compute_procs = num_compute_procs;
     render_state.num_compute_procs_active = num_compute_procs;
     render_state.selected_parameter = 0;
+    render_state.return_value = 0;
 
     int i,j;
 
@@ -365,6 +367,8 @@ void start_renderer()
     free(particle_coordinate_counts);
     free(particle_coordinate_ranks);
     free(colors_by_rank);
+
+    return render_state.return_value;
 }
 
 // Translate between OpenGL coordinates with origin at screen center

@@ -14,9 +14,10 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     float half_height = (image_height/(float)gl_state->screen_height);
     float half_width = (image_width/(float)gl_state->screen_width);
 
+    float dx = (2.0f-(3.0*2.0f*half_width))/4.0f;
 
     float lower_left_y = -half_height;
-    float lower_left_x = -1.0f + 1.0f/8.0f;
+    float lower_left_x = -1.0f + dx;
     state->mandelbrot_state = malloc(sizeof(image_t));
 
     #ifdef RASPI
@@ -35,7 +36,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
                image_width, image_height);
     #endif
 
-    lower_left_x += 2.0f*half_width + 1.0f/8.0f;
+    lower_left_x += 2.0f*half_width + dx;
     state->terminal_state = malloc(sizeof(image_t));
     #ifdef RASPI
     init_image(state->terminal_state,
@@ -53,7 +54,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
                image_width, image_height);
     #endif
 
-    lower_left_x = 1.0f - 2.0*half_width - 1/8.0f;
+    lower_left_x += 2.0f*half_width + dx;
     state->sph_state = malloc(sizeof(image_t));
     #ifdef RASPI
     init_image(state->sph_state,
@@ -113,6 +114,13 @@ void render_exit_menu(exit_menu_t *state, float cursor_x, float cursor_y)
     draw_cursor(state->cursor_state);
 }
 
+void update_cursor(exit_menu_t *state, float x, float y)
+{
+    // Update cursor state
+    state->cursor_state->center_x = x;
+    state->cursor_state->center_y = y;
+}
+
 // Check if cursor is inside of image, if so set selected attribute
 void check_cursor_in_image(cursor_t *cursor_state, image_t *image_state)
 {
@@ -154,9 +162,3 @@ void check_cursor_in_image(cursor_t *cursor_state, image_t *image_state)
     image_state->selected = false;
 }
 
-void update_cursor(exit_menu_t *state, float x, float y)
-{
-    // Update cursor state
-    state->cursor_state->center_x = x;
-    state->cursor_state->center_y = y;
-}

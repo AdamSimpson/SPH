@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 #include "ogl_utils.h"
 #include "stdbool.h"
+#include "cursor_gl.h"
 
 typedef struct image_t {
     gl_t *gl_state;

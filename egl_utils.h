@@ -36,7 +36,6 @@ THE SOFTWARE.
 #include "renderer.h"
 #include "controls.h"
 
-
 typedef struct gl_t {
     uint32_t screen_width;
     uint32_t screen_height;
