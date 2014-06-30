@@ -232,6 +232,8 @@ void handle_key(gl_t *state, struct input_event *event)
                 set_fluid_y(render_state);
                 break;
             case KEY_A:
+                if(render_state->quit_mode)
+                    exit_with_selected_program(render_state, window);
                 set_fluid_a(render_state);
                 break;
             case KEY_B:
@@ -247,7 +249,7 @@ void handle_key(gl_t *state, struct input_event *event)
                 toggle_pause(render_state);
                 break;
             case KEY_TAB:
-                state->window_should_close = true;
+                toggle_quit_mode(render_state);
                 break;
         }
     }
@@ -367,3 +369,21 @@ void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y
     *gl_y = pixel_y/half_y - 1.0;
 
 }
+
+// Exit and set return value for specific program if one selected
+void exit_with_selected_program(render_t *render_state, GLFWwindow* window)
+{
+    if(render_state->exit_menu_state->mandelbrot_state->selected) {
+        glfwSetWindowShouldClose(window, GL_TRUE);
+        render_state->return_value = 10;
+    }
+    else if (render_state->exit_menu_state->sph_state->selected) {
+        glfwSetWindowShouldClose(window, GL_TRUE);
+        render_state->return_value = 20;
+    }
+    else if (render_state->exit_menu_state->terminal_state->selected) {
+        glfwSetWindowShouldClose(window, GL_TRUE);
+        render_state->return_value = 0;
+    }
+}
+

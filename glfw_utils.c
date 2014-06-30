@@ -65,8 +65,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                if(render_state->quit_mode)
-                    glfwSetWindowShouldClose(window, GL_TRUE);
                 toggle_quit_mode(render_state);              
 	        break;
             case GLFW_KEY_RIGHT:
