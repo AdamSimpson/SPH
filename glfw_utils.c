@@ -198,6 +198,9 @@ void init_ogl(gl_t *state, render_t *render_state)
     // Used for key callbacks
     glfwSetWindowUserPointer(state->window, render_state);
 
+    // Disable regular cursor
+    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
     // Disable vsync for true FPS testing
     // Default limit 60 fps
 //    glfwSwapInterval(0);
