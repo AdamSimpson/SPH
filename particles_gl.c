@@ -49,6 +49,7 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
     create_particle_shaders(state);
 }
 
+
 // Update coordinate of fluid points
 void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state)
 {

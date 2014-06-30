@@ -307,7 +307,7 @@ void start_renderer()
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	    i = 0;
+	i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
