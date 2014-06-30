@@ -4,6 +4,7 @@
 #include "renderer.h"
 #include "image_gl.h"
 #include "cursor_gl.h"
+#include "rectangle_gl.h"
 
 void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
 {
@@ -81,10 +82,15 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #else
     init_cursor(state->cursor_state, gl_state, "images/cursor.png", cursor_width, cursor_height); 
     #endif
+
+    // Initialize cursor
+    state->rectangle_state = malloc(sizeof(rectangle_t));
+    init_rectangle(state->rectangle_state);
 }
 
 void exit_exit_menu(exit_menu_t *state)
 {
+    free(state->rectangle_state);
     free(state->mandelbrot_state);
     free(state->sph_state);
     free(state->terminal_state);
@@ -100,6 +106,12 @@ void render_exit_menu(exit_menu_t *state, float cursor_x, float cursor_y)
     check_cursor_in_image(state->cursor_state, state->mandelbrot_state);
     check_cursor_in_image(state->cursor_state, state->sph_state);
     check_cursor_in_image(state->cursor_state, state->terminal_state);
+
+    // Draw background rectangle
+    float center[2] = {0.0f, 0.0f};
+    float gl_dims[2] = {2.0f, 0.7f};
+    float background_color[4] = {1.0f, 1.0f, 1.0f, 0.8f};
+    render_rectangle(state->rectangle_state, center, gl_dims, background_color);
 
     // Draw mandelbrot image
     draw_image(state->mandelbrot_state);

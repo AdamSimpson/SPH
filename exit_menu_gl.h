@@ -3,8 +3,10 @@
 
 #include "cursor_gl.h"
 #include "image_gl.h"
+#include "rectangle_gl.h"
 
 typedef struct exit_menu_t {
+    rectangle_t *rectangle_state;
     image_t *mandelbrot_state;
     image_t *sph_state;
     image_t *terminal_state;
