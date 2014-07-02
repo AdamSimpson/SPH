@@ -24,29 +24,27 @@ THE SOFTWARE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "fluid.h"
-#include "renderer.h"
 #include "lodepng.h"
-#include "background_gl.h"
+#include "cursor_gl.h"
 
 #include "ogl_utils.h"
 
-void create_backround_program(background_t *state)
+void create_cursor_program(cursor_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef RASPI
-        compile_shader(vertex_shader, "SPH/shaders/background_es.vert");
+        compile_shader(vertex_shader, "SPH/shaders/cursor_es.vert");
     #else
-        compile_shader(vertex_shader, "shaders/background.vert");
+        compile_shader(vertex_shader, "shaders/cursor.vert");
     #endif
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
-        compile_shader(frag_shader, "SPH/shaders/background_es.frag");
+        compile_shader(frag_shader, "SPH/shaders/cursor_es.frag");
     #else
-        compile_shader(frag_shader, "shaders/background.frag");
+        compile_shader(frag_shader, "shaders/cursor.frag");
     #endif
 
     // Create shader program
@@ -66,15 +64,8 @@ void create_backround_program(background_t *state)
     state->tex_location = glGetUniformLocation(state->program, "tex");
 }
 
-void create_background_buffers(background_t *state)
+void create_cursor_buffers(cursor_t *state)
 {
-    // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    #endif
-
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
 
@@ -82,23 +73,27 @@ void create_background_buffers(background_t *state)
     glGenBuffers(1, &state->ebo);
 }
 
-void create_background_vertices(background_t *state)
+void set_cursor_position(cursor_t *state, float gl_x, float gl_y)
 {
+    // Set cursor center in gl coordinates
+    state->center_x = gl_x;
+    state->center_y = gl_y;
+
     // Vertices: Pos(x,y) Tex(x,y)
     // For simplicity only single vbo is generated and offset used as needed
 
-    // Background image dimensions in gl screen coordinates
-    float bg_width = 2.0*(state->background_width/(float)state->screen_width);
-    float bg_height =  2.0*(state->background_height/(float)state->screen_height);
+    // cursor dimensions in gl screen coordinates
+    float cursor_width = 2.0*(state->cursor_width/(float)state->gl_state->screen_width);
+    float cursor_height =  2.0*(state->cursor_height/(float)state->gl_state->screen_height);
 
-    float lower_left_x = -bg_width/2.0;
-    float lower_left_y = -bg_height/2.0;
-    float lower_right_x = lower_left_x + bg_width;
+    float lower_left_x = gl_x - cursor_width/2.0;
+    float lower_left_y = gl_y - cursor_height/2.0;
+    float lower_right_x = lower_left_x + cursor_width;
     float lower_right_y = lower_left_y;
     float upper_right_x = lower_right_x;
-    float upper_right_y = lower_right_y + bg_height;
+    float upper_right_y = lower_right_y + cursor_height;
     float upper_left_x = lower_left_x;
-    float upper_left_y = lower_left_y + bg_height;
+    float upper_left_y = lower_left_y + cursor_height;
 
     float vertices[] = {
          // Full screen vertices
@@ -108,14 +103,10 @@ void create_background_vertices(background_t *state)
 	lower_left_x, lower_left_y, 0.0f, 1.0f  // Lower left
     };
 
-    printf("Screen resolution %d, %d\n", state->screen_width, state->screen_height);
-    printf("ul (%f,%f), ur (%f, %f), ll (%f, %f), lr (%f, %f)\n", upper_left_x, upper_left_y, upper_right_x, upper_right_y, lower_left_x, lower_left_y, lower_right_x, lower_right_y);
-
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 3*4*4*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-
+    glBufferData(GL_ARRAY_BUFFER, 3*4*4*sizeof(GLfloat), vertices, GL_DYNAMIC_DRAW);
     // Elements
     GLubyte elements[] = {
         2, 3, 0,
@@ -125,27 +116,32 @@ void create_background_vertices(background_t *state)
     // Set buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
     // Fill buffer
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_DYNAMIC_DRAW);
 }
 
-void create_background_texture(background_t *state)
+void create_cursor_texture(cursor_t *state)
 {
-    // Read in background PNG
+    // Read in image PNG
     unsigned error;
     unsigned char* image;
     unsigned width, height;
 
-    #ifdef RASPI
-    error = lodepng_decode32_file(&image, &width, &height, "SPH/images/OakRidgeLeaf.png");
-    #else
-    error = lodepng_decode32_file(&image, &width, &height, "images/OakRidgeLeaf.png");
-    #endif
+    error = lodepng_decode32_file(&image, &width, &height, state->file_name);
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
-    state->background_width = width;
-    state->background_height = height;
+    printf("loaded image: %dx%d\n", width, height);
 
-    printf("Background image loaded: %d x %d pixels\n", width, height);
+    // Photoshop sets transparent pixels to (1,1,1,0) in PNG
+    // When averaged mipmaps are generated this will produce white border artifacts
+    // Setting any 0 transparency pixels to RGB = 0 will fix this bleeding
+    int i;
+    for(i=3; i<height*width*4; i+=4){
+        if(image[i] == 0) {
+            image[i-1] = 0;
+            image[i-2] = 0;
+            image[i-3] = 0;
+        }
+    }
 
     // Generate texture
     glGenTextures(1, &state->tex_uniform);
@@ -168,30 +164,40 @@ void create_background_texture(background_t *state)
 
     // Release image host memory
     free(image);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void init_background(background_t *state, int screen_width, int screen_height)
+
+void init_cursor(cursor_t *state, gl_t *gl_state, char *file_name, int cursor_width, int cursor_height)
 {
-    // Set screen with/height in pixels
-    state->screen_width = screen_width;
-    state->screen_height = screen_height;
+    // Set GL state
+    state->gl_state = gl_state;
+
+    // Set filename
+    strcpy(state->file_name, file_name);
+
+    // Image display dimensions in pixels
+    state->cursor_width = cursor_width;
+    state->cursor_height = cursor_height;
 
     // Create program
-    create_backround_program(state);
+    create_cursor_program(state);
 
     // Generate buffers 
-    create_background_buffers(state);  
+    create_cursor_buffers(state);  
 
     // Create texture from image
-    // Must be called before create_background_verticies
+    // Must be called before create_image_verticies
     // so image dimensions known
-    create_background_texture(state);
+    create_cursor_texture(state);
 
     // Set verticies
-    create_background_vertices(state);
+    set_cursor_position(state, 0.0, 0.0);
 }
 
-void draw_background(background_t *state)
+void draw_cursor(cursor_t *state)
 {
     // Setup program
     glUseProgram(state->program);
@@ -205,7 +211,7 @@ void draw_background(background_t *state)
     glEnableVertexAttribArray(state->tex_coord_location);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
 
-    // Disable Blend
+    // Enable Blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -214,6 +220,10 @@ void draw_background(background_t *state)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->tex_location, 0);
 
-    // Draw background
+    // Draw image
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 }

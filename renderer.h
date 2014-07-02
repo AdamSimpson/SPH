@@ -28,6 +28,8 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "stdbool.h"
 
+struct exit_menu_t; //blarg...
+
 // enum of displayed parameter values
 typedef enum {
     MIN = 0,
@@ -51,10 +53,13 @@ typedef struct render_t {
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
     bool show_dividers;
     bool pause;
+    bool quit_mode;
     double last_activity_time; // Used to determine if simulation is being used or not
+    struct exit_menu_t *exit_menu_state;
+    int return_value;
 } render_t;
 
-void start_renderer();
+int start_renderer();
 void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y);
 void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float *gl_y);
 void update_node_params(render_t *render_state);

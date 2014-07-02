@@ -34,13 +34,14 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "font_gl.h"
 #include "dividers_gl.h"
+#include "exit_menu_gl.h"
 #include "renderer.h"
 
 #ifdef LIGHT
     #include "rgb_light.h"
 #endif
 
-void start_renderer()
+int start_renderer()
 {
     // Setup initial OpenGL state
     gl_t gl_state;
@@ -51,6 +52,7 @@ void start_renderer()
     init_ogl(&gl_state, &render_state);
     render_state.show_dividers = false;
     render_state.pause = false;
+    render_state.quit_mode = false;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -74,6 +76,11 @@ void start_renderer()
     // Initialize node divider OpenGL state
     dividers_t dividers_state;
     init_dividers(&dividers_state, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize exit menu
+    exit_menu_t exit_menu_state;
+    init_exit_menu(&exit_menu_state, &gl_state);
+    render_state.exit_menu_state = &exit_menu_state;
 
     // Initialize RGB Light if present
     #ifdef LIGHT
@@ -101,6 +108,7 @@ void start_renderer()
     render_state.num_compute_procs = num_compute_procs;
     render_state.num_compute_procs_active = num_compute_procs;
     render_state.selected_parameter = 0;
+    render_state.return_value = 0;
 
     int i,j;
 
@@ -246,7 +254,7 @@ void start_renderer()
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-        // Retrieve all particle coordinates (x,y)
+            // Retrieve all particle coordinates (x,y)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
@@ -307,7 +315,7 @@ void start_renderer()
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
         // Create points array (x,y,r,g,b)
-	    i = 0;
+	i = 0;
         current_rank = particle_coordinate_ranks[i];
         // j == coordinate pair
         for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
@@ -328,11 +336,14 @@ void start_renderer()
 
         }
 
-	    // Draw particles
+	// Draw particles
         render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
-        // Render over particles to hide penetration
-        render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
+        // Render exit menu
+        if(render_state.quit_mode)
+            render_exit_menu(&exit_menu_state, mover_center[0], mover_center[1]);
+        else // Render over particles to hide penetration
+            render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -346,6 +357,7 @@ void start_renderer()
 
     // Clean up memory
     exit_ogl(&gl_state);
+    exit_exit_menu(&exit_menu_state);
     free(node_params);
     free(master_params);
     free(param_counts);
@@ -355,6 +367,8 @@ void start_renderer()
     free(particle_coordinate_counts);
     free(particle_coordinate_ranks);
     free(colors_by_rank);
+
+    return render_state.return_value;
 }
 
 // Translate between OpenGL coordinates with origin at screen center

@@ -22,31 +22,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef GLFW_UTILS_H
-#define GLFW_UTILS_H
+#ifndef RECTANGLE_GL_H
+#define RECTANGLE_GL_H
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#ifdef GLFW
+    #include "glfw_utils.h"
+#else
+    #include "GLES2/gl2.h"
+    #include "egl_utils.h"
+#endif
 
-#include "renderer.h"
-#include "controls.h"
+typedef struct rectangle_t
+{
+    // Program handle
+    GLuint rectangle_program;
 
-typedef struct gl_t {
-    int screen_width;
-    int screen_height;
+    // Locations
+    GLint color_location;
+    GLint position_location;
 
-    GLFWwindow* window;
-} gl_t ;
+    // buffers
+    GLuint vbo;
+} rectangle_t;
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void error_callback(int error, const char* description);
-void check_user_input(gl_t *state);
-void init_ogl(gl_t *state, render_t *render_state);
-void exit_ogl(gl_t *state);
-void swap_ogl(gl_t *state);
-bool window_should_close(gl_t *state);
-void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y);
-void exit_with_selected_program(render_t *render_state, GLFWwindow* window);
+void init_rectangle(rectangle_t *state);
+void render_rectangle(rectangle_t *state, float *center, float *gl_dims, float *color);
+void create_rectangle_program(rectangle_t *state);
+void draw_rectangle(rectangle_t *state, float *center, float *color);
+
+void create_rectangle_buffers(rectangle_t *state);
 
 #endif

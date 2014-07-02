@@ -41,7 +41,9 @@ THE SOFTWARE.
 
 int main(int argc, char *argv[])
 {
-     // Initialize MPI
+    int return_value;
+
+    // Initialize MPI
     MPI_Init(&argc, &argv);
     int rank;
 
@@ -54,12 +56,12 @@ int main(int argc, char *argv[])
 
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0)
-        start_renderer();
+        return_value = start_renderer();
     else
         start_simulation();
 
     MPI_Finalize();
-    return 0;
+    return return_value;
 }
 
 void start_simulation()
@@ -402,8 +404,7 @@ void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neig
     dt = params->tunable_params.time_step;
 
 
-    for(i=params->number_fluid_particles_local; i-- > 0; ) {
-//    for(i=0; i<params->number_fluid_particles_local; i++) {
+    for(i=num_fluid; i-- > 0; ) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
  	    p_x = p->x;
@@ -530,7 +531,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     rest_density = params->tunable_params.rest_density;
 
     // Calculate the pressure of all particles, including halo
-    for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
+    for(i=0; i<num_fluid + params->number_halo_particles; i++) {
         p = fluid_particle_pointers[i];
         // Compute pressure and near pressure
         p->pressure = k * (p->density - rest_density);
@@ -538,7 +539,7 @@ void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbo
     }
 
     // Iterating through the array in reverse reduces biased particle movement
-    for(i=params->number_fluid_particles_local; i-- > 0; ) {
+    for(i=num_fluid; i-- > 0; ) {
         p = fluid_particle_pointers[i];
         n = &neighbors[i];
         p_pressure = p->pressure;

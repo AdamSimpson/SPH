@@ -22,31 +22,47 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef GLFW_UTILS_H
-#define GLFW_UTILS_H
+#ifndef CURSOR_GL_H
+#define CURSOR_GL_H
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "ogl_utils.h"
+#include "stdbool.h"
 
-#include "renderer.h"
-#include "controls.h"
+typedef struct cursor_t {
+    gl_t *gl_state;
 
-typedef struct gl_t {
-    int screen_width;
-    int screen_height;
+    GLuint program;
 
-    GLFWwindow* window;
-} gl_t ;
+    char file_name[40];
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void error_callback(int error, const char* description);
-void check_user_input(gl_t *state);
-void init_ogl(gl_t *state, render_t *render_state);
-void exit_ogl(gl_t *state);
-void swap_ogl(gl_t *state);
-bool window_should_close(gl_t *state);
-void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y);
-void exit_with_selected_program(render_t *render_state, GLFWwindow* window);
+    // Program locations
+    GLint position_location;
+    GLint tex_coord_location;
+    GLint tex_location;
+
+    // Uniforms
+    GLuint tex_uniform;
+
+    // Vertex buffer
+    GLuint vbo;
+
+    // Element buffer
+    GLuint ebo;
+
+    // Position of cursor
+    float center_x;
+    float center_y;
+
+    // Pixel dimensions of cursor image
+    int cursor_width;
+    int cursor_height;
+} cursor_t;
+
+void init_cursor(cursor_t *state, gl_t *gl_state, char *file_name, int cursor_width, int cursor_height);
+void create_cursor_program(cursor_t *state);
+void create_cursor_buffers(cursor_t *state);
+void set_cursor_position(cursor_t *state, float gl_x, float gl_y);
+void create_cursor_texture(cursor_t *state);
+void draw_cursor(cursor_t *state);
 
 #endif

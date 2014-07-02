@@ -240,7 +240,7 @@ void draw_rectangle_mover(mover_t *state, float *center, float *color)
 
     // Setup verticies
     glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
-    glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
+    glVertexAttribPointer(state->rectangle_tex_coord_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
     glEnableVertexAttribArray(state->rectangle_position_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels

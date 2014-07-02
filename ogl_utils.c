@@ -75,4 +75,3 @@ void compile_shader(GLuint shader, const char *file_name)
 
     free(shader_source);
 }
-

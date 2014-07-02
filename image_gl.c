@@ -24,29 +24,27 @@ THE SOFTWARE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "fluid.h"
-#include "renderer.h"
 #include "lodepng.h"
-#include "background_gl.h"
+#include "image_gl.h"
 
 #include "ogl_utils.h"
 
-void create_backround_program(background_t *state)
+void create_image_program(image_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef RASPI
-        compile_shader(vertex_shader, "SPH/shaders/background_es.vert");
+        compile_shader(vertex_shader, "SPH/shaders/image_es.vert");
     #else
-        compile_shader(vertex_shader, "shaders/background.vert");
+        compile_shader(vertex_shader, "shaders/image.vert");
     #endif
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
-        compile_shader(frag_shader, "SPH/shaders/background_es.frag");
+        compile_shader(frag_shader, "SPH/shaders/image_es.frag");
     #else
-        compile_shader(frag_shader, "shaders/background.frag");
+        compile_shader(frag_shader, "shaders/image.frag");
     #endif
 
     // Create shader program
@@ -66,15 +64,8 @@ void create_backround_program(background_t *state)
     state->tex_location = glGetUniformLocation(state->program, "tex");
 }
 
-void create_background_buffers(background_t *state)
+void create_image_buffers(image_t *state)
 {
-    // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    #endif
-
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
 
@@ -82,23 +73,29 @@ void create_background_buffers(background_t *state)
     glGenBuffers(1, &state->ebo);
 }
 
-void create_background_vertices(background_t *state)
+void create_image_vertices(image_t *state)
 {
     // Vertices: Pos(x,y) Tex(x,y)
     // For simplicity only single vbo is generated and offset used as needed
 
-    // Background image dimensions in gl screen coordinates
-    float bg_width = 2.0*(state->background_width/(float)state->screen_width);
-    float bg_height =  2.0*(state->background_height/(float)state->screen_height);
+    // image dimensions in gl screen coordinates
+    float image_width = 2.0*(state->image_width/(float)state->gl_state->screen_width);
+    float image_height =  2.0*(state->image_height/(float)state->gl_state->screen_height);
 
-    float lower_left_x = -bg_width/2.0;
-    float lower_left_y = -bg_height/2.0;
-    float lower_right_x = lower_left_x + bg_width;
+    float gl_x, gl_y;
+//    pixel_to_gl(state->gl_state, state->lower_left_x, state->lower_left_y, &gl_x, &gl_y);
+
+    gl_x = state->lower_left_x;
+    gl_y = state->lower_left_y;
+
+    float lower_left_x = gl_x;
+    float lower_left_y = gl_y;
+    float lower_right_x = lower_left_x + image_width;
     float lower_right_y = lower_left_y;
     float upper_right_x = lower_right_x;
-    float upper_right_y = lower_right_y + bg_height;
+    float upper_right_y = lower_right_y + image_height;
     float upper_left_x = lower_left_x;
-    float upper_left_y = lower_left_y + bg_height;
+    float upper_left_y = lower_left_y + image_height;
 
     float vertices[] = {
          // Full screen vertices
@@ -107,9 +104,6 @@ void create_background_vertices(background_t *state)
         lower_right_x, lower_right_y, 1.0f, 1.0f, // Lower right
 	lower_left_x, lower_left_y, 0.0f, 1.0f  // Lower left
     };
-
-    printf("Screen resolution %d, %d\n", state->screen_width, state->screen_height);
-    printf("ul (%f,%f), ur (%f, %f), ll (%f, %f), lr (%f, %f)\n", upper_left_x, upper_left_y, upper_right_x, upper_right_y, lower_left_x, lower_left_y, lower_right_x, lower_right_y);
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
@@ -128,24 +122,29 @@ void create_background_vertices(background_t *state)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_STATIC_DRAW);
 }
 
-void create_background_texture(background_t *state)
+void create_image_texture(image_t *state)
 {
-    // Read in background PNG
+    // Read in image PNG
     unsigned error;
     unsigned char* image;
     unsigned width, height;
 
-    #ifdef RASPI
-    error = lodepng_decode32_file(&image, &width, &height, "SPH/images/OakRidgeLeaf.png");
-    #else
-    error = lodepng_decode32_file(&image, &width, &height, "images/OakRidgeLeaf.png");
-    #endif
+    error = lodepng_decode32_file(&image, &width, &height, state->file_name);
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
-    state->background_width = width;
-    state->background_height = height;
+    printf("loaded image: %dx%d\n", width, height);
 
-    printf("Background image loaded: %d x %d pixels\n", width, height);
+    // Photoshop sets transparent pixels to (1,1,1,0) in PNG
+    // When averaged mipmaps are generated this will produce white border artifacts
+    // Setting any 0 transparency pixels to RGB = 0 will fix this bleeding
+    int i;
+    for(i=3; i<height*width*4; i+=4){
+        if(image[i] == 0) {
+            image[i-1] = 0;
+            image[i-2] = 0;
+            image[i-3] = 0;
+        }
+    }
 
     // Generate texture
     glGenTextures(1, &state->tex_uniform);
@@ -168,30 +167,89 @@ void create_background_texture(background_t *state)
 
     // Release image host memory
     free(image);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    error = lodepng_decode32_file(&image, &width, &height, state->selected_file_name);
+    if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
+
+    printf("loaded image: %dx%d\n", width, height);
+
+    // Photoshop sets transparent pixels to (1,1,1,0) in PNG
+    // When averaged mipmaps are generated this will produce white border artifacts
+    // Setting any 0 transparency pixels to RGB = 0 will fix this bleeding
+    for(i=3; i<height*width*4; i+=4){
+        if(image[i] == 0) {
+            image[i-1] = 0;
+            image[i-2] = 0;
+            image[i-3] = 0;
+        }
+    }
+
+    // Generate texture
+    glGenTextures(1, &state->tex_selected_uniform);
+
+    // Set texture unit 0 and bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_selected_uniform);
+
+    // Buffer texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Create Mipmap
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Release image host memory
+    free(image);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void init_background(background_t *state, int screen_width, int screen_height)
+
+void init_image(image_t *state, gl_t *gl_state, char *file_name, char *selected_file_name, float lower_left_x, float lower_left_y, int image_width, int image_height)
 {
-    // Set screen with/height in pixels
-    state->screen_width = screen_width;
-    state->screen_height = screen_height;
+    // Set GL state
+    state->gl_state = gl_state;
+
+    // Set selected to false
+    state->selected = false;
+
+    // Set filename
+    strcpy(state->file_name, file_name);
+    strcpy(state->selected_file_name, selected_file_name);
+
+    // Set lower left image pixel position
+    state->lower_left_x = lower_left_x;
+    state->lower_left_y = lower_left_y;
+
+    // Image display dimensions in pixels
+    state->image_width = image_width;
+    state->image_height = image_height;
 
     // Create program
-    create_backround_program(state);
+    create_image_program(state);
 
     // Generate buffers 
-    create_background_buffers(state);  
+    create_image_buffers(state);  
 
     // Create texture from image
-    // Must be called before create_background_verticies
+    // Must be called before create_image_verticies
     // so image dimensions known
-    create_background_texture(state);
+    create_image_texture(state);
 
     // Set verticies
-    create_background_vertices(state);
+    create_image_vertices(state);
 }
 
-void draw_background(background_t *state)
+void draw_image(image_t *state)
 {
     // Setup program
     glUseProgram(state->program);
@@ -205,15 +263,39 @@ void draw_background(background_t *state)
     glEnableVertexAttribArray(state->tex_coord_location);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
 
-    // Disable Blend
+    // Enable Blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Setup texture
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    if(state->selected)
+        glBindTexture(GL_TEXTURE_2D, state->tex_selected_uniform);
+    else
+        glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->tex_location, 0);
 
-    // Draw background
+    // Draw image
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glDisable(GL_BLEND);
+}
+
+// test if x,y gl position is inside of image
+bool inside_image(image_t *state, float gl_x, float gl_y)
+{
+    // image dimensions in gl screen coordinates
+    float image_width = 2.0f*(state->image_width/(float)state->gl_state->screen_width);
+    float image_height =  2.0f*(state->image_height/(float)state->gl_state->screen_height);
+
+    if(gl_x > state->lower_left_x && gl_x < (state->lower_left_x + image_width) ){
+        if(gl_y > state->lower_left_y && gl_y < (state->lower_left_y + image_height) ) {
+            return true;
+        }
+    }
+
+    return false;
 }

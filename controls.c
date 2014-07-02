@@ -454,3 +454,8 @@ void toggle_pause(render_t *state)
 {
     state->pause = !state->pause;
 }
+
+void toggle_quit_mode(render_t *state)
+{
+    state->quit_mode = !state->quit_mode;
+}
