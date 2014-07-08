@@ -34,6 +34,8 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "communication.h"
 
+#include "cuda.h"
+
 #ifdef LIGHT
 #include "rgb_light.h"
 #include <unistd.h>
@@ -73,55 +75,57 @@ void start_simulation()
 
     printf("compute rank: %d, num compute procs: %d \n",rank, nprocs);
 
-    param params;
+    param *params;
+    cudaMallocManaged(&params, sizeof(param));
     AABB_t water_volume_global;
-    AABB_t boundary_global;
+    AABB_t *boundary_global;
+    cudaMallocManaged(&boundary_global, sizeof(AABB_t));
     edge_t edges;
     oob_t out_of_bounds;
 
     unsigned int i;
 
-    params.tunable_params.kill_sim = false;
-    params.tunable_params.active = true;
-    params.tunable_params.g = 6.0f;
-    params.tunable_params.time_step = 1.0f/35.0f/4.0f;
-    params.tunable_params.k = 0.2f;
-    params.tunable_params.k_near = 6.0f;
-    params.tunable_params.k_spring = 10.0f;
-    params.tunable_params.sigma = 5.0f;
-    params.tunable_params.beta = 0.5f;
-    params.tunable_params.rest_density = 30.0f;
-    params.tunable_params.mover_width = 2.0f;
-    params.tunable_params.mover_height = 2.0f;
-    params.tunable_params.mover_type = SPHERE_MOVER;
+    params->tunable_params.kill_sim = false;
+    params->tunable_params.active = true;
+    params->tunable_params.g = 6.0f;
+    params->tunable_params.time_step = 1.0f/35.0f/4.0f;
+    params->tunable_params.k = 0.2f;
+    params->tunable_params.k_near = 6.0f;
+    params->tunable_params.k_spring = 10.0f;
+    params->tunable_params.sigma = 5.0f;
+    params->tunable_params.beta = 0.5f;
+    params->tunable_params.rest_density = 30.0f;
+    params->tunable_params.mover_width = 2.0f;
+    params->tunable_params.mover_height = 2.0f;
+    params->tunable_params.mover_type = SPHERE_MOVER;
 
     // The number of particles used may differ slightly
     #ifdef RASPI
-    params.number_fluid_particles_global = 1500;
+    params->number_fluid_particles_global = 1500;
     #else
-    params.number_fluid_particles_global = 5500;
+    params->number_fluid_particles_global = 5500;
     #endif
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
-    boundary_global.min_x = 0.0f;
-    boundary_global.max_x = 15.0f;
-    boundary_global.min_y = 0.0f;
+    boundary_global->min_x = 0.0f;
+    boundary_global->max_x = 15.0f;
+    boundary_global->min_y = 0.0f;
 
     // Receive aspect ratio to scale world y max
     short pixel_dims[2];
     float aspect_ratio;
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
     aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
-    boundary_global.max_y = boundary_global.max_x / aspect_ratio;
+    boundary_global->max_y = boundary_global->max_x / aspect_ratio;
 
     // water volume
     water_volume_global.min_x = 0.0f;
-    water_volume_global.max_x = boundary_global.max_x;
+    water_volume_global.max_x = boundary_global->max_x;
     water_volume_global.min_y = 0.0f;
-    water_volume_global.max_y = boundary_global.max_y;
+    water_volume_global.max_y = boundary_global->max_y;
 
-    params.number_halo_particles = 0;
+    params->number_halo_particles = 0;
 
     int start_x;  // where in x direction this nodes particles start
     int number_particles_x; // number of particles in x direction for this node
@@ -130,39 +134,39 @@ void start_simulation()
     float area = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y);
 
     // Initial spacing between particles
-    float spacing_particle = pow(area/params.number_fluid_particles_global,1.0/2.0);
+    float spacing_particle = pow(area/params->number_fluid_particles_global,1.0/2.0);
 
     // Divide problem set amongst nodes
-    partitionProblem(&boundary_global, &water_volume_global, &start_x, &number_particles_x, spacing_particle, &params);
+    partitionProblem(boundary_global, &water_volume_global, &start_x, &number_particles_x, spacing_particle, params);
 
     // Set local/global number of particles to allocate
-    setParticleNumbers(&boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, spacing_particle, &params);
+    setParticleNumbers(boundary_global, &water_volume_global, &edges, &out_of_bounds, number_particles_x, spacing_particle, params);
 
     // We will allocate enough room for all particles on single node
     // We also must take into account halo particles are placed onto the end of the max particle index
     // So this value can be even greater than the number of global
     // Before reaching this point the program should, but doesn't, intelligenly clean up fluid_particles
-    int max_fluid_particles_local = 2*params.number_fluid_particles_global;
+    int max_fluid_particles_local = 2*params->number_fluid_particles_global;
 
     // Smoothing radius, h
-    params.tunable_params.smoothing_radius = 2.0f*spacing_particle;
+    params->tunable_params.smoothing_radius = 2.0f*spacing_particle;
 
-    printf("smoothing radius: %f\n", params.tunable_params.smoothing_radius);
+    printf("smoothing radius: %f\n", params->tunable_params.smoothing_radius);
 
     // Send initial world dimensions and max particle count to render node
     if(rank == 0) {
         float world_dims[2];
-        world_dims[0] = boundary_global.max_x;
-        world_dims[1] = boundary_global.max_y;
+        world_dims[0] = boundary_global->max_x;
+        world_dims[1] = boundary_global->max_y;
         MPI_Send(world_dims, 2, MPI_FLOAT, 0, 8, MPI_COMM_WORLD);
-	MPI_Send(&params.number_fluid_particles_global, 1, MPI_INT, 0, 9, MPI_COMM_WORLD);
+	MPI_Send(&params->number_fluid_particles_global, 1, MPI_INT, 0, 9, MPI_COMM_WORLD);
     }
 
     // Neighbor grid setup
-    neighbor_grid_t neighbor_grid;
-    neighbor_grid.max_bucket_size = 100;
-    neighbor_grid.max_neighbors = neighbor_grid.max_bucket_size*4;
-    neighbor_grid.spacing = params.tunable_params.smoothing_radius;
+//    neighbor_grid_t neighbor_grid;
+//    neighbor_grid.max_bucket_size = 100;
+//    neighbor_grid.max_neighbors = neighbor_grid.max_bucket_size*4;
+    params->grid_spacing = params->tunable_params.smoothing_radius;
 
     size_t total_bytes = 0;
     size_t bytes;
@@ -183,10 +187,40 @@ void start_simulation()
     // Allocate pointer array used to traverse non vacant particles
     bytes = max_fluid_particles_local * sizeof(fluid_particle*);
     total_bytes+=bytes;
-    fluid_particle **fluid_particle_pointers = malloc(bytes);
+    fluid_particle **fluid_particle_pointers;
+    cudaMallocManaged(&fluid_particle_pointers ,bytes);
     if(fluid_particle_pointers == NULL)
         printf("Could not allocate fluid_particle_pointers\n");
 
+    // Allocate uint hash value array
+    bytes = max_fluid_particles_local * sizeof(unsigned int);
+    total_bytes += bytes;
+    unsigned int * hash_values;
+    cudaMalloc(&hash_values, bytes);    
+
+    // Allocate uint particle ID array
+    bytes = max_fluid_particles_local * sizeof(unsigned int);
+    total_bytes += bytes;
+    unsigned int *particle_ids;
+    cudaMalloc(&particle_ids, bytes);
+
+    params->grid_size_x = ceil((boundary_global->max_x - boundary_global->min_x) / params->grid_spacing);
+    params->grid_size_y = ceil((boundary_global->max_y - boundary_global->min_y) / params->grid_spacing);
+    unsigned int length_hash = params->grid_size_x * params->grid_size_y;
+
+    // Allocate uint cell start index array
+    bytes = length_hash * sizeof(unsigned int);
+    total_bytes += bytes;
+    unsigned int * start_indexes;
+    cudaMalloc(&start_indexes, bytes);
+
+    // Allocate uint cell end index array
+    bytes = length_hash * sizeof(unsigned int);
+    total_bytes += bytes;
+    unsigned int *end_indexes;
+    cudaMalloc(&end_indexes, bytes);
+
+/*
     // Allocate neighbor array
     neighbor *neighbors = calloc(max_fluid_particles_local, sizeof(neighbor));
     fluid_particle **fluid_neighbors = calloc(max_fluid_particles_local * neighbor_grid.max_neighbors, sizeof(fluid_particle *));
@@ -198,7 +232,9 @@ void start_simulation()
     total_bytes+= (max_fluid_particles_local*sizeof(neighbor) + neighbor_grid.max_neighbors*sizeof(fluid_particle *));
     if(neighbors == NULL || fluid_neighbors == NULL)
         printf("Could not allocate neighbors\n");
+*/
 
+/*
     // UNIFORM GRID HASH
     neighbor_grid.size_x = ceil((boundary_global.max_x - boundary_global.min_x) / neighbor_grid.spacing);
     neighbor_grid.size_y = ceil((boundary_global.max_y - boundary_global.min_y) / neighbor_grid.spacing);
@@ -212,8 +248,10 @@ void start_simulation()
     total_bytes+= (length_hash * sizeof(bucket_t) + neighbor_grid.max_bucket_size * sizeof(fluid_particle *));
     if(grid_buckets == NULL || bucket_particles == NULL)
         printf("Could not allocate hash\n");
+*/
 
     // Allocate edge index arrays
+    // Edge and out of bounds arrays are handled on host
     edges.edge_pointers_left = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
     edges.edge_pointers_right = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
     // Allocate out of bound index arrays
@@ -225,16 +263,16 @@ void start_simulation()
 
     // Initialize particles
     initParticles(fluid_particle_pointers, fluid_particles, &water_volume_global, start_x,
-		  number_particles_x, &edges, max_fluid_particles_local, spacing_particle, &params);
+		  number_particles_x, &edges, max_fluid_particles_local, spacing_particle, params);
 
     // Print some parameters
-    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.tunable_params.smoothing_radius);
+    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params->number_fluid_particles_local, params->tunable_params.smoothing_radius);
 
     // Send intiial paramaters to render node
     tunable_parameters *null_tunable_param = NULL;
     int *null_recvcnts = NULL;
     int *null_displs = NULL;
-    MPI_Gatherv(&params.tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(&params->tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
     // Initialize RGB Light if present
     #ifdef LIGHT
@@ -260,17 +298,20 @@ void start_simulation()
     #endif
     int sub_step = 0; // substep range from 0 to < steps_per_frame
 
+    int threads_per_block = 256;
+    int num_blocks;
+
     // Main simulation loop
     while(1) {
 
         // Initialize velocities
-        apply_gravity(fluid_particle_pointers, &params);
+        apply_gravity(fluid_particle_pointers, params);
 
         // Viscosity impluse
-        viscosity_impluses(fluid_particle_pointers, neighbors, &params);
+        viscosity_impluses(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
 
         // Advance to predicted position and set OOB particles
-        predict_positions(fluid_particle_pointers, &boundary_global, &params);
+        predict_positions(fluid_particle_pointers, boundary_global, params)
 
         // Make sure that async send to render node is complete
         if(sub_step == 0)
@@ -280,67 +321,59 @@ void start_simulation()
         }
 
         #ifdef LIGHT
-        char previously_active = params.tunable_params.active;
+        char previously_active = params->tunable_params.active;
         #endif
 
         // Receive updated paramaters from render nodes
         if(sub_step == steps_per_frame-1)
-            MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
+            MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, params->tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
         #ifdef LIGHT
         // If recently added to computation turn light to light state color
         // If recently taken out of computation turn light to white
-        char currently_active = params.tunable_params.active;
+        char currently_active = params->tunable_params.active;
         if (!previously_active && currently_active)
             rgb_light_reset(&light_state);
         else if (!currently_active && previously_active)
             rgb_light_white(&light_state);
         #endif
 
-        if(params.tunable_params.kill_sim)
+        if(params->tunable_params.kill_sim)
             break;
 
-        // Identify out of bounds particles and send them to appropriate rank
-        identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, &boundary_global, &params);
+        // Synchronize kernels
+        cudaDeviceSynchrnoize();
 
-        // Hash the non halo regions
-        // This will update the densities so when the halo is exchanged the halo particles are up to date
-        // This works well on the raspi's but destroys communication/computation overlap
-        hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, true);
+        // Identify out of bounds particles and send them to appropriate rank
+        identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, boundary_global, params);
 
          // Exchange halo particles
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
 
-        // Add the halo particles to neighbor buckets
-        // Also update density
-        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, true);
+        hash_particles(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
+
+        // TO DO: update density kernel
+        calculate_densities(fluid_particle_pointers, params);
+        calculate_pressures(fluid_particle_pointers, params);
 
         // double density relaxation
         // halo particles will be missing origin contributions to density/pressure
-        double_density_relaxation(fluid_particle_pointers, neighbors, &params);
+        double_density_relaxation(fluid_particle_pointers, neighbors, params);
 
         // update velocity
-        updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
+        updateVelocities(fluid_particle_pointers, boundary_global, params);
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
 
-        #ifndef RASPI
+        // Hash particles
+        hash_particles(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
+
         // Exchange halo particles from relaxed positions
-        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-        #endif
-
-        // We can hash during exchange as the density is not needed
-        hash_fluid(fluid_particle_pointers, &neighbor_grid, &params, false);
-
-        #ifndef RASPI
+        startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
         // Finish asynch halo exchange
-        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, &params);
-
-        // Update hash with relaxed positions
-        hash_halo(fluid_particle_pointers, &neighbor_grid, &params, false);
-        #endif
+        finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
 
         // We do not transfer particles that have gone OOB since relaxation
         // to reduce communication cost
@@ -349,19 +382,22 @@ void start_simulation()
         // This sends results as short in pixel coordinates
         if(sub_step == steps_per_frame-1)
         {
-            for(i=0; i<params.number_fluid_particles_local; i++) {
+            for(i=0; i<params->number_fluid_particles_local; i++) {
                 p = fluid_particle_pointers[i];
-                fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-                fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+                fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global->max_y - 1.0f) * SHRT_MAX; // convert to short using full range
             }
             // Async send fluid particle coordinates to render node
-            MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+            MPI_Isend(fluid_particle_coords, 2*params->number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
         }
 
         if(sub_step == steps_per_frame-1)
             sub_step = 0;
         else
 	    sub_step++;
+
+        // Synchronize kernels
+        cudaDeviceSynchrnoize();
 
     }
 
@@ -388,89 +424,6 @@ void start_simulation()
 
 }
 
-// This should go into the hash, perhaps with the viscocity?
-void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
-{
-    int i;
-    fluid_particle *p;
-    float dt = params->tunable_params.time_step;
-    float g = -params->tunable_params.g;
-
-    for(i=0; i<(params->number_fluid_particles_local + params->number_halo_particles); i++) {
-        p = fluid_particle_pointers[i];
-        p->v_y += g*dt;
-
-        // Zero out density as well
-        p->density = 0.0f;
-        p->density_near = 0.0f;
-     }
-}
-
-// Add viscosity impluses
-void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params)
-{
-    int i, j, num_fluid;
-    fluid_particle *p, *q;
-    neighbor* n;
-    float r, r_recip, ratio, u, imp, imp_x, imp_y;
-    float p_x, p_y;
-    float QmP_x, QmP_y;
-    float h_recip, sigma, beta, dt;
-
-    num_fluid = params->number_fluid_particles_local;
-    h_recip = 1.0f/params->tunable_params.smoothing_radius;
-    sigma = params->tunable_params.sigma;
-    beta = params->tunable_params.beta;
-    dt = params->tunable_params.time_step;
-
-
-    for(i=num_fluid; i-- > 0; ) {
-        p = fluid_particle_pointers[i];
-        n = &neighbors[i];
- 	    p_x = p->x;
-	    p_y = p->y;
-
-        for(j=0; j<n->number_fluid_neighbors; j++) {
-            q = n->fluid_neighbors[j];
-	
-            QmP_x = (q->x-p_x);
-            QmP_y = (q->y-p_y);
-            r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
-
-            r_recip = 1.0f/r;
-            ratio = r*h_recip;
-
-            //Inward radial velocity
-            u = ((p->v_x-q->v_x)*QmP_x + (p->v_y-q->v_y)*QmP_y)*r_recip;
-            if(u>0.0f)
-            {
-                imp = dt * (1-ratio)*(sigma * u + beta * u*u);
-                imp_x = imp*QmP_x*r_recip;
-                imp_y = imp*QmP_y*r_recip;
-
-		// Not correct to use velocity check but will stop velocity from
-		// blowing up
-		checkVelocity(&imp_x, &imp_y);
-
-                p->v_x -= imp_x*0.5f;
-                p->v_y -= imp_y*0.5f;
-
-                if(q->id < num_fluid) {
-                    q->v_x += imp_x*0.5f;
-                    q->v_y += imp_y*0.5f;
-
-                }
-                else { // Only apply half of the impulse to halo particles as they are missing "home" contribution
-                    q->v_x += imp_x*0.125f;
-                    q->v_y += imp_y*0.125f;
-                }
-                
-            }
-
-        }
-    }
-}
-
 // Identify out of bounds particles and send them to appropriate rank
 void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params)
 {
@@ -493,248 +446,6 @@ void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_part
  
    // Transfer particles that have left the processor bounds
    transferOOBParticles(fluid_particle_pointers, fluid_particles, out_of_bounds, params);
-}
-
-
-
-// Predict position
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
-{
-    int i;
-    fluid_particle *p;
-    float dt = params->tunable_params.time_step;
-
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-	p->x_prev = p->x;
-        p->y_prev = p->y;
-	p->x += (p->v_x * dt);
-        p->y += (p->v_y * dt);
-
-	// Enforce boundary conditions
-        boundaryConditions(p, boundary_global, params);
-    }
-}
-
-// Calculate the density contribution of p on q and q on p
-// r is passed in as this function is called in the hash which must also calculate r
-void calculate_density(fluid_particle *p, fluid_particle *q, float ratio)
-{
-
-    float OmR2 = (1.0f-ratio)*(1.0f-ratio); // (one - r)^2
-    if(ratio < 1.0f) {
-	p->density += OmR2;
-	p->density_near += OmR2*(1.0f-ratio);
-
-	q->density += OmR2;
-	q->density_near += OmR2*(1.0f-ratio);
-    }
-
-}
-
-void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
-{
-    int i, j, num_fluid;
-    fluid_particle *p, *q;
-    neighbor* n;
-    float r,ratio,dt,h,h_recip,r_recip,D,D_x,D_y;
-    float k, k_near, k_spring, p_pressure, p_pressure_near, rest_density;
-    float OmR;
-
-    num_fluid = params->number_fluid_particles_local;
-    k = params->tunable_params.k;
-    k_near = params->tunable_params.k_near;
-    k_spring = params->tunable_params.k_spring;
-    h = params->tunable_params.smoothing_radius;
-    h_recip = 1.0f/h;
-    dt = params->tunable_params.time_step;
-    rest_density = params->tunable_params.rest_density;
-
-    // Calculate the pressure of all particles, including halo
-    for(i=0; i<num_fluid + params->number_halo_particles; i++) {
-        p = fluid_particle_pointers[i];
-        // Compute pressure and near pressure
-        p->pressure = k * (p->density - rest_density);
-        p->pressure_near = k_near * p->density_near;
-    }
-
-    // Iterating through the array in reverse reduces biased particle movement
-    for(i=num_fluid; i-- > 0; ) {
-        p = fluid_particle_pointers[i];
-        n = &neighbors[i];
-        p_pressure = p->pressure;
-        p_pressure_near = p->pressure_near;
-
-        for(j=0; j<n->number_fluid_neighbors; j++) {
-
-            q = n->fluid_neighbors[j];
-            r = sqrt((p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y));
-	        r_recip = 1.0f/r;
-	        ratio = r*h_recip;
-	        OmR = 1.0f - ratio;
-
-            // Attempt to move clustered particles apart
-            if(r <= 0.000001f) {
-                p->x += 0.000001f;
-                p->y += 0.000001f;
-            }
-
-	    if(ratio < 1.0f && r > 0.0f) {
-                // Updating both neighbor pairs at the same time, slightly different than the paper but quicker
-                // Also the running sum of D for particle p seems to produce more bias/instability so is removed
-                D = dt*dt*((p_pressure+q->pressure)*OmR + (p_pressure_near+q->pressure_near)*OmR*OmR + k_spring*(h-r)*0.5);
-                D_x = D*(q->x-p->x)*r_recip;
-                D_y = D*(q->y-p->y)*r_recip;
-
-                // Do not move the halo particles full D
-                // Halo particles are missing D from their origin so I believe this is appropriate
-                if(q->id < num_fluid) {
-                    q->x += D_x;
-                    q->y += D_y;
-                }	
-                else { // Move the halo particles only half way to account for other sides missing contribution
-                    q->x += D_x*0.125f;
-                    q->y += D_y*0.125f;
-                }
- 
-                p->x -= D_x;
-                p->y -= D_y;
-           }
-       }
-    }
-}
-
-void checkVelocity(float *v_x, float *v_y)
-{
-    const float v_max = 5.0f;
-
-    if(*v_x > v_max)
-        *v_x = v_max;
-    else if(*v_x < -v_max)
-        *v_x = -v_max;
-    if(*v_y > v_max)
-        *v_y = v_max;
-    else if(*v_y < -v_max)
-        *v_y = -v_max;
-}
-
-void updateVelocity(fluid_particle *p, param *params)
-{
-    float dt = params->tunable_params.time_step;
-    float v_x, v_y;
-
-    v_x = (p->x-p->x_prev)/dt;
-    v_y = (p->y-p->y_prev)/dt;
-
-    checkVelocity(&v_x, &v_y);
-
-    p->v_x = v_x;
-    p->v_y = v_y;
-}
-
-// Update particle position and check boundary
-void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params)
-{
-    int i;
-    fluid_particle *p;
-
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-        boundaryConditions(p, boundary_global, params);
-        updateVelocity(p, params);
-
-    }
-}
-
-// Assume AABB with min point being axis origin
-void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
-{
-
-    float center_x = params->tunable_params.mover_center_x;
-    float center_y = params->tunable_params.mover_center_y;
-
-    // Boundary condition for sphere mover
-    if(params->tunable_params.mover_type == SPHERE_MOVER)
-    {
-        // Sphere width == height
-        float radius = params->tunable_params.mover_width*0.5f;
-        float norm_x;
-        float norm_y;
-
-        // Both circle tests can be combined if no impulse is used
-        // Test if inside of circle
-        float d;
-        float d2 = (p->x - center_x)*(p->x - center_x) + (p->y - center_y)*(p->y - center_y);
-        if(d2 <= radius*radius && d2 > 0.0f) {
-            d = sqrt(d2);
-            norm_x = (center_x-p->x)/d;
-            norm_y = (center_y-p->y)/d;
-	    
-	    // With no collision impulse we can handle penetration here
-            float pen_dist = radius - d;
-            p->x -= pen_dist * norm_x;
-            p->y -= pen_dist * norm_y;
-        }
-
-    }
-
-    // Boundary condition for rectangle mover
-    else if(params->tunable_params.mover_type == RECTANGLE_MOVER)
-    {
-        float half_width = params->tunable_params.mover_width*0.5;
-        float half_height = params->tunable_params.mover_height*0.5;
-
-        // Particle possition relative to mover center
-        float pos_center_x = p->x - center_x;
-        float pos_center_y = p->y - center_y;
-
-        // Distance from particle to mover center
-	float dist_center_x = fabs(pos_center_x);
-	float dist_center_y = fabs(pos_center_y);  
-
-	// Test if inside rectangle
-        if( dist_center_x < half_width && dist_center_y < half_height)
-        {
-            // To find where penetrated from we assume
-            // particle is closest to penetrated side
-
-            // Particle penetration depth into rectangle
-            float pen_depth_x = half_width - dist_center_x;
-            float pen_depth_y = half_height - dist_center_y;
-
-            // Particle closer to left/right sides
-            if(pen_depth_x < pen_depth_y){
-                // Entered left side
-                if(pos_center_x < 0.0f)
-                    p->x -= pen_depth_x;
-                else // Entered right side
-                    p->x += pen_depth_x;
-            }
-            else { // Particle closer to top/bottom
-                // Entered bottom
-                if(pos_center_y < 0.0f)
-                    p->y -= pen_depth_y;
-                else // Entered top
-                    p->y += pen_depth_y;
-            }
-        }
-    }
-
-    // Make sure object is not outside boundary
-    // The particle must not be equal to boundary max or hash potentially won't pick it up
-    // as the particle will in the 'next' after last bin
-    if(p->x < boundary->min_x) {
-        p->x = boundary->min_x;
-    }
-    else if(p->x > boundary->max_x){
-        p->x = boundary->max_x-0.001f;
-    }
-    if(p->y <  boundary->min_y) {
-        p->y = boundary->min_y;
-    }
-    else if(p->y > boundary->max_y){
-        p->y = boundary->max_y-0.001f;
-    }
 }
 
 // Initialize particles
