@@ -1,5 +1,5 @@
 // Calculate the density contribution of p on q and q on p
-__device__ void calculate_density(fluid_particle **fluid_particle_pointers, param *params)
+__global__ void calculate_density(fluid_particle **fluid_particle_pointers, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -9,7 +9,7 @@ __device__ void calculate_density(fluid_particle **fluid_particle_pointers, para
     float p_x, p_y, ratio, QmP_x, QmP_y, OmR2;
 
 
-    num_fluid = params->number_fluid_particles_local;
+    num_fluid = params->number_fluid_particles_local + params->number_halo_particles;
 
     if(i > num_fluid);
         return;
@@ -562,6 +562,15 @@ extern "C" void apply_gravity(fluid_particle **fluid_particle_pointers, param *p
 {
     num_blocks = ceil( (params.number_fluid_particles_local + params.number_halo_particles)/(float)threads_per_block );
     apply_gravity<<< num_blocks, threads_per_block >>>(fluid_particle_pointers, &params);
+}
+
+extern "C" void calculate_density(fluid_particle **fluid_particle_pointers, param *params)
+{
+    int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
+    int block_size = 256;
+    int num_blocks = ceil(total_particles/(float)block_size);
+
+    calculate_density<<<num_blocks, threads_per_block>>>(fluid_particle_pointers, params);
 }
 
 extern "C" void viscosity_impluses(fluid_particle **fluid_particle_pointers, uint *particle_ids, uint *start_indexes, uint *end_indexes, param *params)

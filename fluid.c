@@ -353,7 +353,6 @@ void start_simulation()
 
         hash_particles(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
-        // TO DO: update density kernel
         calculate_densities(fluid_particle_pointers, params);
         calculate_pressures(fluid_particle_pointers, params);
 
