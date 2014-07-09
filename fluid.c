@@ -28,7 +28,6 @@ THE SOFTWARE.
 #include <limits.h>
 
 #include "mpi.h"
-#include "hash.h"
 #include "renderer.h"
 #include "geometry.h"
 #include "fluid.h"
@@ -174,7 +173,8 @@ void start_simulation()
     // Allocate fluid particles array
     bytes = max_fluid_particles_local * sizeof(fluid_particle);
     total_bytes+=bytes;
-    fluid_particle *fluid_particles = (fluid_particle*)malloc(bytes);
+    fluid_particle *fluid_particles;
+    cudaMallocManaged((void**)&fluid_particles, bytes, cudaMemAttachGlobal);
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
@@ -220,36 +220,6 @@ void start_simulation()
     total_bytes += bytes;
     unsigned int *end_indexes;
     cudaMalloc((void**)&end_indexes, bytes);
-
-/*
-    // Allocate neighbor array
-    neighbor *neighbors = calloc(max_fluid_particles_local, sizeof(neighbor));
-    fluid_particle **fluid_neighbors = calloc(max_fluid_particles_local * neighbor_grid.max_neighbors, sizeof(fluid_particle *));
-    // Set pointer in each bucket
-    for(i=0; i< max_fluid_particles_local; i++ )
-        neighbors[i].fluid_neighbors = &(fluid_neighbors[i*neighbor_grid.max_neighbors]);
-
-    neighbor_grid.neighbors = neighbors;
-    total_bytes+= (max_fluid_particles_local*sizeof(neighbor) + neighbor_grid.max_neighbors*sizeof(fluid_particle *));
-    if(neighbors == NULL || fluid_neighbors == NULL)
-        printf("Could not allocate neighbors\n");
-*/
-
-/*
-    // UNIFORM GRID HASH
-    neighbor_grid.size_x = ceil((boundary_global.max_x - boundary_global.min_x) / neighbor_grid.spacing);
-    neighbor_grid.size_y = ceil((boundary_global.max_y - boundary_global.min_y) / neighbor_grid.spacing);
-    unsigned int length_hash = neighbor_grid.size_x * neighbor_grid.size_y;
-    printf("grid x: %d grid y %d\n", neighbor_grid.size_x, neighbor_grid.size_y);
-    bucket_t* grid_buckets = calloc(length_hash, sizeof(bucket_t));
-    fluid_particle **bucket_particles = calloc(length_hash * neighbor_grid.max_bucket_size, sizeof(fluid_particle *));
-    neighbor_grid.grid_buckets = grid_buckets;
-    for(i=0; i < length_hash; i++)
-	grid_buckets[i].fluid_particles = &(bucket_particles[i*neighbor_grid.max_bucket_size]);
-    total_bytes+= (length_hash * sizeof(bucket_t) + neighbor_grid.max_bucket_size * sizeof(fluid_particle *));
-    if(grid_buckets == NULL || bucket_particles == NULL)
-        printf("Could not allocate hash\n");
-*/
 
     // Allocate edge index arrays
     // Edge and out of bounds arrays are handled on host
@@ -299,8 +269,8 @@ void start_simulation()
     #endif
     int sub_step = 0; // substep range from 0 to < steps_per_frame
 
-    int threads_per_block = 256;
-    int num_blocks;
+    // Initial "primer" hash
+    hash_particles_gpu(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
     // Main simulation loop
     while(1) {
@@ -325,6 +295,9 @@ void start_simulation()
         char previously_active = params->tunable_params.active;
         #endif
 
+        // Synchronize kernels
+        cudaDeviceSynchronize();
+
         // Receive updated paramaters from render nodes
         if(sub_step == steps_per_frame-1)
             MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params->tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
@@ -341,9 +314,6 @@ void start_simulation()
 
         if(params->tunable_params.kill_sim)
             break;
-
-        // Synchronize kernels
-        cudaDeviceSynchronize();
 
         // Identify out of bounds particles and send them to appropriate rank
         identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, boundary_global, params);
@@ -371,6 +341,9 @@ void start_simulation()
         // Hash particles
         hash_particles_gpu(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
+        // Synchronize kernels
+        cudaDeviceSynchronize();
+
         // Exchange halo particles from relaxed positions
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
         // Finish asynch halo exchange
@@ -397,28 +370,26 @@ void start_simulation()
         else
 	    sub_step++;
 
-        // Synchronize kernels
-        cudaDeviceSynchronize();
-
     }
+
 
     #ifdef LIGHT
     rgb_light_off(&light_state);
     #endif
 
     // Release memory
-    free(fluid_particles);
+    cudaFree(fluid_particles);
     free(fluid_particle_coords);
-    free(fluid_particle_pointers);
+    cudaFree(fluid_particle_pointers);
     free(edges.edge_pointers_left);
     free(edges.edge_pointers_right);
     free(out_of_bounds.oob_pointer_indicies_left);
     free(out_of_bounds.oob_pointer_indicies_right);
     free(out_of_bounds.vacant_indicies);
+    cudaFree(params);
 
     // Close MPI
     freeMpiTypes();
-
 }
 
 // Identify out of bounds particles and send them to appropriate ran
