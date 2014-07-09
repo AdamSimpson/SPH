@@ -96,18 +96,18 @@ int start_renderer()
 
     // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
-    tunable_parameters *node_params = malloc(num_compute_procs*sizeof(tunable_parameters));
+    tunable_parameters *node_params = (tunable_parameters*)malloc(num_compute_procs*sizeof(tunable_parameters));
 
     // The render node must keep it's own set of master parameters
     // This is due to the GLFW key callback method
-    tunable_parameters *master_params = malloc(num_compute_procs*sizeof(tunable_parameters));
+    tunable_parameters *master_params = (tunable_parameters*)malloc(num_compute_procs*sizeof(tunable_parameters));
 
     // Setup render state
     render_state.node_params = node_params;
     render_state.master_params = master_params;
     render_state.num_compute_procs = num_compute_procs;
     render_state.num_compute_procs_active = num_compute_procs;
-    render_state.selected_parameter = 0;
+    render_state.selected_parameter = GRAVITY;
     render_state.return_value = 0;
 
     int i,j;
@@ -131,8 +131,8 @@ int start_renderer()
     float world_to_pix_scale = gl_state.screen_width/render_state.sim_width;
 
     // Gatherv initial tunable parameters values
-    int *param_counts = malloc(num_procs * sizeof(int));
-    int *param_displs = malloc(num_procs * sizeof(int));
+    int *param_counts = (int*)malloc(num_procs * sizeof(int));
+    int *param_displs = (int*)malloc(num_procs * sizeof(int));
     for(i=0; i<num_procs; i++) {
         param_counts[i] = i?1:0; // will not receive from rank 0
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
@@ -149,11 +149,11 @@ int start_renderer()
 
     // Allocate particle receive array
     int num_coords = 2;
-    short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
+    short *particle_coords = (short*)malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
     int point_size = 5 * sizeof(float);
-    float *points = malloc(point_size*max_particles);
+    float *points = (float*)malloc(point_size*max_particles);
 
     // Allocate mover point array(position + color)
     float mover_center[2];
@@ -163,15 +163,15 @@ int start_renderer()
     float *node_edges = (float*)malloc(2*render_state.num_compute_procs*sizeof(float));
 
     // Number of coordinates received from each proc
-    int *particle_coordinate_counts = malloc(num_compute_procs * sizeof(int));
+    int *particle_coordinate_counts = (int*)malloc(num_compute_procs * sizeof(int));
     // Keep track of order in which particles received
-    int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
+    int *particle_coordinate_ranks = (int*)malloc(num_compute_procs * sizeof(int));
 
     // Set background color
     glClearColor(0.15, 0.15, 0.15, 1.0);
 
     // Create color index, equally spaced around HSV
-    float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
+    float *colors_by_rank = (float*)malloc(3*render_state.num_compute_procs*sizeof(float));
     float angle_space = 0.5f/(float)render_state.num_compute_procs;
     float HSV[3];
     for(i=0; i<render_state.num_compute_procs; i++)

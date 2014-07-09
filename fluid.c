@@ -33,8 +33,9 @@ THE SOFTWARE.
 #include "geometry.h"
 #include "fluid.h"
 #include "communication.h"
+#include "fluid_cuda.h"
 
-#include "cuda.h"
+#include "cuda_runtime.h"
 
 #ifdef LIGHT
 #include "rgb_light.h"
@@ -76,10 +77,10 @@ void start_simulation()
     printf("compute rank: %d, num compute procs: %d \n",rank, nprocs);
 
     param *params;
-    cudaMallocManaged(&params, sizeof(param));
+    cudaMallocManaged((void**)&params, sizeof(param), cudaMemAttachGlobal);
     AABB_t water_volume_global;
     AABB_t *boundary_global;
-    cudaMallocManaged(&boundary_global, sizeof(AABB_t));
+    cudaMallocManaged((void**)&boundary_global, sizeof(AABB_t), cudaMemAttachGlobal);
     edge_t edges;
     oob_t out_of_bounds;
 
@@ -173,14 +174,14 @@ void start_simulation()
     // Allocate fluid particles array
     bytes = max_fluid_particles_local * sizeof(fluid_particle);
     total_bytes+=bytes;
-    fluid_particle *fluid_particles = malloc(bytes);
+    fluid_particle *fluid_particles = (fluid_particle*)malloc(bytes);
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
     // Allocate (x,y) coordinate array, transfer pixel coords
     bytes = 2 * max_fluid_particles_local * sizeof(short);
     total_bytes+=bytes;
-    short *fluid_particle_coords = malloc(bytes);
+    short *fluid_particle_coords = (short*)malloc(bytes);
     if(fluid_particle_coords == NULL)
         printf("Could not allocate fluid_particle coords\n");
 
@@ -188,7 +189,7 @@ void start_simulation()
     bytes = max_fluid_particles_local * sizeof(fluid_particle*);
     total_bytes+=bytes;
     fluid_particle **fluid_particle_pointers;
-    cudaMallocManaged(&fluid_particle_pointers ,bytes);
+    cudaMallocManaged((void**)&fluid_particle_pointers ,bytes, cudaMemAttachGlobal);
     if(fluid_particle_pointers == NULL)
         printf("Could not allocate fluid_particle_pointers\n");
 
@@ -196,13 +197,13 @@ void start_simulation()
     bytes = max_fluid_particles_local * sizeof(unsigned int);
     total_bytes += bytes;
     unsigned int * hash_values;
-    cudaMalloc(&hash_values, bytes);    
+    cudaMalloc((void**)&hash_values, bytes);    
 
     // Allocate uint particle ID array
     bytes = max_fluid_particles_local * sizeof(unsigned int);
     total_bytes += bytes;
     unsigned int *particle_ids;
-    cudaMalloc(&particle_ids, bytes);
+    cudaMalloc((void**)&particle_ids, bytes);
 
     params->grid_size_x = ceil((boundary_global->max_x - boundary_global->min_x) / params->grid_spacing);
     params->grid_size_y = ceil((boundary_global->max_y - boundary_global->min_y) / params->grid_spacing);
@@ -212,13 +213,13 @@ void start_simulation()
     bytes = length_hash * sizeof(unsigned int);
     total_bytes += bytes;
     unsigned int * start_indexes;
-    cudaMalloc(&start_indexes, bytes);
+    cudaMalloc((void**)&start_indexes, bytes);
 
     // Allocate uint cell end index array
     bytes = length_hash * sizeof(unsigned int);
     total_bytes += bytes;
     unsigned int *end_indexes;
-    cudaMalloc(&end_indexes, bytes);
+    cudaMalloc((void**)&end_indexes, bytes);
 
 /*
     // Allocate neighbor array
@@ -252,12 +253,12 @@ void start_simulation()
 
     // Allocate edge index arrays
     // Edge and out of bounds arrays are handled on host
-    edges.edge_pointers_left = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
-    edges.edge_pointers_right = malloc(edges.max_edge_particles * sizeof(fluid_particle*));
+    edges.edge_pointers_left = (fluid_particle**)malloc(edges.max_edge_particles * sizeof(fluid_particle*));
+    edges.edge_pointers_right = (fluid_particle**)malloc(edges.max_edge_particles * sizeof(fluid_particle*));
     // Allocate out of bound index arrays
-    out_of_bounds.oob_pointer_indicies_left = malloc(out_of_bounds.max_oob_particles * sizeof(int));
-    out_of_bounds.oob_pointer_indicies_right = malloc(out_of_bounds.max_oob_particles * sizeof(int));
-    out_of_bounds.vacant_indicies = malloc(2*out_of_bounds.max_oob_particles * sizeof(int));
+    out_of_bounds.oob_pointer_indicies_left = (int*)malloc(out_of_bounds.max_oob_particles * sizeof(int));
+    out_of_bounds.oob_pointer_indicies_right = (int*)malloc(out_of_bounds.max_oob_particles * sizeof(int));
+    out_of_bounds.vacant_indicies = (int*)malloc(2*out_of_bounds.max_oob_particles * sizeof(int));
 
     printf("bytes allocated: %lu\n", total_bytes);
 
@@ -305,13 +306,13 @@ void start_simulation()
     while(1) {
 
         // Initialize velocities
-        apply_gravity(fluid_particle_pointers, params);
+        apply_gravity_gpu(fluid_particle_pointers, params);
 
         // Viscosity impluse
-        viscosity_impluses(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
+        viscosity_impluses_gpu(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
 
         // Advance to predicted position and set OOB particles
-        predict_positions(fluid_particle_pointers, boundary_global, params)
+        predict_positions_gpu(fluid_particle_pointers, boundary_global, params);
 
         // Make sure that async send to render node is complete
         if(sub_step == 0)
@@ -326,7 +327,7 @@ void start_simulation()
 
         // Receive updated paramaters from render nodes
         if(sub_step == steps_per_frame-1)
-            MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, params->tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
+            MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params->tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
         #ifdef LIGHT
         // If recently added to computation turn light to light state color
@@ -342,7 +343,7 @@ void start_simulation()
             break;
 
         // Synchronize kernels
-        cudaDeviceSynchrnoize();
+        cudaDeviceSynchronize();
 
         // Identify out of bounds particles and send them to appropriate rank
         identify_oob_particles(fluid_particle_pointers, fluid_particles, &out_of_bounds, boundary_global, params);
@@ -351,23 +352,24 @@ void start_simulation()
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
         finishHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
 
-        hash_particles(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
+        hash_particles_gpu(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
-        calculate_densities(fluid_particle_pointers, params);
-        calculate_pressures(fluid_particle_pointers, params);
+        calculate_density_gpu(fluid_particle_pointers, start_indexes, end_indexes, particle_ids, params);
+
+        calculate_pressures_gpu(fluid_particle_pointers, params);
 
         // double density relaxation
         // halo particles will be missing origin contributions to density/pressure
-        double_density_relaxation(fluid_particle_pointers, neighbors, params);
+        double_density_relaxation_gpu(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
 
         // update velocity
-        updateVelocities(fluid_particle_pointers, boundary_global, params);
+        updateVelocities_gpu(fluid_particle_pointers, boundary_global, params);
 
         // Not updating halo particles and hash after relax can be used to speed things up
         // Not updating these can cause unstable behavior
 
         // Hash particles
-        hash_particles(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
+        hash_particles_gpu(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
         // Exchange halo particles from relaxed positions
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
@@ -396,7 +398,7 @@ void start_simulation()
 	    sub_step++;
 
         // Synchronize kernels
-        cudaDeviceSynchrnoize();
+        cudaDeviceSynchronize();
 
     }
 
@@ -408,10 +410,6 @@ void start_simulation()
     free(fluid_particles);
     free(fluid_particle_coords);
     free(fluid_particle_pointers);
-    free(neighbors);
-    free(fluid_neighbors);
-    free(grid_buckets);
-    free(bucket_particles);
     free(edges.edge_pointers_left);
     free(edges.edge_pointers_right);
     free(out_of_bounds.oob_pointer_indicies_left);
@@ -423,7 +421,7 @@ void start_simulation()
 
 }
 
-// Identify out of bounds particles and send them to appropriate rank
+// Identify out of bounds particles and send them to appropriate ran
 void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params)
 {
     int i;

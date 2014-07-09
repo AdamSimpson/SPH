@@ -111,7 +111,7 @@ void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_star
     int fluid_particles_x = floor((fluid_global->max_x - fluid_global->min_x ) / spacing) + 1;
     
     // number of particles x direction
-    int *particle_length_x = malloc(nprocs*sizeof(int));
+    int *particle_length_x = (int*)malloc(nprocs*sizeof(int));
     
     // Number of particles in x direction assuming equal spacing
     int equal_spacing = floor(fluid_particles_x/nprocs);

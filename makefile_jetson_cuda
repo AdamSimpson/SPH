@@ -1,0 +1,13 @@
+CC=mpicc
+CLIBS= -L/usr/local/lib -lglfw3 -lGL -lGLU -lX11 -lGLEW -lXxf86vm -lXrandr -lXi -lfreetype -lm -I/usr/local/cuda-6.0/include -L/usr/local/cuda-6.0/lib -lcudart -lstdc++
+CINCLUDES= -I/usr/include/freetype2
+CFLAGS= -DGLFW -O3 -I/usr/local/include -I/usr/include/libdrm
+
+all:
+	mkdir -p bin
+	nvcc -c -ccbin=mpiCC fluid_cuda.cu
+	$(CC) $(CINCLUDES) $(CFLAGS) $(CLIBS) fluid_cuda.o fluid.c ogl_utils.c dividers_gl.c particles_gl.c mover_gl.c font_gl.c lodepng.c exit_menu_gl.c rectangle_gl.c renderer.c glfw_utils.c image_gl.c cursor_gl.c background_gl.c controls.c geometry.c communication.c -o bin/sph.out $(CLIBS)
+
+clean:
+	rm -f ./sph.out
+	rm -f ./*.o

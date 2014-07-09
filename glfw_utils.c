@@ -54,7 +54,7 @@ bool window_should_close(gl_t *state)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     // Get render_state from GLFW user pointer
-    render_t *render_state = glfwGetWindowUserPointer(window);
+    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS || action == GLFW_REPEAT)
     {
@@ -112,7 +112,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     // Get render_state from GLFW user pointer
-    render_t *render_state = glfwGetWindowUserPointer(window);
+    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
 
     // Let renderer know of activity
     set_activity_time(render_state);
@@ -129,7 +129,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void wheel_callback(GLFWwindow* window, double x, double y)
 {
     // Get render_state from GLFW user pointer
-    render_t *render_state = glfwGetWindowUserPointer(window);
+    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
 
     // Let renderer know of activity
     set_activity_time(render_state);    

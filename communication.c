@@ -276,10 +276,10 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     // Create indexed type to send
     MPI_Datatype LeftMovetype;
     MPI_Datatype RightMovetype;
-    int *blocklens_left = malloc(num_moving_left*sizeof(int));
-    int *blocklens_right = malloc(num_moving_right*sizeof(int));
-    int *indicies_left = malloc(num_moving_left*sizeof(int));
-    int *indicies_right = malloc(num_moving_right*sizeof(int));
+    int *blocklens_left = (int*)malloc(num_moving_left*sizeof(int));
+    int *blocklens_right = (int*)malloc(num_moving_right*sizeof(int));
+    int *indicies_left = (int*)malloc(num_moving_left*sizeof(int));
+    int *indicies_right = (int*)malloc(num_moving_right*sizeof(int));
 
     // Convert the OOB pointer into a particle array index using pointer arithmetic
     int index;
@@ -307,8 +307,8 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     MPI_Datatype RightRecvtype;
 
     int total_recv = num_from_left + num_from_right;
-    int *blocklens_recv = malloc(total_recv*sizeof(int));
-    int *indicies_recv = malloc(total_recv*sizeof(int));
+    int *blocklens_recv = (int*)malloc(total_recv*sizeof(int));
+    int *indicies_recv = (int*)malloc(total_recv*sizeof(int));
     // Go through vacancies, starting at end, to create receive indicies
     // Go through reverse so it's easy to set update vacancies below
     for (i=0; i<out_of_bounds->number_vacancies && i<total_recv; i++) {

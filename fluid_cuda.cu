@@ -1,22 +1,28 @@
+#include "thrust/device_ptr.h"
+#include "thrust/sort.h"
+#include "fluid.h"
+
 // Calculate the density contribution of p on q and q on p
-__global__ void calculate_density(fluid_particle **fluid_particle_pointers, param *params)
+__global__ void calculate_density(fluid_particle **fluid_particle_pointers, uint *start_indexes, uint *end_indexes, uint *particle_ids, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
 
     int num_fluid, grid_x, grid_y, bucket_index;
     uint start_index, end_index;
     fluid_particle *p, *q;
-    float p_x, p_y, ratio, QmP_x, QmP_y, OmR2;
-
+    float p_x, p_y, ratio, QmP_x, QmP_y, OmR2, r, h_recip;
+    h_recip = 1.0f/params->tunable_params.smoothing_radius;
 
     num_fluid = params->number_fluid_particles_local + params->number_halo_particles;
 
-    if(i > num_fluid);
+    if(i > num_fluid)
         return;
 
     p = fluid_particle_pointers[i];
     p_x = p->x;
     p_y = p->y;
+
+    float spacing = params->grid_spacing;
 
     // Calculate coordinates within bucket grid
     grid_x = floor(p_x/spacing);
@@ -49,7 +55,6 @@ __global__ void calculate_density(fluid_particle **fluid_particle_pointers, para
                     QmP_y = (q->y-p_y);
                     r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
 
-                    r_recip = 1.0f/r;
                     ratio = r*h_recip;
 
                     OmR2 = (1.0f-ratio)*(1.0f-ratio); // (one - r)^2
@@ -125,7 +130,7 @@ __device__ void checkVelocity(float *v_x, float *v_y)
         *v_y = -v_max;
 }
 
-__device__ unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param *params)
+__device__ unsigned int hash_val(float x, float y, param *params)
 {
     float spacing = params->grid_spacing;
     float size_x  = params->grid_size_x;
@@ -157,7 +162,7 @@ __global__ void find_cell_start(uint   *start_indexes,        // output: cell st
     // handle case when no. of particles not multiple of block size
     if (index < numParticles)
     {
-        hash = gridParticleHash[index];
+        hash = hash_values[index];
 
         // Load hash data into shared memory so that we can look
         // at neighboring particle's hash value without loading
@@ -167,7 +172,7 @@ __global__ void find_cell_start(uint   *start_indexes,        // output: cell st
         if (index > 0 && threadIdx.x == 0)
         {
             // first thread in block must load neighbor particle hash
-            sharedHash[0] = gridParticleHash[index-1];
+            sharedHash[0] = hash_values[index-1];
         }
     }
 
@@ -239,15 +244,16 @@ __global__ void viscosity_impluses(fluid_particle **fluid_particle_pointers, uin
     float r, r_recip, ratio, u, imp, imp_x, imp_y;
     float p_x, p_y;
     float QmP_x, QmP_y;
-    float h_recip, sigma, beta, dt;
+    float h_recip, sigma, beta, dt,spacing;
 
     num_fluid = params->number_fluid_particles_local;
     h_recip = 1.0f/params->tunable_params.smoothing_radius;
     sigma = params->tunable_params.sigma;
     beta = params->tunable_params.beta;
     dt = params->tunable_params.time_step;
+    spacing = params->grid_spacing;
 
-    if(i > num_fluid);
+    if(i > num_fluid)
         return;
 
     p = fluid_particle_pointers[i];
@@ -330,11 +336,11 @@ __global__ void viscosity_impluses(fluid_particle **fluid_particle_pointers, uin
 __global__ void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    num_fluid = params->number_fluid_particles_local;
+    int num_fluid = params->number_fluid_particles_local;
     fluid_particle *p;
     float dt = params->tunable_params.time_step;
 
-    if(i > num_fluid);
+    if(i > num_fluid)
         return;
     p = fluid_particle_pointers[i];
     p->x_prev = p->x;
@@ -363,9 +369,9 @@ __device__ void updateVelocity(fluid_particle *p, param *params)
 __global__ void updateVelocities(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    num_fluid = params->number_fluid_particles_local;
+    int num_fluid = params->number_fluid_particles_local;
 
-    if(i > num_fluid);
+    if(i > num_fluid)
         return;
 
     fluid_particle *p;
@@ -377,9 +383,17 @@ __global__ void updateVelocities(fluid_particle **fluid_particle_pointers, AABB_
 __global__ void calculate_pressure(fluid_particle **fluid_particle_pointers, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    num_fluid = params->number_fluid_particles_local + params->number_halo_particles;
+    int num_fluid = params->number_fluid_particles_local + params->number_halo_particles;
 
-    if(i > num_fluid);
+    float k, k_near, rest_density;
+
+    k = params->tunable_params.k;
+    k_near = params->tunable_params.k_near;
+    rest_density = params->tunable_params.rest_density;
+
+    fluid_particle *p;
+
+    if(i > num_fluid)
         return;
 
     p = fluid_particle_pointers[i];
@@ -388,34 +402,32 @@ __global__ void calculate_pressure(fluid_particle **fluid_particle_pointers, par
     p->pressure_near = k_near * p->density_near;
 }
 
-__global__ void double_density_relaxation(fluid_particle **fluid_particle_pointers, param *params)
+__global__ void double_density_relaxation(fluid_particle **fluid_particle_pointers, uint *particle_ids, uint *start_indexes, uint *end_indexes, param *params)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int num_fluid = params->number_fluid_particles_local;
 
-    if(i > num_fluid);
+    if(i > num_fluid)
         return;
 
     int bucket_index, start_index, end_index;
     fluid_particle *p, *q;
-    neighbor* n;
     float r,ratio,dt,h,h_recip,r_recip,D,D_x,D_y;
-    float k, k_near, k_spring, p_pressure, p_pressure_near, rest_density;
-    float OmR;
+    float k_spring, p_pressure, p_pressure_near;
+    float OmR, grid_x, grid_y;
 
     num_fluid = params->number_fluid_particles_local;
-    k = params->tunable_params.k;
-    k_near = params->tunable_params.k_near;
     k_spring = params->tunable_params.k_spring;
     h = params->tunable_params.smoothing_radius;
     h_recip = 1.0f/h;
     dt = params->tunable_params.time_step;
-    rest_density = params->tunable_params.rest_density;
 
     // Iterating through the array in reverse reduces biased particle movement
     p = fluid_particle_pointers[i];
     p_pressure = p->pressure;
     p_pressure_near = p->pressure_near;
+
+    float spacing = params->grid_spacing;
 
     // Calculate coordinates within bucket grid
     grid_x = floor(p->x/spacing);
@@ -486,35 +498,35 @@ __global__ void double_density_relaxation(fluid_particle **fluid_particle_pointe
       } 
 }
 
-extern "C" __global__ void double_density_relaxation(fluid_particle **fluid_particle_pointers,param *params)
+extern "C" void double_density_relaxation_gpu(fluid_particle **fluid_particle_pointers, uint *particle_ids, uint *start_indexes, uint *end_indexes, param *params)
 {
     int total_particles = params->number_fluid_particles_local;
     int block_size = 256;
     int num_blocks = ceil(total_particles/(float)block_size);
 
-    double_density_relaxation<<<num_blocks, block_size>>>(fluid_particle_pointers, params)
+    double_density_relaxation<<<num_blocks, block_size>>>(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
 }
 
-extern "C" __global__ void calculate_pressures(fluid_particle **fluid_particle_pointers, param *params)
+extern "C" void calculate_pressures_gpu(fluid_particle **fluid_particle_pointers, param *params)
 {
     int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
     int block_size = 256;
     int num_blocks = ceil(total_particles/(float)block_size);
 
-    calculate_pressure<<<num_blocks, block_size>>>(fluid_particle_pointers, params)
+    calculate_pressure<<<num_blocks, block_size>>>(fluid_particle_pointers, params);
 
 }
 
-extern "C" __global__ void updateVelocities(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
+extern "C" void updateVelocities_gpu(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
 {
     int total_particles = params->number_fluid_particles_local;
     int block_size = 256;
     int num_blocks = ceil(total_particles/(float)block_size);
 
-    updateVelocities<<<num_blocks, block_size>>>(fluid_particle_pointers, boundary_global, params)
+    updateVelocities<<<num_blocks, block_size>>>(fluid_particle_pointers, boundary_global, params);
 }
 
-extern "C" predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
+extern "C" void predict_positions_gpu(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params)
 {
     int total_particles = params->number_fluid_particles_local;
     int block_size = 256;
@@ -523,7 +535,19 @@ extern "C" predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *b
     predict_positions<<<num_blocks, block_size>>>(fluid_particle_pointers, boundary_global, params);
 }
 
-extern "C" void hash_particles(fluid_particle **fluid_particle_pointers, uint *hash_values, uint *particle_ids, uint *starts, uint *ends, *params)
+// Use thrust radix sort to sort ()
+// Could also use uint2 and leap iterator...
+extern "C" void sort_hash_gpu(uint *d_particle_ids, uint *d_hash_values, param *params)
+{
+    int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
+
+    thrust::sort_by_key(thrust::device_ptr<uint>(d_hash_values),
+                        thrust::device_ptr<uint>(d_hash_values + total_particles),
+                        thrust::device_ptr<uint>(d_particle_ids)
+                        );
+}
+
+extern "C" void hash_particles_gpu(fluid_particle **fluid_particle_pointers, uint *hash_values, uint *particle_ids, uint *starts, uint *ends, param *params)
 {
     int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
     int block_size = 256;
@@ -534,47 +558,43 @@ extern "C" void hash_particles(fluid_particle **fluid_particle_pointers, uint *h
     cudaMemset(starts, 0xffffffff, length_hash*sizeof(uint));
 
     // Hash particles
-    calculate_hash(fluid_particle_pointers, hash_values, particle_ids, params);  
+    calculate_hash<<<num_blocks, block_size>>>(fluid_particle_pointers, hash_values, particle_ids, params);  
 
     // Sort hashed values
-    sort_hash<<<num_blocks, block_size>>>(particle_ids, hash_values, params);
+    sort_hash_gpu(particle_ids, hash_values, params);
 
     // Find start/end indexes for sorted values
-    find_cell_start<<<num_blocks, block_size>>>(starts, ends, hash_values, particle_ids, total_particles);
+    uint smem_size = sizeof(uint)*(block_size+1);
+    num_blocks = ceil(length_hash/(float)block_size);
+    find_cell_start<<<num_blocks, block_size, smem_size>>>(starts, ends, hash_values, particle_ids, total_particles);
 
     // Wait for kernels to complete
     cudaDeviceSynchronize();
 }
 
-// Use thrust radix sort to sort ()
-// Could also use uint2 and leap iterator...
-extern "C" void sort_hash(uint *d_particle_ids, uint *d_hash_values, param *params)
-{
-    int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
-
-    thrust::sort_by_key(thrust::device_ptr<uint>(d_hash_values),
-                        thrust::device_ptr<uint>(d_hash_values + total_particles),
-                        thrust::device_ptr<uint>(d_particle_ids)
-                        );
-}
-
-extern "C" void apply_gravity(fluid_particle **fluid_particle_pointers, param *params)
-{
-    num_blocks = ceil( (params.number_fluid_particles_local + params.number_halo_particles)/(float)threads_per_block );
-    apply_gravity<<< num_blocks, threads_per_block >>>(fluid_particle_pointers, &params);
-}
-
-extern "C" void calculate_density(fluid_particle **fluid_particle_pointers, param *params)
+extern "C" void apply_gravity_gpu(fluid_particle **fluid_particle_pointers, param *params)
 {
     int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
     int block_size = 256;
     int num_blocks = ceil(total_particles/(float)block_size);
 
-    calculate_density<<<num_blocks, threads_per_block>>>(fluid_particle_pointers, params);
+    apply_gravity<<< num_blocks, block_size >>>(fluid_particle_pointers, params);
 }
 
-extern "C" void viscosity_impluses(fluid_particle **fluid_particle_pointers, uint *particle_ids, uint *start_indexes, uint *end_indexes, param *params)
+extern "C" void calculate_density_gpu(fluid_particle **fluid_particle_pointers, uint *start_indexes, uint *end_indexes, uint *particle_ids, param *params)
 {
-    int total_particles = params->number_fluid_particles_local; //+ params->number_halo_particles;
-    viscosity_impluses(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
+    int total_particles = params->number_fluid_particles_local + params->number_halo_particles;
+    int block_size = 256;
+    int num_blocks = ceil(total_particles/(float)block_size);
+
+    calculate_density<<<num_blocks, block_size>>>(fluid_particle_pointers, start_indexes, end_indexes, particle_ids, params);
+}
+
+extern "C" void viscosity_impluses_gpu(fluid_particle **fluid_particle_pointers, uint *particle_ids, uint *start_indexes, uint *end_indexes, param *params)
+{
+    int total_particles = params->number_fluid_particles_local;
+    int block_size = 256;
+    int num_blocks = ceil(total_particles/(float)block_size);
+
+    viscosity_impluses<<<num_blocks, block_size>>>(fluid_particle_pointers, particle_ids, start_indexes, end_indexes, params);
 }

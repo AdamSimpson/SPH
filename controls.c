@@ -31,7 +31,7 @@ void move_parameter_up(render_t *render_state)
     if(render_state->selected_parameter == MIN)
         render_state->selected_parameter = MAX;
     else
-    render_state->selected_parameter--;
+        render_state->selected_parameter = (parameters)((int)render_state->selected_parameter-1);
 }
 
 // Move selected parameter down
@@ -40,7 +40,7 @@ void move_parameter_down(render_t *render_state)
     if(render_state->selected_parameter == MAX)
         render_state->selected_parameter = MIN;
     else
-        render_state->selected_parameter++;
+        render_state->selected_parameter = (parameters)((int)render_state->selected_parameter+1);
 }
 
 void increase_parameter(render_t *render_state)

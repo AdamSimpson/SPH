@@ -19,7 +19,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
 
     float lower_left_y = -half_height;
     float lower_left_x = -1.0f + dx;
-    state->mandelbrot_state = malloc(sizeof(image_t));
+    state->mandelbrot_state = (image_t*)malloc(sizeof(image_t));
 
     #ifdef RASPI
     init_image(state->mandelbrot_state,
@@ -38,7 +38,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #endif
 
     lower_left_x += 2.0f*half_width + dx;
-    state->terminal_state = malloc(sizeof(image_t));
+    state->terminal_state = (image_t*)malloc(sizeof(image_t));
     #ifdef RASPI
     init_image(state->terminal_state,
                gl_state,
@@ -56,7 +56,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #endif
 
     lower_left_x += 2.0f*half_width + dx;
-    state->sph_state = malloc(sizeof(image_t));
+    state->sph_state = (image_t*)malloc(sizeof(image_t));
     #ifdef RASPI
     init_image(state->sph_state,
                gl_state,
@@ -74,7 +74,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #endif
 
     // Initialize cursor
-    state->cursor_state = malloc(sizeof(cursor_t));
+    state->cursor_state = (cursor_t*)malloc(sizeof(cursor_t));
     int cursor_width = 120;
     int cursor_height = 160;
     #ifdef RASPI
@@ -84,7 +84,7 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     #endif
 
     // Initialize cursor
-    state->rectangle_state = malloc(sizeof(rectangle_t));
+    state->rectangle_state = (rectangle_t*)malloc(sizeof(rectangle_t));
     init_rectangle(state->rectangle_state);
 }
 
