@@ -61,6 +61,9 @@ __global__ void calculate_density(fluid_particle **fluid_particle_pointers, uint
                 {
                     q = fluid_particle_pointers[particle_ids[j]];
 
+//                    if(p==q)
+//                        continue;
+
                     QmP_x = (q->x-p_x);
                     QmP_y = (q->y-p_y);
                     r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
@@ -309,6 +312,9 @@ __global__ void viscosity_impluses(fluid_particle **fluid_particle_pointers, uin
                     QmP_y = (q->y-p_y);
                     r = sqrt(QmP_x*QmP_x + QmP_y*QmP_y);
 
+                    if(r<=0.0f)
+                        continue;
+
                     r_recip = 1.0f/r;
                     ratio = r*h_recip;
 
@@ -317,7 +323,7 @@ __global__ void viscosity_impluses(fluid_particle **fluid_particle_pointers, uin
 
                     if(u>0.0f && u<=1.0f)
                     {
-                        imp = dt * (1-ratio)*(sigma * u + beta * u*u);
+                        imp = dt * (1.0f-ratio)*(sigma * u + beta * u*u);
                         imp_x = imp*QmP_x*r_recip;
                         imp_y = imp*QmP_y*r_recip;
 
@@ -325,8 +331,8 @@ __global__ void viscosity_impluses(fluid_particle **fluid_particle_pointers, uin
                         // blowing up
                         checkVelocity(&imp_x, &imp_y);
 
-//                        p->v_x -= imp_x*0.5f;
-//                        p->v_y -= imp_y*0.5f;
+                        p->v_x -= imp_x*0.5f;
+                        p->v_y -= imp_y*0.5f;
                     }
                  } // End neighbor bucket particle loop  
 
@@ -456,6 +462,9 @@ __global__ void double_density_relaxation(fluid_particle **fluid_particle_pointe
              {
                 end_index = end_indexes[bucket_index];
 
+                int p_dx = 0.0f;
+                int p_dy = 0.0f;
+
                 for(int j=start_index; j<end_index; j++)
                 {
                     q = fluid_particle_pointers[particle_ids[j]];
@@ -482,12 +491,17 @@ __global__ void double_density_relaxation(fluid_particle **fluid_particle_pointe
                         D_x = D*(q->x-p->x)*r_recip;
                         D_y = D*(q->y-p->y)*r_recip;
 
-                        p->x -= D_x;
-                        p->y -= D_y;
+                        q->x += D_x*0.5f;
+                        q->y += D_y*0.5f;
+
+                        p_dx -= D_x*0.5f;
+                        p_dy -= D_y*0.5f;
                   } // If in ratio
               }
+              p->x += p_dx;
+              p->y += p_dy;                  
             }
-           }
+         }
       } 
 }
 
@@ -574,6 +588,15 @@ extern "C" void hash_particles_gpu(fluid_particle **fluid_particle_pointers, uin
 
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
+ 
+
+    uint *h_hash = (uint*)malloc(total_particles*sizeof(uint));
+    uint *h_particles = (uint*)malloc(total_particles*sizeof(uint));
+    cudaMemcpy(h_hash, hash_values, total_particles*sizeof(uint), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_particles, particle_ids, total_particles*sizeof(uint), cudaMemcpyDeviceToHost);
+    for(int i=0; i<total_particles; i++) {
+        printf("hash: %d, particle: %d\n", h_hash[i], h_particles[i]);
+    }
 
     // Sort hashed values
     sort_hash_gpu(particle_ids, hash_values, params);

@@ -103,7 +103,7 @@ void start_simulation()
     #ifdef RASPI
     params->number_fluid_particles_global = 1500;
     #else
-    params->number_fluid_particles_global = 5500;
+    params->number_fluid_particles_global = 1500;
     #endif
 
     // Boundary box
@@ -296,7 +296,7 @@ void start_simulation()
         #endif
 
         // Synchronize kernels
-        cudaDeviceSynchronize();
+//        cudaDeviceSynchronize();
 
         // Receive updated paramaters from render nodes
         if(sub_step == steps_per_frame-1)
@@ -342,7 +342,7 @@ void start_simulation()
         hash_particles_gpu(fluid_particle_pointers, hash_values, particle_ids, start_indexes, end_indexes, params);
 
         // Synchronize kernels
-        cudaDeviceSynchronize();
+//        cudaDeviceSynchronize();
 
         // Exchange halo particles from relaxed positions
         startHaloExchange(fluid_particle_pointers,fluid_particles, &edges, params);
