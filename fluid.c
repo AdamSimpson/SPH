@@ -572,7 +572,7 @@ void update_dp(fluid_particle **fluid_particle_pointers, neighbor *neighbors, pa
         float dp_x = 0.0f;
         float dp_y = 0.0f;
         float s_corr;
-        float k = 0.01f;
+        float k = 0.5f;
         float dq = 0.0;//0.1f*params->tunable_params.smoothing_radius;
         float Wdq = W(dq, params->tunable_params.smoothing_radius);
 
