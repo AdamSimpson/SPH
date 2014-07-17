@@ -54,8 +54,8 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
 
 // Standard fluid particle paramaters
 struct FLUID_PARTICLE {
-    float x_prev;
-    float y_prev;
+    float x_star;
+    float y_star;
     float x;
     float y;
     float v_x;
@@ -63,9 +63,10 @@ struct FLUID_PARTICLE {
     float a_x;
     float a_y;
     float density;
-    float density_near;
     float pressure;
-    float pressure_near;
+    float dp_x;
+    float dp_y;
+    float lambda;
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
@@ -115,14 +116,19 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 		   edge_t *edges, int max_fluid_particles_local, float spacing, param* params);
 
 void start_simulation();
-void calculate_density(fluid_particle *p, fluid_particle *q, float ratio);
+void calculate_density(fluid_particle *p, fluid_particle *q, float h);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
-void viscosity_impluses(fluid_particle **fluid_particle_pointers, neighbor* neighbors, param *params);
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
-void double_density_relaxation(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params);
 void checkVelocity(float *v_x, float *v_y);
 void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params);
+float del_W(float r, float h);
+float W(float r, float h);
+void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
+void update_dp_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
+void update_positions(fluid_particle **fluid_particle_pointers, param *params);
+void calculate_lambda(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
+void update_dp(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
+void compute_densities(fluid_particle **fluid_particle_pointers,  neighbor *neighbors, param *params);
 
 #endif

@@ -48,8 +48,8 @@ struct NEIGHBOR_GRID_T {
 };
 
 unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param *params);
-void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor_grid_t *grid, param *params, bool compute_density);
-void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid, param *params, bool compute_density);
+void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor_grid_t *grid, param *params);
+void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid, param *params);
 
 #endif
 

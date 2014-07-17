@@ -222,6 +222,8 @@ int start_renderer()
         remove_partition(&render_state);
 
     while(1){
+//        toggle_pause(&render_state);
+
         // Every frames_per_fps steps calculate FPS
         if(num_steps%frames_per_fps == 0) {
             current_time =  MPI_Wtime();
