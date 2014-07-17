@@ -324,6 +324,8 @@ void start_simulation()
         // update velocity
         updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
 
+        XSPH_viscosity(fluid_particle_pointers, neighbors, &params);
+
         // Update position
         update_positions(fluid_particle_pointers, &params);
 
@@ -396,9 +398,45 @@ float del_W(float r, float h)
     return del_W;
 }
 
+void XSPH_viscosity(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
+{
+    int i,j;
+    fluid_particle *p, *q;
+    neighbor *n;
+    float c = 0.1f;
+
+    float x_diff, y_diff, vx_diff, vy_diff, r_mag, w;
+
+    for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++)
+    {
+        p = fluid_particle_pointers[i];
+        n = &neighbors[i];
+
+        float partial_sum_x = 0.0f;
+        float partial_sum_y = 0.0f;
+        for(j=0; j<n->number_fluid_neighbors; j++)
+        {
+            q = n->fluid_neighbors[j];
+            x_diff = p->x_star - q->x_star;
+            y_diff = p->y_star - q->y_star;
+            vx_diff = q->v_x - p->v_x;
+            vy_diff = q->v_y - p->v_y;
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            w = W(r_mag, params->tunable_params.smoothing_radius);
+            partial_sum_x += vx_diff * w;
+            partial_sum_y += vy_diff * w;
+        }
+        partial_sum_x *= c;
+        partial_sum_y *= c;
+        p->v_x += partial_sum_x;
+        p->v_y += partial_sum_y;
+    }
+
+}
+
 void compute_densities(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params)
 {
-   int i,j;
+    int i,j;
     fluid_particle *p, *q;
     neighbor *n;
 

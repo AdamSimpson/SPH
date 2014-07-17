@@ -130,5 +130,6 @@ void update_positions(fluid_particle **fluid_particle_pointers, param *params);
 void calculate_lambda(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void update_dp(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void compute_densities(fluid_particle **fluid_particle_pointers,  neighbor *neighbors, param *params);
+void XSPH_viscosity(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 
 #endif
