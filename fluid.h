@@ -60,10 +60,7 @@ struct FLUID_PARTICLE {
     float y;
     float v_x;
     float v_y;
-    float a_x;
-    float a_y;
     float density;
-    float pressure;
     float dp_x;
     float dp_y;
     float lambda;
@@ -104,6 +101,9 @@ struct PARAM {
     int number_fluid_particles_local; // Number of non vacant particles not including halo
     int max_fluid_particle_index;     // Max index used in actual particle array
     int number_halo_particles;        // Starting at max_fluid_particle_index
+    int number_halo_particles_left;   // Number of halo particles from left neighbor
+    int number_halo_particles_right;  // Number of halo particles from right neighbor
+    float particle_mass; // "mass" of particle so that density is particle count independent
 }; // Simulation paramaters
 
 ////////////////////////////////////////////////
@@ -116,7 +116,7 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
 		   edge_t *edges, int max_fluid_particles_local, float spacing, param* params);
 
 void start_simulation();
-void calculate_density(fluid_particle *p, fluid_particle *q, float h);
+void calculate_density(fluid_particle *p, fluid_particle *q, float h, float mass);
 void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
 void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params);
@@ -131,5 +131,6 @@ void calculate_lambda(fluid_particle **fluid_particle_pointers, neighbor *neighb
 void update_dp(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 void compute_densities(fluid_particle **fluid_particle_pointers,  neighbor *neighbors, param *params);
 void XSPH_viscosity(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
+void vorticity_confinement(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
 
 #endif
