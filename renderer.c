@@ -212,7 +212,7 @@ int start_renderer()
     #ifdef RASPI
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
     #else
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125*0.5;
+    float particle_diameter_pixels = gl_state.screen_width * 0.0125*0.7;
     #endif
 
     MPI_Status status;
