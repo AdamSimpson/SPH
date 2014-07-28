@@ -279,13 +279,12 @@ int marching_squares(neighbor_grid_t *grid, short *triangles)
                triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
-               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
                triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
-               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
-               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
                triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
-
                num_triangles++;             
                break;
    
@@ -313,16 +312,16 @@ int marching_squares(neighbor_grid_t *grid, short *triangles)
                triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
                triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
                triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
-               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
-               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
                triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
                triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
                triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
-               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
-               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
-               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
                triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
