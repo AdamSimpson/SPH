@@ -140,11 +140,11 @@ void start_renderer()
     mover_GLstate.mover_type = render_state.master_params[0].mover_type;
 
     // Allocate particle receive array
-    // Hack because im lazy, assume grid length is less than 1000
-    short *particle_coords = malloc(4*6*1000*sizeof(short));
+    // Hack because im lazy, assume grid length is less than 10000
+    short *particle_coords = malloc(4*6*10000*sizeof(short));
 
     // Allocate points array(position + color)
-    float *points = malloc(4*6*1000*sizeof(float));
+    float *points = malloc(4*6*10000*sizeof(float));
 
     // Allocate mover point array(position + color)
     float mover_center[2];

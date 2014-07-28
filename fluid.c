@@ -443,7 +443,7 @@ void start_simulation()
     params.tunable_params.mover_type = SPHERE_MOVER;
 
     // The number of particles used may differ slightly
-    params.number_fluid_particles_global = 1500;
+    params.number_fluid_particles_global = 5000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
