@@ -124,5 +124,6 @@ void updateVelocity(fluid_particle *p, param *params);
 void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params);
 void checkVelocity(float *v_x, float *v_y);
 void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params);
+int marching_squares(neighbor_grid_t *grid, short *triangles);
 
 #endif

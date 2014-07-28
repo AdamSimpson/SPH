@@ -39,7 +39,8 @@ THE SOFTWARE.
 #include <unistd.h>
 #endif
 
-void marching_squares(fluid_particle_pointers *particles, neighbor_grid_t *grid)
+//http://en.wikipedia.org/wiki/Marching_squares
+int marching_squares(neighbor_grid_t *grid, short *triangles)
 {
     float spacing = grid->spacing;
     float gl_spacing_x = 2.0f/grid->size_x;
@@ -50,224 +51,342 @@ void marching_squares(fluid_particle_pointers *particles, neighbor_grid_t *grid)
 
     int num_triangles = 0;
 
-    // Traverse grid
-    char cell_case; // 0-15 marching square id
-
     // Go through each bucket starting in lower left
     for (j=0; j<grid->size_y-1; j++) {
         for(i=0; i<grid->size_x-1; i++) {
+
+            char cell_case = 0; // 0-15 marching square id
+
             index = (j * grid->size_x + i);
-            if grid_buckets[index].number_fluid
-	        cell_case << 1;
+            if(grid_buckets[index].number_fluid > 0)
+	        cell_case |= 1;
             index = (j * grid->size_x + i+1);
-            if  grid_buckets[index].number_fluid
-	        cell_case << 2;
+            if(grid_buckets[index].number_fluid > 0)
+	        cell_case |= 2;
             index = ((j+1) * grid->size_x + i+1);
-            if  grid_buckets[index].number_fluid
-                cell_case << 4;
+            if  (grid_buckets[index].number_fluid > 0)
+                cell_case |= 4;
             index = ((j+1) * grid->size_x + i);
-            if  grid_buckets[index].number_fluid
-                cell_case << 8;
+            if  (grid_buckets[index].number_fluid > 0)
+                cell_case |= 8;
 
            // Add triangles based upon value of cell_case
            // Currently no interpolation
            switch (cell_case) {
                case 1:
 	       // 3 verticies per triangle, 2 coordinates per vertex
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
                break;
                case 2:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles]   =  SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
                break;
                case 3:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] =  SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] =SHRT_MAX* (gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
 
                num_triangles++;
                break;
                case 4:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX* (gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
                break;
                case 5:
                // Case 1
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
 
                // Case 4
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
 
                num_triangles++;
                break;
                case 6:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
 
                num_triangles++;
                break;
                case 7:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+0.5f) - 1.0f;
+               triangles[3*2*num_triangles]   = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
                break;
                case 8:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
                break;
                case 9:
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
 
                num_triangles++;
                break;
                case 10:
                // Case 8
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =  SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
                num_triangles++;
 
                // Case 2
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] =  SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.0f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
                num_triangles++;
 
-               triangles[3*2*num_triangles] = gl_spacing_x*(i+1.5f) - 1.0f;
-               triangles[3*2*num_triangles+1] = gl_spacing_y*(j+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+2] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+3] = gl_spacing_y*(j+0.5f) - 1.0f;
-               triangles[3*2*num_triangles+4] = gl_spacing_x*(i+1.0f) - 1.0f;
-               triangles[3*2*num_triangles+5] = gl_spacing_y*(j+1.5f) - 1.0f;
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
 
                num_triangles++;
                break;
 
                case 11:
-              
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+
+               num_triangles++;             
+               break;
+   
+               case 12:
+               triangles[3*2*num_triangles] =   SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+
+               num_triangles++;
                break;
 
-            } // end cell_case switch
+               case 13:
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] =SHRT_MAX*( gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+
+               num_triangles++;
+               break;               
+
+               case 14:
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] =SHRT_MAX*( gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.0f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.0f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+
+               num_triangles++;
+               break;
+
+               case 15:
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               num_triangles++;
+
+               triangles[3*2*num_triangles] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+1] = SHRT_MAX*(gl_spacing_y*(j+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+2] = SHRT_MAX*(gl_spacing_x*(i+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+3] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               triangles[3*2*num_triangles+4] = SHRT_MAX*(gl_spacing_x*(i+0.5f) - 1.0f);
+               triangles[3*2*num_triangles+5] = SHRT_MAX*(gl_spacing_y*(j+1.5f) - 1.0f);
+               num_triangles++;
+               break;
+
+               default:
+	           break;
+            } // end cell_case switch 
         }
     }
+
+    return num_triangles;
 }
 
 int main(int argc, char *argv[])
@@ -448,6 +567,9 @@ void start_simulation()
 
     printf("bytes allocated: %lu\n", total_bytes);
 
+    // Allocate triangle space to send to render
+    short *triangles = malloc(sizeof(short)*length_hash*4*6);
+
     // Initialize particles
     initParticles(fluid_particle_pointers, fluid_particles, &water_volume_global, start_x,
 		  number_particles_x, &edges, max_fluid_particles_local, spacing_particle, &params);
@@ -561,17 +683,11 @@ void start_simulation()
         // to reduce communication cost
 
         // Marching Squares
-        marching_squares();
+        int num_triangles;
+        num_triangles = marching_squares(&neighbor_grid, triangles);
 
-        // Pack fluid particle coordinates
-        // This should be sent as short in pixel coordinates
-        for(i=0; i<params.number_fluid_particles_local; i++) {
-            p = fluid_particle_pointers[i];
-            fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-            fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
-        }
         // Async send fluid particle coordinates to render node
-        MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+        MPI_Isend(triangles, 6*num_triangles, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
 
         // iterate sim loop counter
         n++;

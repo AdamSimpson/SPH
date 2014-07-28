@@ -140,12 +140,11 @@ void start_renderer()
     mover_GLstate.mover_type = render_state.master_params[0].mover_type;
 
     // Allocate particle receive array
-    int num_coords = 2;
-    short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
+    // Hack because im lazy, assume grid length is less than 1000
+    short *particle_coords = malloc(4*6*1000*sizeof(short));
 
     // Allocate points array(position + color)
-    int point_size = 5 * sizeof(float);
-    float *points = malloc(point_size*max_particles);
+    float *points = malloc(4*6*1000*sizeof(float));
 
     // Allocate mover point array(position + color)
     float mover_center[2];
@@ -246,7 +245,7 @@ void start_renderer()
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-        // Retrieve all particle coordinates (x,y)
+            // Retrieve all particle coordinates (x,y)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
@@ -306,30 +305,13 @@ void start_renderer()
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-        // Create points array (x,y,r,g,b)
-	i = 0;
-        current_rank = particle_coordinate_ranks[i];
-        // j == coordinate pair
-        for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
-	    // Check if we are processing a new rank's particles
-            if ( num_parts > particle_coordinate_counts[current_rank]/2){
-                current_rank =  particle_coordinate_ranks[++i];
-                num_parts = 1;
-		// Find next rank with particles if current_rank has 0 particles
-		while(!particle_coordinate_counts[current_rank])
-                    current_rank = particle_coordinate_ranks[++i];
-            }
-
-            points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX; 
-            points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
-
+        // refu**ulate coordaintes
+        for(j=0; j<coords_recvd; j++) {
+           points[j] = (float)particle_coords[j]/(float)SHRT_MAX;
         }
 
-	    // Draw particles
-        render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+	// Draw particles
+        render_particles(points, coords_recvd, &particle_GLstate);
 
         // Render over particles to hide penetration
         render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);

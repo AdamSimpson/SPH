@@ -51,21 +51,21 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
 
 
 // Update coordinate of fluid points
-void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state)
+void render_particles(float *points, int num_points, particles_t *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Orphan current buffer
-    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    draw_particles(state, diameter_pixels, num_points);
+    draw_particles(state, num_points);
 }
 
 void create_particle_buffers(particles_t *state)
@@ -110,12 +110,6 @@ void create_particle_shaders(particles_t *state)
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
-    // Get tex_coord location
-    state->color_location = glGetAttribLocation(state->program, "color");
-    // Get radius location
-    state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
-    // Get pixel diameter location
-    state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
 
     // Enable point size to be specified in the shader
     #ifndef RASPI
@@ -127,29 +121,21 @@ void create_particle_shaders(particles_t *state)
 //   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
 }
 
-void draw_particles(particles_t *state, float diameter_pixels, int num_points)
+void draw_particles(particles_t *state, int num_points)
 {
     // Bind circle shader program
     glUseProgram(state->program);
 
-    // Set radius uniform
-    glUniform1f(state->radius_world_location, (GLfloat)diameter_pixels/state->screen_width);
-
-    // Set pixel diameter uniform
-    glUniform1f(state->diameter_pixels_location, (GLfloat)diameter_pixels);
-
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
     glEnableVertexAttribArray(state->position_location);
-    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT),(void*)(2*sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(state->color_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw
-    glDrawArrays(GL_POINTS, 0, num_points);
+    glDrawArrays(GL_TRIANGLES, 0, num_points);
 }

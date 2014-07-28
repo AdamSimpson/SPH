@@ -51,9 +51,9 @@ typedef struct particles_t {
 } particles_t;
 
 void init_particles(particles_t *state, int screen_width, int screen_height);
-void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state);
+void render_particles(float *points, int num_points, particles_t *state);
 void create_particle_shaders(particles_t *state);
-void draw_particles(particles_t *state, float diameter_pixels, int num_points);
+void draw_particles(particles_t *state, int num_points);
 void create_particle_buffers(particles_t *state);
 
 #endif
