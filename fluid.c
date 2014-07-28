@@ -83,7 +83,7 @@ void start_simulation()
 
     params.tunable_params.kill_sim = false;
     params.tunable_params.active = true;
-    params.tunable_params.g = 9.8f;
+    params.tunable_params.g = 10.0f;
     params.tunable_params.time_step = 1.0f/60.0f;
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_spring = 10.0f;
@@ -709,7 +709,7 @@ void calculate_density(fluid_particle *p, fluid_particle *q, float h, float mass
 
 void checkVelocity(float *v_x, float *v_y)
 {
-    const float v_max = 50.0f;
+    const float v_max = 20.0f;
 
     if(*v_x > v_max)
         *v_x = v_max;
