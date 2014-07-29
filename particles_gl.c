@@ -67,7 +67,7 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Hack for reduced texture size
-    float hack_diameter = diameter_pixels/64;
+    float hack_diameter = diameter_pixels/32;
     draw_particles(state, hack_diameter, num_points);
 }
 
