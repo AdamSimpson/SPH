@@ -66,7 +66,9 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    draw_particles(state, diameter_pixels, num_points);
+    // Hack for reduced texture size
+    float hack_diameter = diameter_pixels/64;
+    draw_particles(state, hack_diameter, num_points);
 }
 
 void create_particle_buffers(particles_t *state)
@@ -92,10 +94,14 @@ void create_particle_buffers(particles_t *state)
     glGenTextures(1, &state->tex_uniform);
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width, state->screen_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    // http://fumufumu.q-games.com/gdc2010/shooterGDC.pdf
+    // Render to low-res texture and upsample
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width/64, state->screen_height/64, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // Attach image to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->tex_uniform, 0);
@@ -108,7 +114,7 @@ void create_particle_buffers(particles_t *state)
 void create_texture_verticies(particles_t *state)
 {
 
-   // Vertices: Pos(x,y) Tex(x,y)
+    // Vertices: Pos(x,y) Tex(x,y)
     float vertices[] = {
         -1.0f, -1.0f, 0.0f, 1.0f,  // Bottom left
          1.0f, -1.0f, 1.0f, 1.0f, // Bottom right
@@ -238,6 +244,8 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Bind frame buffer for render to texture
     glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
 
+    glViewport(0,0,state->screen_width/64, state->screen_height/64);
+
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
     // Clear background
@@ -249,7 +257,6 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     //////
     // Second phase
     /////
-
     // Bind default frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -264,6 +271,8 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     glVertexAttribPointer(state->tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
     glEnableVertexAttribArray(state->tex_coord_location);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
+
+    glViewport(0,0,state->screen_width, state->screen_height);
 
     // Setup texture
     glActiveTexture(GL_TEXTURE0);

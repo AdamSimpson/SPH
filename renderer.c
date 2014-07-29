@@ -320,7 +320,6 @@ void start_renderer()
             points[j*5+2] = colors_by_rank[3*current_rank];
             points[j*5+3] = colors_by_rank[3*current_rank+1];
             points[j*5+4] = colors_by_rank[3*current_rank+2];
-
         }
 
 	// Draw particles
