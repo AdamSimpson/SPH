@@ -3,12 +3,12 @@ in vec2 position;
 in vec2 tex_coord;
  
 out vec2 frag_tex_coord;
-varying vec2 blur_tex_coords[14];
+out vec2 blur_tex_coords[14];
  
 void main()
 {
     gl_Position = vec4(position, 0.0, 1.0);
-    frag_tex_coord = texCoord;
+    frag_tex_coord = tex_coord;
     blur_tex_coords[ 0] = frag_tex_coord + vec2(0.0, -0.028);
     blur_tex_coords[ 1] = frag_tex_coord + vec2(0.0, -0.024);
     blur_tex_coords[ 2] = frag_tex_coord + vec2(0.0, -0.020);
