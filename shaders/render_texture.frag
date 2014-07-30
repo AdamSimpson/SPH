@@ -7,6 +7,8 @@ out vec4 OutColor;
 
 void main() {
     vec4 color = texture(tex, frag_tex_coord);
-    float alpha = step(0.01, color.a);
-    OutColor = vec4(0.0, 0.0, 1.0, 0.5*alpha);
+    float alpha = 0.5*step(0.015, color.a);
+    float white = 0.0;
+    white = step(-0.03, -color.a);
+    OutColor = vec4(white, white, 1.0, alpha);
 }
