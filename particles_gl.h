@@ -39,19 +39,34 @@ typedef struct particles_t {
     // Program to render texture to screen
     GLuint tex_program;
 
-    // Locations
+    // Program for vert gaussian blur
+    GLuint vert_blur_program;
+
+    // Program for horizontal Gaussian blur
+    GLuint horz_blur_program;
+
+    // Render to low rez tex Locations
     GLint position_location;
     GLint color_location;
     GLint diameter_pixels_location;
     GLint radius_world_location;
 
-    // Locations
+    // Gaussian locations
+    GLint vert_blur_position_location;
+    GLint vert_blur_tex_coord_location;
+    GLint vert_blur_tex_location;
+    GLint horz_blur_position_location;
+    GLint horz_blur_tex_coord_location;
+    GLint horz_blur_tex_location;
+
+    // Render tex to quad Locations
     GLint tex_position_location;
     GLint tex_location;
     GLint tex_coord_location;
 
     // Uniforms
     GLuint tex_uniform;
+    GLuint blur_horz_tex_uniform;
 
     // Screen dimensions
     int screen_width;
@@ -60,13 +75,14 @@ typedef struct particles_t {
     // buffers
     GLuint vbo;
     GLuint tex_vbo;
-
     GLuint tex_ebo;
 
     // buffers for meta ball render to texture
     GLuint frame_buffer;
     GLuint tex_color_buffer;
+    GLuint blur_horz_color_buffer;
 
+    GLuint reduction;
 } particles_t;
 
 void init_particles(particles_t *state, int screen_width, int screen_height);

@@ -40,6 +40,9 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
     state->screen_width = screen_width;
     state->screen_height = screen_height;
 
+    // Amount fluid texture will be reduced from screen resolution
+    state->reduction = 64;
+
     // Create circle buffers
     create_particle_buffers(state);
 
@@ -67,7 +70,7 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Hack for reduced texture size
-    float hack_diameter = diameter_pixels/32;
+    float hack_diameter = diameter_pixels/(float)state->reduction*2.0f;
     draw_particles(state, hack_diameter, num_points);
 }
 
@@ -86,18 +89,17 @@ void create_particle_buffers(particles_t *state)
     // Generate element buffer
     glGenBuffers(1, &state->tex_ebo);
 
-    // Create frame buffer object for render to texture
+    // Create frame buffer object for render to textures
     glGenFramebuffers(1, &state->frame_buffer);
     glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
 
-    // Create texture color buffers
+    // Create texture buffer
     glGenTextures(1, &state->tex_uniform);
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
 
     // http://fumufumu.q-games.com/gdc2010/shooterGDC.pdf
     // Render to low-res texture and upsample
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width/64, state->screen_height/64, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width/state->reduction, state->screen_height/state->reduction, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -105,6 +107,22 @@ void create_particle_buffers(particles_t *state)
 
     // Attach image to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->tex_uniform, 0);
+
+    // Blur step requires additional texture to write into
+    // Create texture buffer
+    glGenTextures(1, &state->blur_horz_tex_uniform);
+    glBindTexture(GL_TEXTURE_2D, state->blur_horz_tex_uniform);
+
+    // http://fumufumu.q-games.com/gdc2010/shooterGDC.pdf
+    // Render to low-res texture and upsample
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width/state->reduction, state->screen_height/state->reduction, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Attach image to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, state->blur_horz_tex_uniform, 0);
 
     // Reset frame buffer and texture
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -192,6 +210,36 @@ void create_particle_shaders(particles_t *state)
     glLinkProgram(state->tex_program);
     show_program_log(state->tex_program);
 
+    // Compile vert blur vertex shader
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    compile_shader(vertexShader, "shaders/vert_blur.vert");
+
+    // Compile blur fragment shader(shared between horz vert blur vertex shaders)
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    compile_shader(fragmentShader, "shaders/blur.frag");
+
+    // Create vert blur shader program
+    state->vert_blur_program = glCreateProgram();
+    glAttachShader(state->vert_blur_program, vertexShader);
+    glAttachShader(state->vert_blur_program, fragmentShader);
+
+    // Link and use program
+    glLinkProgram(state->vert_blur_program);
+    show_program_log(state->vert_blur_program);    
+
+    // Compile horz blur vertex shader
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    compile_shader(vertexShader, "shaders/horz_blur.vert");
+
+    // Create horz blur shader program
+    state->horz_blur_program = glCreateProgram();
+    glAttachShader(state->horz_blur_program, vertexShader);
+    glAttachShader(state->horz_blur_program, fragmentShader);
+    
+    // Link and use program
+    glLinkProgram(state->horz_blur_program);
+    show_program_log(state->horz_blur_program);
+
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get tex_coord location
@@ -208,6 +256,20 @@ void create_particle_shaders(particles_t *state)
     // Get tex uniform location
     state->tex_location = glGetUniformLocation(state->tex_program, "tex");
 
+    // Get position location
+    state->vert_blur_position_location = glGetAttribLocation(state->vert_blur_program, "position");
+    // Get tex_coord location
+    state->vert_blur_tex_coord_location = glGetAttribLocation(state->vert_blur_program, "tex_coord");
+    // Get tex uniform location
+    state->vert_blur_tex_location = glGetUniformLocation(state->vert_blur_program, "tex");
+
+    // Get position location
+    state->horz_blur_position_location = glGetAttribLocation(state->horz_blur_program, "position");
+    // Get tex_coord location
+    state->horz_blur_tex_coord_location = glGetAttribLocation(state->horz_blur_program, "tex_coord");
+    // Get tex uniform location
+    state->horz_blur_tex_location = glGetUniformLocation(state->horz_blur_program, "tex");
+
     // Enable point size to be specified in the shader
     #ifndef RASPI
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -220,6 +282,10 @@ void create_particle_shaders(particles_t *state)
 
 void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 {
+    //////
+    // First phase - draw gaussian balls at particle position
+    /////
+
     // Bind circle shader program
     glUseProgram(state->program);
 
@@ -244,34 +310,84 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Bind frame buffer for render to texture
     glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
 
-    glViewport(0,0,state->screen_width/64, state->screen_height/64);
+    // Set viewport for low resolution texture
+    glViewport(0,0,state->screen_width/state->reduction, state->screen_height/state->reduction);
+
+    // Set color attachment to draw into
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
     // Clear background
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw to texture
+    // Draw to color attachment 0 texture
     glDrawArrays(GL_POINTS, 0, num_points);
 
     //////
-    // Second phase
+    // Second phase - horizontal blur
     /////
+
+    // Bind vertical blur shader program
+    glUseProgram(state->vert_blur_program);
+
+    // Setup buffers
+    size_t vert_size = 4*sizeof(GL_FLOAT);
+    glBindBuffer(GL_ARRAY_BUFFER, state->tex_vbo);
+    glVertexAttribPointer(state->vert_blur_position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
+    glEnableVertexAttribArray(state->vert_blur_position_location);
+    glVertexAttribPointer(state->vert_blur_tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->vert_blur_tex_coord_location);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
+
+    // Viewport already set for low rez texture
+
+    // Setup texture to read from
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
+    glUniform1i(state->vert_blur_tex_location, 0);
+
+    // Set color attachment to draw into
+    glDrawBuffer(GL_COLOR_ATTACHMENT1);
+
+    // Draw to color attachment 1 texture
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+    //////
+    // Third phase - vertical blur into original texture
+    /////
+
+    // Bind horizontal blur shader program
+    glUseProgram(state->horz_blur_program);
+    
+    // Buffers already setup
+    // Viewport already setup
+    
+    // Setup texture to read from
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->blur_horz_tex_uniform);
+    glUniform1i(state->horz_blur_tex_location, 0);    
+
+    // Set color attachment to draw into
+    // Draw back into original attachment
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+    // Draw to color attachment 0 texture
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+    //////
+    // Fourth phase - Draw fluid image based on blured up sampled texture
+    /////
+
     // Bind default frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Bind texture program
     glUseProgram(state->tex_program);
 
-    // Setup buffers
-    size_t vert_size = 4*sizeof(GL_FLOAT);
-    glBindBuffer(GL_ARRAY_BUFFER, state->tex_vbo);
-    glVertexAttribPointer(state->tex_position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
-    glEnableVertexAttribArray(state->tex_position_location);
-    glVertexAttribPointer(state->tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size,(void*)(2*sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(state->tex_coord_location);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
+    // Buffers already setup
 
+    // Set viewport back to "normal"
     glViewport(0,0,state->screen_width, state->screen_height);
 
     // Setup texture
