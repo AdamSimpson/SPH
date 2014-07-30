@@ -41,7 +41,7 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Amount fluid texture will be reduced from screen resolution
-    state->reduction = 16;
+    state->reduction = 2;
 
     // Create circle buffers
     create_particle_buffers(state);
