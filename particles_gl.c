@@ -350,6 +350,11 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Set color attachment to draw into
     glDrawBuffer(GL_COLOR_ATTACHMENT1);
 
+    // Set background color
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    // Clear background
+    glClear(GL_COLOR_BUFFER_BIT);
+
     // Draw to color attachment 1 texture
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
 
@@ -371,6 +376,11 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Set color attachment to draw into
     // Draw back into original attachment
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+    // Set background color
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    // Clear background
+    glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw to color attachment 0 texture
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
