@@ -41,7 +41,7 @@ void init_particles(particles_t *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Amount fluid texture will be reduced from screen resolution
-    state->reduction = 64;
+    state->reduction = 16;
 
     // Create circle buffers
     create_particle_buffers(state);
@@ -70,7 +70,7 @@ void render_particles(float *points, float diameter_pixels, int num_points, part
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Hack for reduced texture size
-    float hack_diameter = diameter_pixels/(float)state->reduction*2.0f;
+    float hack_diameter = diameter_pixels/(float)state->reduction;
     draw_particles(state, hack_diameter, num_points);
 }
 
