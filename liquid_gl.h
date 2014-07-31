@@ -47,9 +47,7 @@ typedef struct liquid_t {
 
     // Render to low rez tex Locations
     GLint position_location;
-    GLint color_location;
     GLint diameter_pixels_location;
-    GLint radius_world_location;
 
     // Gaussian locations
     GLint vert_blur_position_location;

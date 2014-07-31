@@ -1,8 +1,6 @@
 #version 150 core
 out vec4 out_color;
 
-uniform float radius_world;
-
 void main() {
     // Convert from [0,1] to [-1, 1] coords
     vec2 local_frag_coord = (2.0 * gl_PointCoord) - 1.0;

@@ -254,8 +254,6 @@ void create_liquid_shaders(liquid_t *state)
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
-    // Get radius location
-    state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
     // Get pixel diameter location
     state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
 
@@ -298,9 +296,6 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
 
     // Bind circle shader program
     glUseProgram(state->program);
-
-    // Set radius uniform
-    glUniform1f(state->radius_world_location, (GLfloat)diameter_pixels/state->screen_width);
 
     // Set pixel diameter uniform
     glUniform1f(state->diameter_pixels_location, (GLfloat)diameter_pixels);
