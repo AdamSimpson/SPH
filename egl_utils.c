@@ -241,6 +241,9 @@ void handle_key(gl_t *state, struct input_event *event)
             case KEY_B:
                 set_fluid_b(render_state);
                 break;
+            case KEY_L:
+                toggle_liquid(render_state);
+                break;
             case BTN_BACK:
                 toggle_dividers(render_state);
                 break;
