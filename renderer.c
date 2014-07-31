@@ -214,10 +214,10 @@ int start_renderer()
     // Particle radius in pixels
     #ifdef RASPI
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
-    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.045;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.025;
     #else
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
-    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.045;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.025;
     #endif
 
     MPI_Status status;

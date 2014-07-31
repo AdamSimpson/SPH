@@ -84,7 +84,7 @@ void start_simulation()
     params.tunable_params.kill_sim = false;
     params.tunable_params.active = true;
     params.tunable_params.g = 6.0f;
-    params.tunable_params.time_step = 1.0f/35.0f;
+    params.tunable_params.time_step = 1.0f/30.0f;
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
