@@ -55,5 +55,6 @@ void toggle_dividers(render_t *state);
 void toggle_pause(render_t *state);
 void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y);
 void toggle_quit_mode(render_t *state);
+void toggle_liquid(render_t *state);
 
 #endif

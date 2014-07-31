@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include "particles_gl.h"
+#include "liquid_gl.h"
 #include "mover_gl.h"
 #include "background_gl.h"
 #include "mpi.h"
@@ -53,6 +54,7 @@ int start_renderer()
     render_state.show_dividers = false;
     render_state.pause = false;
     render_state.quit_mode = false;
+    render_state.liquid = true;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -60,6 +62,10 @@ int start_renderer()
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
     init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize liquid OpenGL state
+    liquid_t liquid_GLstate;
+    init_liquid(&liquid_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize mover OpenGL state
     mover_t mover_GLstate;
@@ -167,9 +173,6 @@ int start_renderer()
     // Keep track of order in which particles received
     int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
 
-    // Set background color
-    glClearColor(0.15, 0.15, 0.15, 1.0);
-
     // Create color index, equally spaced around HSV
     float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
     float angle_space = 0.5f/(float)render_state.num_compute_procs;
@@ -211,8 +214,10 @@ int start_renderer()
     // Particle radius in pixels
     #ifdef RASPI
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.045;
     #else
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125*0.5;
+    float particle_diameter_pixels = gl_state.screen_width * 0.0125;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.045;
     #endif
 
     MPI_Status status;
@@ -281,6 +286,7 @@ int start_renderer()
             check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
+        glClearColor(0.15, 0.15, 0.15, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw background image
@@ -340,8 +346,11 @@ int start_renderer()
 
         }
 
-	// Draw particles
-        render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+        // Render liquid or particles
+        if(render_state.liquid)
+            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
+        else
+            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
 
         // Render exit menu
         if(render_state.quit_mode)
