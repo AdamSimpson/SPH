@@ -61,10 +61,10 @@ void render_liquid(float *points, float diameter_pixels, int num_points, liquid_
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Orphan current buffer
-    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 2*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 5*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 2*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -212,11 +212,19 @@ void create_liquid_shaders(liquid_t *state)
 
     // Compile vert blur vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    compile_shader(vertexShader, "shaders/vert_blur.vert");
+    #ifdef RASPI
+      compile_shader(vertexShader, "SPH/shaders/vert_blur_es.vert");
+    #else
+      compile_shader(vertexShader, "shaders/vert_blur.vert");
+    #endif
 
     // Compile blur fragment shader(shared between horz vert blur vertex shaders)
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    compile_shader(fragmentShader, "shaders/blur.frag");
+    #ifdef RASPI
+      compile_shader(fragmentShader, "SPH/shaders/blur_es.frag");
+    #else
+      compile_shader(fragmentShader, "shaders/blur.frag");
+    #endif
 
     // Create vert blur shader program
     state->vert_blur_program = glCreateProgram();
@@ -229,7 +237,11 @@ void create_liquid_shaders(liquid_t *state)
 
     // Compile horz blur vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    compile_shader(vertexShader, "shaders/horz_blur.vert");
+    #ifdef RASPI
+      compile_shader(vertexShader, "SPH/shaders/horz_blur_es.vert");
+    #else
+      compile_shader(vertexShader, "shaders/horz_blur.vert");
+    #endif
 
     // Create horz blur shader program
     state->horz_blur_program = glCreateProgram();
@@ -242,8 +254,6 @@ void create_liquid_shaders(liquid_t *state)
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
-    // Get tex_coord location
-    state->color_location = glGetAttribLocation(state->program, "color");
     // Get radius location
     state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
     // Get pixel diameter location
@@ -298,10 +308,8 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
     glEnableVertexAttribArray(state->position_location);
-    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GL_FLOAT),(void*)(2*sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(state->color_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);

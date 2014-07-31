@@ -347,11 +347,37 @@ int start_renderer()
         }
 
         // Render liquid or particles
-        if(render_state.liquid)
+        if(render_state.liquid) {
+            // Create points array (x,y)
+            for(j=0; j<coords_recvd; j+=2) {
+                points[j] = particle_coords[j]/(float)SHRT_MAX;
+                points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
+            }
             render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
-        else
-            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+        }
+        else {
+            // Create points array (x,y,r,g,b)
+            i = 0;
+            current_rank = particle_coordinate_ranks[i];
+            // j == coordinate pair
+            for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+                 // Check if we are processing a new rank's particles
+                 if ( num_parts > particle_coordinate_counts[current_rank]/2){
+                    current_rank =  particle_coordinate_ranks[++i];
+                    num_parts = 1;
+                    // Find next rank with particles if current_rank has 0 particles
+                    while(!particle_coordinate_counts[current_rank])
+                        current_rank = particle_coordinate_ranks[++i];
+                }
+                points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX;
+                points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
+                points[j*5+2] = colors_by_rank[3*current_rank];
+                points[j*5+3] = colors_by_rank[3*current_rank+1];
+                points[j*5+4] = colors_by_rank[3*current_rank+2];
+            }
 
+            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+        }
         // Render exit menu
         if(render_state.quit_mode)
             render_exit_menu(&exit_menu_state, mover_center[0], mover_center[1]);

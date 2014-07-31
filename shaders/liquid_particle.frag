@@ -1,7 +1,4 @@
 #version 150 core
-in vec3 sphere_color;
-in vec2 circle_center;
-
 out vec4 out_color;
 
 uniform float radius_world;
