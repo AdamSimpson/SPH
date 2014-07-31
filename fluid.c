@@ -84,7 +84,7 @@ void start_simulation()
     params.tunable_params.kill_sim = false;
     params.tunable_params.active = true;
     params.tunable_params.g = 6.0f;
-    params.tunable_params.time_step = 1.0f/35.0f/4.0f;
+    params.tunable_params.time_step = 1.0f/35.0f;
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
@@ -94,6 +94,13 @@ void start_simulation()
     params.tunable_params.mover_width = 2.0f;
     params.tunable_params.mover_height = 2.0f;
     params.tunable_params.mover_type = SPHERE_MOVER;
+
+    #ifdef RASPI
+    int steps_per_frame = 1; // Number of steps to compute before updating render node
+    #else
+    int steps_per_frame = 4;
+    params.tunable_params.time_step /= (float)steps_per_frame;
+    #endif
 
     // The number of particles used may differ slightly
     #ifdef RASPI
@@ -253,11 +260,6 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
-    #ifdef RASPI
-    int steps_per_frame = 1; // Number of steps to compute before updating render node
-    #else
-    int steps_per_frame = 4; 
-    #endif
     int sub_step = 0; // substep range from 0 to < steps_per_frame
 
     // Main simulation loop
