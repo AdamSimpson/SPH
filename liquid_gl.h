@@ -76,7 +76,13 @@ typedef struct liquid_t {
     GLuint tex_ebo;
 
     // buffers for meta ball render to texture
-    GLuint frame_buffer;
+    GLuint frame_buffer_two;
+
+    // Raspberry pi doesn't support multiple color attachments
+    #ifdef RASPI
+    GLuint frame_buffer_three;
+    #endif
+
     GLuint tex_color_buffer;
     GLuint blur_horz_color_buffer;
 

@@ -90,8 +90,8 @@ void create_liquid_buffers(liquid_t *state)
     glGenBuffers(1, &state->tex_ebo);
 
     // Create frame buffer object for render to textures
-    glGenFramebuffers(1, &state->frame_buffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
+    glGenFramebuffers(1, &state->frame_buffer_two);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_two);
 
     // Create texture buffer
     glGenTextures(1, &state->tex_uniform);
@@ -108,6 +108,12 @@ void create_liquid_buffers(liquid_t *state)
     // Attach image to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->tex_uniform, 0);
 
+    #ifdef RASPI
+    // Create frame buffer object for render to textures
+    glGenFramebuffers(1, &state->frame_buffer_three);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_three);
+    #endif
+
     // Blur step requires additional texture to write into
     // Create texture buffer
     glGenTextures(1, &state->blur_horz_tex_uniform);
@@ -121,8 +127,12 @@ void create_liquid_buffers(liquid_t *state)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    #ifdef RASPI
     // Attach image to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->blur_horz_tex_uniform, 0);
+    #else
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, state->blur_horz_tex_uniform, 0);
+    #endif
 
     // Reset frame buffer and texture
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -308,17 +318,18 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
-//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc(GL_ONE, GL_ONE);
 
     // Bind frame buffer for render to texture
-    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_two);
 
     // Set viewport for low resolution texture
     glViewport(0,0,state->screen_width/state->reduction, state->screen_height/state->reduction);
 
+    #ifndef RASPI
     // Set color attachment to draw into
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    #endif
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -331,8 +342,6 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     //////
     // Second phase - horizontal blur
     /////
-//    glDisable(GL_BLEND);
-
     // Bind vertical blur shader program
     glUseProgram(state->vert_blur_program);
 
@@ -352,8 +361,13 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->vert_blur_tex_location, 0);
 
-    // Set color attachment to draw into
-    glDrawBuffer(GL_COLOR_ATTACHMENT1);
+    #ifdef RASPI
+        // Bind frame buffer for render to texture
+        glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_three);
+    #else
+        // Set color attachment to draw into
+        glDrawBuffer(GL_COLOR_ATTACHMENT1);
+    #endif
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -378,9 +392,15 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindTexture(GL_TEXTURE_2D, state->blur_horz_tex_uniform);
     glUniform1i(state->horz_blur_tex_location, 0);    
 
+
+    #ifdef RASPI
+    // Bind frame buffer for render to texture
+    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_two);
+    #else
     // Set color attachment to draw into
     // Draw back into original attachment
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    #endif
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
