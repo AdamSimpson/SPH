@@ -47,7 +47,9 @@ typedef struct liquid_t {
 
     // Render to low rez tex Locations
     GLint position_location;
+    GLint particle_id_location;
     GLint diameter_pixels_location;
+    GLint rg_tex_location;
 
     // Gaussian locations
     GLint vert_blur_position_location;
@@ -65,6 +67,7 @@ typedef struct liquid_t {
     // Uniforms
     GLuint tex_uniform;
     GLuint blur_horz_tex_uniform;
+    GLuint rg_tex_uniform;
 
     // Screen dimensions
     int screen_width;
@@ -87,6 +90,8 @@ typedef struct liquid_t {
     GLuint blur_horz_color_buffer;
 
     GLuint reduction;
+
+    int num_particles;
 } liquid_t;
 
 void init_liquid(liquid_t *state, int screen_width, int screen_height);
@@ -95,5 +100,6 @@ void create_liquid_shaders(liquid_t *state);
 void draw_liquid(liquid_t *state, float diameter_pixels, int num_points);
 void create_liquid_buffers(liquid_t *state);
 void create_texture_verticies(liquid_t *state);
+void create_rg_texture(liquid_t *state);
 
 #endif

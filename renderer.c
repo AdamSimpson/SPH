@@ -54,7 +54,7 @@ int start_renderer()
     render_state.show_dividers = false;
     render_state.pause = false;
     render_state.quit_mode = false;
-    render_state.liquid = true;
+    render_state.render_liquid = true;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -153,9 +153,10 @@ int start_renderer()
     // Set mover state
     mover_GLstate.mover_type = render_state.master_params[0].mover_type;
 
-    // Allocate particle receive array
-    int num_coords = 2;
-    short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
+    // Allocate particle value receive array
+    // We only need a fraction of the particle struct for rendering
+    int num_coords = 3; // (x,y,[particle_iparticle_id])
+    short *particle_vals = malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
     int point_size = 5 * sizeof(float);
@@ -192,7 +193,6 @@ int start_renderer()
     MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     #endif
 
-    int num_coords_rank;
     int current_rank, num_parts;
     float mover_gl_dims[2];
 
@@ -209,7 +209,7 @@ int start_renderer()
 
     // Setup MPI requests used to gather particle coordinates
     MPI_Request coord_reqs[num_compute_procs];
-    int src, coords_recvd;
+    int src, num_coords_recvd, num_particles_recvd, num_floats_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
     #ifdef RASPI
@@ -257,33 +257,49 @@ int start_renderer()
         if(!input_is_active(&render_state))
             update_inactive_state(&render_state);
 
+        // If liquid should be rendered we need the particle id to be sent as well
+        if(render_state.render_liquid)
+            master_params->send_pid = 1;
+        else
+	    master_params->send_pid = 0;
+
         // Update node params with master param values
         update_node_params(&render_state);
 
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-            // Retrieve all particle coordinates (x,y)
-  	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
-	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
-	    coords_recvd = 0;
-	    for(i=0; i<render_state.num_compute_procs; i++) {
-	        // Wait until message is ready from any proc
-                MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
-	        // Retrieve probed values
-                src = status.MPI_SOURCE;
-                particle_coordinate_ranks[i] = src-1;
-	        MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
-	        // Start async recv using probed values
-	        MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
-                // Update total number of floats recvd
-                coords_recvd += particle_coordinate_counts[src-1];
-	    }
+        // Retrieve all particle coordinates (x,y)
+        // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
+        // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
+	num_coords_recvd = 0;
+        num_floats_recvd = 0;
+        num_particles_recvd = 0;
+	for(i=0; i<render_state.num_compute_procs; i++) {
+            // Wait until message is ready from any proc
+            MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
+	    // Retrieve probed values
+            src = status.MPI_SOURCE;
+            particle_coordinate_ranks[i] = src-1;
+	    MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
+	    // Start async recv using probed values
+	    MPI_Irecv(particle_vals + num_floats_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
+            // Update total number of floats recvd
+            num_floats_recvd += particle_coordinate_counts[src-1];
+        }
+
+        // Total floats recieved and total coords recieved will differ if liquid rendering enabled
+        if(render_state.render_liquid)
+            num_coords_recvd = (num_floats_recvd/3)*2;
+        else
+	    num_coords_recvd = num_floats_recvd;
+
+        num_particles_recvd = num_coords_recvd/2;
 
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
         if(num_steps%frames_per_check == 0)
-            check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
+            check_partition_left(&render_state, particle_coordinate_counts, num_particles_recvd);
 
         // Clear background
         glClearColor(0.15, 0.15, 0.15, 1.0);
@@ -324,43 +340,22 @@ int start_renderer()
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-        // Create points array (x,y,r,g,b)
-	i = 0;
-        current_rank = particle_coordinate_ranks[i];
-        // j == coordinate pair
-        for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
-	    // Check if we are processing a new rank's particles
-            if ( num_parts > particle_coordinate_counts[current_rank]/2){
-                current_rank =  particle_coordinate_ranks[++i];
-                num_parts = 1;
-		// Find next rank with particles if current_rank has 0 particles
-		while(!particle_coordinate_counts[current_rank])
-                    current_rank = particle_coordinate_ranks[++i];
-            }
-
-            points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX; 
-            points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
-
-        }
-
         // Render liquid or particles
-        if(render_state.liquid) {
-            // Create points array (x,y)
-            for(j=0; j<coords_recvd; j+=2) {
-                points[j] = particle_coords[j]/(float)SHRT_MAX;
-                points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
+        if(render_state.render_liquid) {
+            // Create points array (x,y,p_id)
+            for(j=0; j<num_floats_recvd; j+=3) {
+                points[j] = particle_vals[j]/(float)SHRT_MAX;
+                points[j+1] = particle_vals[j+1]/(float)SHRT_MAX;
+                points[j+2] = particle_vals[j+2]/(float)(num_particles_recvd);
             }
-            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
+            render_liquid(points, liquid_particle_diameter_pixels, num_particles_recvd, &liquid_GLstate);
         }
         else {
             // Create points array (x,y,r,g,b)
             i = 0;
             current_rank = particle_coordinate_ranks[i];
             // j == coordinate pair
-            for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+            for(j=0, num_parts=1; j<num_particles_recvd; j++, num_parts++) {
                  // Check if we are processing a new rank's particles
                  if ( num_parts > particle_coordinate_counts[current_rank]/2){
                     current_rank =  particle_coordinate_ranks[++i];
@@ -369,14 +364,14 @@ int start_renderer()
                     while(!particle_coordinate_counts[current_rank])
                         current_rank = particle_coordinate_ranks[++i];
                 }
-                points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX;
-                points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
+                points[j*5]   = particle_vals[j*2]/(float)SHRT_MAX;
+                points[j*5+1] = particle_vals[j*2+1]/(float)SHRT_MAX;
                 points[j*5+2] = colors_by_rank[3*current_rank];
                 points[j*5+3] = colors_by_rank[3*current_rank+1];
                 points[j*5+4] = colors_by_rank[3*current_rank+2];
             }
 
-            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+            render_particles(points, particle_diameter_pixels, num_particles_recvd, &particle_GLstate);
         }
         // Render exit menu
         if(render_state.quit_mode)
@@ -401,7 +396,7 @@ int start_renderer()
     free(master_params);
     free(param_counts);
     free(param_displs);
-    free(particle_coords);
+    free(particle_vals);
     free(points);
     free(particle_coordinate_counts);
     free(particle_coordinate_ranks);
@@ -434,7 +429,7 @@ void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float 
 void update_node_params(render_t *render_state)
 {
     int i;
-	// Update all node parameters with master paramter values
+    // Update all node parameters with master paramter values
     for(i=0; i<render_state->num_compute_procs; i++)
         render_state->node_params[i] = render_state->master_params[i]; 
 }

@@ -457,7 +457,7 @@ void toggle_pause(render_t *state)
 
 void toggle_liquid(render_t *state)
 {
-    state->liquid = !state->liquid;
+    state->render_liquid = !state->render_liquid;
 }
 
 void toggle_quit_mode(render_t *state)

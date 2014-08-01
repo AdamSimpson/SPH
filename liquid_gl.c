@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include "liquid_gl.h"
 #include "ogl_utils.h"
+#include "time.h"
 
 #ifdef GLFW
   #include "glfw_utils.h"
@@ -41,7 +42,7 @@ void init_liquid(liquid_t *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Amount fluid texture will be reduced from screen resolution
-    state->reduction = 8;
+    state->reduction = 2;
 
     // Create circle buffers
     create_liquid_buffers(state);
@@ -52,6 +53,9 @@ void init_liquid(liquid_t *state, int screen_width, int screen_height)
 
     // Set verticies
     create_texture_verticies(state);
+
+    // Create random RG texture
+    create_rg_texture(state);
 }
 
 // Update coordinate of fluid points
@@ -61,10 +65,10 @@ void render_liquid(float *points, float diameter_pixels, int num_points, liquid_
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 
     // Orphan current buffer
-    glBufferData(GL_ARRAY_BUFFER, 2*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3*num_points*sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 2*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3*num_points*sizeof(GLfloat), points, GL_STREAM_DRAW);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -98,7 +102,7 @@ void create_liquid_buffers(liquid_t *state)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
 
     // http://fumufumu.q-games.com/gdc2010/shooterGDC.pdf
-    // Render to low-res texture and upsample
+    // Render to low-res texture, blur, then upsample
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, state->screen_width/state->reduction, state->screen_height/state->reduction, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -264,8 +268,12 @@ void create_liquid_shaders(liquid_t *state)
 
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
+    // Get particle ID location
+    state->particle_id_location = glGetAttribLocation(state->program, "particle_id");
     // Get pixel diameter location
     state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
+    // Get RG tex uniform location
+    state->rg_tex_location = glGetUniformLocation(state->program, "rg_tex");
 
     // Get position location
     state->tex_position_location = glGetAttribLocation(state->tex_program, "position");
@@ -292,10 +300,53 @@ void create_liquid_shaders(liquid_t *state)
     #ifndef RASPI
     glEnable(GL_PROGRAM_POINT_SIZE);
     #endif
+}
 
-//   GLfloat fSizes[2];
-//   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
-//   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
+// Create RG texture to provide fluid "tracking" in render
+void create_rg_texture(liquid_t *state)
+{
+    // Read in background PNG
+    unsigned error;
+    unsigned char* image;
+    unsigned width, height;
+
+    // Hack the width and height for now...
+    width = 1500;
+    height = 1;
+
+    // Create random RG array
+    image = malloc(sizeof(char)*width*height);
+
+    time_t t;
+    srand((unsigned) time(&t));
+    int i,j,rand1,rand2;
+    for(j=0; j<height; j++) {
+        for(i=0; i<width; i+=2) {
+            rand1 = rand()%256;
+            rand2 = 255 - rand1;
+            image[width*j+i] = rand1;
+            image[width*j+i+1] = rand2;
+        }
+    }
+
+    // Generate texture
+    glGenTextures(1, &state->rg_tex_uniform);
+
+    // Set texture unit 0 and bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->rg_tex_uniform);
+
+    // Buffer texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0, GL_RG, GL_UNSIGNED_BYTE, image);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Release image host memory
+    free(image);
 }
 
 void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
@@ -311,14 +362,24 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glUniform1f(state->diameter_pixels_location, (GLfloat)diameter_pixels);
 
     // Set buffer
+    size_t vert_size = 3*sizeof(GL_FLOAT);
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, 2*sizeof(GL_FLOAT), 0);
+    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
     glEnableVertexAttribArray(state->position_location);
+    glVertexAttribPointer(state->particle_id_location, 1, GL_FLOAT, GL_FALSE, vert_size, (void*)(2*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->particle_id_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
+    glBlendFuncSeparate(GL_SRC_COLOR, GL_SRC_COLOR, GL_ONE, GL_ONE);
+//      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+//    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glBlendFunc(GL_ONE, GL_ONE);
+
+    // Setup texture to read from
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->rg_tex_uniform);
+    glUniform1i(state->rg_tex_location, 0);
 
     // Bind frame buffer for render to texture
     glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_two);
@@ -346,7 +407,7 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glUseProgram(state->vert_blur_program);
 
     // Setup buffers
-    size_t vert_size = 4*sizeof(GL_FLOAT);
+    vert_size = 4*sizeof(GL_FLOAT);
     glBindBuffer(GL_ARRAY_BUFFER, state->tex_vbo);
     glVertexAttribPointer(state->vert_blur_position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
     glEnableVertexAttribArray(state->vert_blur_position_location);

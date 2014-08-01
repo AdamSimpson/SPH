@@ -54,6 +54,7 @@ void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_partic
             // Set pointer array
             fluid_particle_pointers[i] = p;
 	    fluid_particle_pointers[i]->id = i;
+            fluid_particle_pointers[i]->global_id = i;
             i++;
         }
     }

@@ -67,6 +67,7 @@ struct FLUID_PARTICLE {
     float pressure;
     float pressure_near;
     int id; // Id is 'local' index within the fluid particle pointer array
+    int global_id; // Used to track particles global position
 };
 
 struct NEIGHBOR{
@@ -94,6 +95,7 @@ struct TUNABLE_PARAMETERS {
     char mover_type;
     char kill_sim;
     char active;
+    char send_pid; // bool to determine if particle ID should be sent
 };
 
 // Full parameters struct for simulation

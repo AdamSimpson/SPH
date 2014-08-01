@@ -180,8 +180,8 @@ void start_simulation()
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
-    // Allocate (x,y) coordinate array, transfer pixel coords
-    bytes = 2 * max_fluid_particles_local * sizeof(short);
+    // Allocate (x,y[,global_id]) coordinate array, transfer pixel coords
+    bytes = 3 * max_fluid_particles_local * sizeof(short);
     total_bytes+=bytes;
     short *fluid_particle_coords = malloc(bytes);
     if(fluid_particle_coords == NULL)
@@ -351,13 +351,25 @@ void start_simulation()
         // This sends results as short in pixel coordinates
         if(sub_step == steps_per_frame-1)
         {
-            for(i=0; i<params.number_fluid_particles_local; i++) {
-                p = fluid_particle_pointers[i];
-                fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-                fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+            if(params.tunable_params.send_pid) {
+                for(i=0; i<params.number_fluid_particles_local; i++) {
+                    p = fluid_particle_pointers[i];
+                    fluid_particle_coords[i*3] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+                    fluid_particle_coords[(i*3)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                    fluid_particle_coords[(i*3)+2] = p->global_id;
+                }
+                // Async send fluid particle coordinates to render node
+                MPI_Isend(fluid_particle_coords, 3*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
             }
-            // Async send fluid particle coordinates to render node
-            MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+            else {
+                for(i=0; i<params.number_fluid_particles_local; i++) {
+                    p = fluid_particle_pointers[i];
+                    fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+                    fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                }
+                // Async send fluid particle coordinates to render node
+                MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+            }
         }
 
         if(sub_step == steps_per_frame-1)

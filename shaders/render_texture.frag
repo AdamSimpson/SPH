@@ -6,10 +6,18 @@ uniform sampler2D tex;
 out vec4 OutColor;
 
 void main() {
-    vec4 color = texture(tex, frag_tex_coord);
-    float alpha = step(0.1, color.a);
-    float white;
-    white = step(-0.15, -color.a);
-    OutColor = vec4(white, white, 1.0, 0.75*alpha);
-    //OutColor = color;
+    vec4 tex_color = texture(tex, frag_tex_coord);
+    float alpha = tex_color.a;
+
+    if(alpha < 0.1)
+        discard;
+
+    float white = step(-0.15, -alpha);
+
+    vec4 color = vec4(0.0,0.0,1.0,0.3);
+    if(tex_color.r > 0.9 && tex_color.g > 0.9)
+        color = vec4(0.5,0.6,0.8,0.9);
+
+//    OutColor = color;    
+    OutColor = vec4(tex_color.rg, 0.0, 1.0);
 }
