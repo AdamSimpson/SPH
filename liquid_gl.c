@@ -41,7 +41,11 @@ void init_liquid(liquid_t *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Amount fluid texture will be reduced from screen resolution
+    #ifdef RASPI
     state->reduction = 8;
+    #else
+    state->reduction = 2;
+    #endif
 
     // Create circle buffers
     create_liquid_buffers(state);
