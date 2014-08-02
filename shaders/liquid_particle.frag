@@ -9,13 +9,10 @@ void main() {
     // squared 2D distance from center of gl_point
     float rad_squared = dot(local_frag_coord, local_frag_coord);
 
-    float intensity = 0.0;
-
-    // If outside of the 2D circle discard
     if(rad_squared > 1.0)
-        intensity = 0.0;
+        discard;
     
-    intensity = 1.0 - 3.0*rad_squared;
+    float intensity = 1.0 - 3.0*rad_squared;
 
     out_color = vec4(0.0, 0.0, 1.0, intensity);
 }
