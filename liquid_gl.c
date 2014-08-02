@@ -323,7 +323,7 @@ void create_rg_texture(liquid_t *state)
     for(j=0; j<height; j++) {
         for(i=0; i<width; i+=2) {
             rand1 = rand()%256;
-            rand2 = 255 - rand1;
+            rand2 = rand()%256;//255 - rand1;
             image[width*j+i] = rand1;
             image[width*j+i+1] = rand2;
         }
