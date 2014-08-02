@@ -30,7 +30,7 @@ lb=KEY_PAGEDOWN
 rb=KEY_PAGEUP
 
 [ui-buttonmap]
-lt=BTN_BACK
+lt=KEY_L
 rt=BTN_FORWARD
 
 [ui-buttonmap]
@@ -38,10 +38,6 @@ dl=KEY_LEFT
 dr=KEY_RIGHT
 du=KEY_UP
 dd=KEY_DOWN
-
-[ui-buttonmap]
-back=KEY_TAB
-start=KEY_ESC
 
 [ui-buttonmap]
 guide=exec:/home/pi/startsph

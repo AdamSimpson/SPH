@@ -240,7 +240,7 @@ void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y)
 void increase_mover_width(render_t *render_state)
 {
     // Maximum width of mover
-    static const float max_width = 30.0f;
+    static const float max_width = 4.0f;
 
     if(render_state->master_params[0].mover_width > max_width)
         return;
@@ -249,11 +249,11 @@ void increase_mover_width(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         // Increase sphere
         if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height += 1.0f;
-            render_state->master_params[i].mover_width += 1.0f;
+            render_state->master_params[i].mover_height += 0.2f;
+            render_state->master_params[i].mover_width += 0.2f;
         }
         else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_width += 1.0f;
+            render_state->master_params[i].mover_width += 0.2f;
         }
     }
 
@@ -263,7 +263,7 @@ void increase_mover_width(render_t *render_state)
 void decrease_mover_width(render_t *render_state)
 {
     // Minimum width of mover
-    static const float min_width = 5.0f;
+    static const float min_width = 1.0f;
 
     if(render_state->master_params[0].mover_width - min_width < 0.001f)
         return;
@@ -272,12 +272,12 @@ void decrease_mover_width(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         // Decrease sphere radius
         if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height -= 1.0f;
-            render_state->master_params[i].mover_width -= 1.0f;
+            render_state->master_params[i].mover_height -= 0.2f;
+            render_state->master_params[i].mover_width -= 0.2f;
         }
         // Decrease rectangle width
         else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_width -= 1.0f;
+            render_state->master_params[i].mover_width -= 0.2f;
         }
     }
 }
@@ -286,7 +286,7 @@ void decrease_mover_width(render_t *render_state)
 void increase_mover_height(render_t *render_state)
 {
     // Maximum height of mover
-    static const float max_height = 30.0f;
+    static const float max_height = 4.0f;
 
     if(render_state->master_params[0].mover_height > max_height)
         return;
@@ -295,12 +295,12 @@ void increase_mover_height(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         // Increase sphere radius
         if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height += 1.0f;
-            render_state->master_params[i].mover_width += 1.0f;
+            render_state->master_params[i].mover_height += 0.2f;
+            render_state->master_params[i].mover_width += 0.2f;
         }
         // Increase rectangle height
         else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_height += 1.0f;
+            render_state->master_params[i].mover_height += 0.2f;
         }
     }
 
@@ -310,7 +310,7 @@ void increase_mover_height(render_t *render_state)
 void decrease_mover_height(render_t *render_state)
 {
     // Minimum height of mover
-    static const float min_height = 5.0f;
+    static const float min_height = 1.0f;
 
     if(render_state->master_params[0].mover_height - min_height < 0.001f)
         return;
@@ -319,12 +319,12 @@ void decrease_mover_height(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         // Decrease sphere radius
         if(render_state->master_params[i].mover_type == SPHERE_MOVER) {
-            render_state->master_params[i].mover_height -= 1.0f;
-            render_state->master_params[i].mover_width -= 1.0f;
+            render_state->master_params[i].mover_height -= 0.2f;
+            render_state->master_params[i].mover_width -= 0.2f;
         }
         // Decrease rectangle height
         else if(render_state->master_params[i].mover_type == RECTANGLE_MOVER) {
-            render_state->master_params[i].mover_height -= 1.0f;
+            render_state->master_params[i].mover_height -= 0.2f;
         }
     }
 }
@@ -453,6 +453,11 @@ void toggle_dividers(render_t *state)
 void toggle_pause(render_t *state)
 {
     state->pause = !state->pause;
+}
+
+void toggle_liquid(render_t *state)
+{
+    state->liquid = !state->liquid;
 }
 
 void toggle_quit_mode(render_t *state)

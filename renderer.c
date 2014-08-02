@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include "particles_gl.h"
+#include "liquid_gl.h"
 #include "mover_gl.h"
 #include "background_gl.h"
 #include "mpi.h"
@@ -53,6 +54,7 @@ int start_renderer()
     render_state.show_dividers = false;
     render_state.pause = false;
     render_state.quit_mode = false;
+    render_state.liquid = true;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -60,6 +62,10 @@ int start_renderer()
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
     init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
+
+    // Initialize liquid OpenGL state
+    liquid_t liquid_GLstate;
+    init_liquid(&liquid_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize mover OpenGL state
     mover_t mover_GLstate;
@@ -167,9 +173,6 @@ int start_renderer()
     // Keep track of order in which particles received
     int *particle_coordinate_ranks = malloc(num_compute_procs * sizeof(int));
 
-    // Set background color
-    glClearColor(0.15, 0.15, 0.15, 1.0);
-
     // Create color index, equally spaced around HSV
     float *colors_by_rank = malloc(3*render_state.num_compute_procs*sizeof(float));
     float angle_space = 0.5f/(float)render_state.num_compute_procs;
@@ -211,8 +214,10 @@ int start_renderer()
     // Particle radius in pixels
     #ifdef RASPI
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.020;
     #else
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125*0.7;
+    float particle_diameter_pixels = gl_state.screen_width * 0.0125;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.020;
     #endif
 
     MPI_Status status;
@@ -222,8 +227,6 @@ int start_renderer()
         remove_partition(&render_state);
 
     while(1){
-//        toggle_pause(&render_state);
-
         // Every frames_per_fps steps calculate FPS
         if(num_steps%frames_per_fps == 0) {
             current_time =  MPI_Wtime();
@@ -283,6 +286,7 @@ int start_renderer()
             check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
         // Clear background
+        glClearColor(0.15, 0.15, 0.15, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw background image
@@ -320,31 +324,38 @@ int start_renderer()
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-        // Create points array (x,y,r,g,b)
-	i = 0;
-        current_rank = particle_coordinate_ranks[i];
-        // j == coordinate pair
-        for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
-	    // Check if we are processing a new rank's particles
-            if ( num_parts > particle_coordinate_counts[current_rank]/2){
-                current_rank =  particle_coordinate_ranks[++i];
-                num_parts = 1;
-		// Find next rank with particles if current_rank has 0 particles
-		while(!particle_coordinate_counts[current_rank])
-                    current_rank = particle_coordinate_ranks[++i];
+        // Render liquid or particles
+        if(render_state.liquid) {
+            // Create points array (x,y)
+            for(j=0; j<coords_recvd; j+=2) {
+                points[j] = particle_coords[j]/(float)SHRT_MAX;
+                points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
+            }
+            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
+        }
+        else {
+            // Create points array (x,y,r,g,b)
+            i = 0;
+            current_rank = particle_coordinate_ranks[i];
+            // j == coordinate pair
+            for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+                 // Check if we are processing a new rank's particles
+                 if ( num_parts > particle_coordinate_counts[current_rank]/2){
+                    current_rank =  particle_coordinate_ranks[++i];
+                    num_parts = 1;
+                    // Find next rank with particles if current_rank has 0 particles
+                    while(!particle_coordinate_counts[current_rank])
+                        current_rank = particle_coordinate_ranks[++i];
+                }
+                points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX;
+                points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
+                points[j*5+2] = colors_by_rank[3*current_rank];
+                points[j*5+3] = colors_by_rank[3*current_rank+1];
+                points[j*5+4] = colors_by_rank[3*current_rank+2];
             }
 
-            points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX; 
-            points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
-
+            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
         }
-
-	// Draw particles
-        render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
-
         // Render exit menu
         if(render_state.quit_mode)
             render_exit_menu(&exit_menu_state, mover_center[0], mover_center[1]);
