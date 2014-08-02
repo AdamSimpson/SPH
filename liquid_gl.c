@@ -198,17 +198,17 @@ void create_liquid_shaders(liquid_t *state)
     // Compile texture vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/render_texture_es.vert");
+      compile_shader(vertexShader, "SPH/shaders/render_liquid_texture_es.vert");
     #else
-      compile_shader(vertexShader, "shaders/render_texture.vert");
+      compile_shader(vertexShader, "shaders/render_liquid_texture.vert");
     #endif
 
     // Compile texture frag shader
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/render_texture_es.frag");
+      compile_shader(fragmentShader, "SPH/shaders/render_liquid_texture_es.frag");
     #else
-      compile_shader(fragmentShader, "shaders/render_texture.frag");
+      compile_shader(fragmentShader, "shaders/render_liquid_texture.frag");
     #endif
 
     // Create texture shader program
