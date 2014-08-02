@@ -324,28 +324,6 @@ int start_renderer()
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-        // Create points array (x,y,r,g,b)
-	i = 0;
-        current_rank = particle_coordinate_ranks[i];
-        // j == coordinate pair
-        for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
-	    // Check if we are processing a new rank's particles
-            if ( num_parts > particle_coordinate_counts[current_rank]/2){
-                current_rank =  particle_coordinate_ranks[++i];
-                num_parts = 1;
-		// Find next rank with particles if current_rank has 0 particles
-		while(!particle_coordinate_counts[current_rank])
-                    current_rank = particle_coordinate_ranks[++i];
-            }
-
-            points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX; 
-            points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
-            points[j*5+2] = colors_by_rank[3*current_rank];
-            points[j*5+3] = colors_by_rank[3*current_rank+1];
-            points[j*5+4] = colors_by_rank[3*current_rank+2];
-
-        }
-
         // Render liquid or particles
         if(render_state.liquid) {
             // Create points array (x,y)
