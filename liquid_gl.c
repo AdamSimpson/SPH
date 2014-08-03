@@ -321,6 +321,7 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glEnableVertexAttribArray(state->position_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
+    // Additive blending used for initial alpha draw
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
 
@@ -359,6 +360,9 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->tex_ebo);
 
     // Viewport already set for low rez texture
+
+    // Do not need blending when drawing into 0,0,0,0 buffer
+    glDisable(GL_BLEND);
 
     // Setup texture to read from
     glActiveTexture(GL_TEXTURE0);
@@ -434,6 +438,7 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->tex_location, 0);
 
+    // Enable "standard" blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
