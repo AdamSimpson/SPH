@@ -223,8 +223,8 @@ int start_renderer()
     MPI_Status status;
 
     // Remove all partitions but one initially
-    for(i=0; i<render_state.num_compute_procs-1; i++)
-        remove_partition(&render_state);
+//    for(i=0; i<render_state.num_compute_procs-1; i++)
+//        remove_partition(&render_state);
 
     while(1){
         // Every frames_per_fps steps calculate FPS
@@ -491,22 +491,32 @@ void update_inactive_state(render_t *render_state)
    float gl_x, gl_y;
    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
 
-   float dx = 0.01f;
+   // Reset to water params
+   set_fluid_x(render_state);
 
-   // This is dirty...
-   // Static to hold direction while inactive
-   static int direction = 1;
+    // Add in all nodes
+    int i;
+    for(i=render_state->num_compute_procs_active; i<=render_state->num_compute_procs; i++)
+        add_partition(render_state);
 
-   gl_x += dx*direction;
+    float dx = 0.01f;
 
-   // If outside boundary switch direction
-   if (gl_x > 1.0f || gl_x < -1.0f)
-       direction *= -1;
+    // This is dirty...
+    // Static to hold direction while inactive
+    static int direction = 1;
 
-   // Move in sin pattern
-   gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
+    gl_x += dx*direction;
 
-   set_mover_gl_center(render_state, gl_x, gl_y);
+    // If outside boundary switch direction
+    if (gl_x > 1.0f || gl_x < -1.0f) {
+        direction *= -1;
+        toggle_liquid(render_state);
+    }
+
+    // Move in sin pattern
+    gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
+
+    set_mover_gl_center(render_state, gl_x, gl_y);
 }
 
 // Convert hsv to rgb
