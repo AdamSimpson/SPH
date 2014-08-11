@@ -36,5 +36,8 @@ void main() {
     // ambient lighting
     sphere_color += color * 0.3;
 
-    out_color = vec4(sphere_color, 1.0);
+    // Smooth step the edge to make "smooth"
+    float alpha = smoothstep(-1.0, -0.98, -rad_squared);
+
+    out_color = vec4(sphere_color, alpha);
 }

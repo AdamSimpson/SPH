@@ -2,3 +2,4 @@
 *.out
 *.bin
 *.csv
+*.DS_Store

@@ -84,7 +84,7 @@ void start_simulation()
     params.tunable_params.kill_sim = false;
     params.tunable_params.active = true;
     params.tunable_params.g = 6.0f;
-    params.tunable_params.time_step = 1.0f/35.0f;
+    params.tunable_params.time_step = 1.0f/30.0f;
     params.tunable_params.k = 0.2f;
     params.tunable_params.k_near = 6.0f;
     params.tunable_params.k_spring = 10.0f;
@@ -95,8 +95,19 @@ void start_simulation()
     params.tunable_params.mover_height = 2.0f;
     params.tunable_params.mover_type = SPHERE_MOVER;
 
+    #ifdef RASPI
+    int steps_per_frame = 1; // Number of steps to compute before updating render node
+    #else
+    int steps_per_frame = 4;
+    params.tunable_params.time_step /= (float)steps_per_frame;
+    #endif
+
     // The number of particles used may differ slightly
+    #ifdef RASPI
     params.number_fluid_particles_global = 1500;
+    #else
+    params.number_fluid_particles_global = 1500;
+    #endif
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -244,11 +255,12 @@ void start_simulation()
     #endif    
 
     fluid_particle *p;
-    unsigned int n = 0;
     fluid_particle *null_particle = NULL;
     float *null_float = NULL;
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
+
+    int sub_step = 0; // substep range from 0 to < steps_per_frame
 
     // Main simulation loop
     while(1) {
@@ -263,15 +275,19 @@ void start_simulation()
         predict_positions(fluid_particle_pointers, &boundary_global, &params);
 
         // Make sure that async send to render node is complete
-        if(coords_req != MPI_REQUEST_NULL)
-	    MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
+        if(sub_step == 0)
+        {
+            if(coords_req != MPI_REQUEST_NULL)
+	        MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
+        }
 
         #ifdef LIGHT
         char previously_active = params.tunable_params.active;
         #endif
 
         // Receive updated paramaters from render nodes
-        MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
+        if(sub_step == steps_per_frame-1)
+            MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
         #ifdef LIGHT
         // If recently added to computation turn light to light state color
@@ -332,17 +348,23 @@ void start_simulation()
         // to reduce communication cost
 
         // Pack fluid particle coordinates
-        // This should be sent as short in pixel coordinates
-        for(i=0; i<params.number_fluid_particles_local; i++) {
-            p = fluid_particle_pointers[i];
-            fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-            fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+        // This sends results as short in pixel coordinates
+        if(sub_step == steps_per_frame-1)
+        {
+            for(i=0; i<params.number_fluid_particles_local; i++) {
+                p = fluid_particle_pointers[i];
+                fluid_particle_coords[i*2] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+                fluid_particle_coords[(i*2)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+            }
+            // Async send fluid particle coordinates to render node
+            MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
         }
-        // Async send fluid particle coordinates to render node
-        MPI_Isend(fluid_particle_coords, 2*params.number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
 
-        // iterate sim loop counter
-        n++;
+        if(sub_step == steps_per_frame-1)
+            sub_step = 0;
+        else
+	    sub_step++;
+
     }
 
     #ifdef LIGHT
@@ -709,13 +731,12 @@ void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
     else if(p->x > boundary->max_x){
         p->x = boundary->max_x-0.001f;
     }
-    if(p->y < boundary->min_y) {
+    if(p->y <  boundary->min_y) {
         p->y = boundary->min_y;
     }
     else if(p->y > boundary->max_y){
         p->y = boundary->max_y-0.001f;
     }
-
 }
 
 // Initialize particles
