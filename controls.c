@@ -329,6 +329,15 @@ void decrease_mover_height(render_t *render_state)
     }
 }
 
+// Reset the mover width and height
+void reset_mover_size(render_t *render_state) {
+    int i;     
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].mover_height = 2.0f;
+        render_state->master_params[i].mover_width = 2.0f;
+    }  
+}
+
 // Preset fluids based upon xbox controller buttons
 
 // Standard fluid

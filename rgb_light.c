@@ -17,7 +17,7 @@ void rgb_light_off(rgb_light_t *state)
 // Set light to white
 void rgb_light_white(rgb_light_t *state)
 {
-    transfer(state, 255, 255, 255);
+    transfer(state, 4, 4, 4);
 }
 
 // Reset color to state stored color
