@@ -488,11 +488,18 @@ bool input_is_active(render_t *render_state)
 // Renderer will move mover if annactive
 void update_inactive_state(render_t *render_state)
 {
-   float gl_x, gl_y;
-   sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
+    float gl_x, gl_y;
+    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
 
-   // Reset to water params
-   set_fluid_x(render_state);
+    // Reset to water params
+    set_fluid_x(render_state);
+
+    // Turn off dividers
+    if(render_state->show_dividers)
+        toggle_dividers(render_state);
+
+    // Reset mover radius
+    reset_mover_size(render_state);
 
     // Add in all nodes
     int i;
@@ -508,10 +515,11 @@ void update_inactive_state(render_t *render_state)
     gl_x += dx*direction;
 
     // If outside boundary switch direction
-    if (gl_x > 1.0f || gl_x < -1.0f) {
+    if (gl_x > 1.0f || gl_x < -1.0f)
         direction *= -1;
+
+    if (gl_x < -1.0f)
         toggle_liquid(render_state);
-    }
 
     // Move in sin pattern
     gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
