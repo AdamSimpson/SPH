@@ -65,11 +65,11 @@ Although subject to change generally keys should operate as follows:
 
 * The mouse controlls the mover sphere
 
-* a,b,x,y are fluid parameter presets
+* `a`,`b`,`x`,`y` are fluid parameter presets
 
 * on Mac `[` `]` controls the number of processes while on the Pi it is page up and page down.
 
-* l toggles between particle and liquid surface rendering methods
+* `l` toggles between particle and liquid surface rendering methods
 
 If the keyboard input for the RaspberyPi doesn't work you may need to correctly set `/dev/input/event#` in `get_key_press()` in `egl_util.c` 
 
