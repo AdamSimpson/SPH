@@ -12,6 +12,9 @@ clean:
 	rm -f ./bin/sph.out
 	rm -f ./*.o
 
+run: copy
+	cd $(HOME) ; mpirun -f ~/pi_mpihostsfile -n 9 ~/sph.out ; cd $(HOME)/SPH
+
 copy:
 	scp ./bin/sph.out pi1:~/
 	scp ./bin/sph.out pi2:~/
@@ -22,6 +25,3 @@ copy:
 	scp ./bin/sph.out pi7:~/
 	scp ./bin/sph.out pi8:~/
 	scp ./bin/sph.out pi9:~/
-	scp ./bin/sph.out pi10:~/
-	scp ./bin/sph.out pi11:~/
-	scp ./bin/sph.out pi12:~/
