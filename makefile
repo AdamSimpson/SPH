@@ -13,7 +13,7 @@ clean:
 	rm -f ./*.o
 
 run: copy
-	cd $(HOME) ; mpirun -f ~/pi_mpihostsfile -n 12 ~/sph.out ; cd $(HOME)/SPH
+	cd $(HOME) ; mpirun -f ~/pi_mpihostsfile -n 9 ~/sph.out ; cd $(HOME)/SPH
 
 copy:
 	scp ./bin/sph.out pi1:~/

@@ -4,7 +4,11 @@ TinySPH is a parallel 2D Smoothed Particle Hydrodynamics(SPH) code, designed to 
 If you find this code useful, find a bug, or use this code in an interesting way i'd love to hear about it, drop me a line at simpsonab@ornl.gov and let me know!
 
 ## Screenshot
-The screenshot below shows TinySPH running on a four core MacBook Pro, running with 7 compute MPI processes and 1 MPI render process. The color of the particle indicates which processor core is responsable for it. TinySPH includes a simple number of particle based load balancing scheme.
+The screenshot below shows TinySPH running on a four core MacBook Pro, running with 7 compute MPI processes and 1 MPI render process. The default rendering mode shows a reconstructed liquid surface.
+
+![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/images/SPH_Screenshot_liquid.png "SPH Screenshot liquid")
+
+With the surface reconstruction removed the underlying physics simulation can be better viewed, show SPH's particle nature. The color of the particle indicates which processor core is responsable for it. TinySPH includes a simple number of particle based load balancing scheme.
 
 ![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/images/SPH_Screenshot.png "SPH Screenshot")
 
@@ -26,7 +30,7 @@ It is assumed that the XCode toolchain has been installed, this is freely availa
 On the RaspberryPi the following packages must be installed, all of which are availble through apt-get.
 
     $ sudo apt-get install mpich
-    $ sudo apt-get install glew
+    $ sudo apt-get install libglew-dev
 
 ## Compile and run
 Once the prerequisites have been installed TitanSPH can be compiled and run.
@@ -61,9 +65,11 @@ Although subject to change generally keys should operate as follows:
 
 * The mouse controlls the mover sphere
 
-* A,B,X,Y are fluid parameter presets
+* a,b,x,y are fluid parameter presets
 
 * on Mac `[` `]` controls the number of processes while on the Pi it is page up and page down.
+
+* l toggles between particle and liquid surface rendering methods
 
 If the keyboard input for the RaspberyPi doesn't work you may need to correctly set `/dev/input/event#` in `get_key_press()` in `egl_util.c` 
 
