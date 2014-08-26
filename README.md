@@ -8,7 +8,7 @@ The screenshot below shows TinySPH running on a four core MacBook Pro, running w
 
 ![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/images/SPH_Screenshot_liquid.png "SPH Screenshot liquid")
 
-With the surface reconstruction removed the underlying physics simulation can be better viewed, show SPH's particle nature. The color of the particle indicates which processor core is responsable for it. TinySPH includes a simple number of particle based load balancing scheme.
+With the surface reconstruction removed the underlying physics simulation can be better viewed, showing SPH's particle nature. The color of the particle indicates which processor core is responsable for it. TinySPH includes a simple number of particle based load balancing scheme.
 
 ![alt text](https://raw.githubusercontent.com/AdamSimpson/SPH/master/images/SPH_Screenshot.png "SPH Screenshot")
 
@@ -27,7 +27,7 @@ It is assumed that the XCode toolchain has been installed, this is freely availa
 
 ### Raspberry Pi
 
-On the RaspberryPi the following packages must be installed, all of which are availble through apt-get.
+On the RaspberryPi the following packages must be installed, all of which are availble through apt-get. If you used the TinySetup scripts these should already be installed
 
     $ sudo apt-get install mpich
     $ sudo apt-get install libglew-dev
