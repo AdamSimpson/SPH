@@ -168,10 +168,8 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // Try to get full screen
     // Retina screen is a pain...
-    int width, height;
-    width = 1920;
-    height = 1080;
-    state->window = glfwCreateWindow(width, height, "SPH", glfwGetPrimaryMonitor(), NULL);
+    GLFWvidmode *mode = (GLFWvidmode*)glfwGetVideoMode(glfwGetPrimaryMonitor());
+    state->window = glfwCreateWindow(mode->width, mode->height, "SPH", glfwGetPrimaryMonitor(), NULL);
 
     glfwGetFramebufferSize(state->window, &state->screen_width, &state->screen_height);
     glViewport(0, 0, state->screen_width, state->screen_height);
