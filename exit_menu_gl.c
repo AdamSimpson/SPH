@@ -9,8 +9,8 @@
 void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
 {
     // Initialize program launcher images OpenGL state
-    int image_width = 500;
-    int image_height = 312;
+    int image_width = gl_state->screen_width/3.84;
+    int image_height = gl_state->screen_height/3.46;
 
     float half_height = (image_height/(float)gl_state->screen_height);
     float half_width = (image_width/(float)gl_state->screen_width);
@@ -75,8 +75,9 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
 
     // Initialize cursor
     state->cursor_state = malloc(sizeof(cursor_t));
-    int cursor_width = 120;
-    int cursor_height = 160;
+    int cursor_width = gl_state->screen_width/16.0;
+    int cursor_height = gl_state->screen_height/6.75;
+
     #ifdef RASPI
     init_cursor(state->cursor_state, gl_state, "SPH/images/cursor.png", cursor_width, cursor_height);
     #else
