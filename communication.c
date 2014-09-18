@@ -58,7 +58,10 @@ void createMpiTypes()
     // Create fluid particle type;
     for (i=0; i<12; i++) types[i] = MPI_FLOAT;
     types[12] = MPI_INT;
-    for (i=0; i<13; i++) blocklens[i] = 1;
+    types[13] = MPI_UNSIGNED_CHAR;
+    types[14] = MPI_UNSIGNED_CHAR;
+    types[15] = MPI_UNSIGNED_CHAR;
+    for (i=0; i<16; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( fluid_particle, x_prev);
     disps[1] = offsetof( fluid_particle, y_prev);
@@ -73,8 +76,12 @@ void createMpiTypes()
     disps[10] = offsetof( fluid_particle, pressure);
     disps[11] = offsetof( fluid_particle, pressure_near);
     disps[12] = offsetof( fluid_particle, id);
+    disps[13] = offsetof( fluid_particle, r);
+    disps[14] = offsetof( fluid_particle, g);
+    disps[15] = offsetof( fluid_particle, b);
+
     // Commit type
-    MPI_Type_create_struct( 13, blocklens, disps, types, &Particletype );
+    MPI_Type_create_struct( 16, blocklens, disps, types, &Particletype );
     MPI_Type_commit( &Particletype );
 
     // Create param type

@@ -67,6 +67,9 @@ struct FLUID_PARTICLE {
     float pressure;
     float pressure_near;
     int id; // Id is 'local' index within the fluid particle pointer array
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 };
 
 struct NEIGHBOR{

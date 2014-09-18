@@ -57,7 +57,7 @@ typedef struct render_t {
     double last_activity_time; // Used to determine if simulation is being used or not
     struct exit_menu_t *exit_menu_state;
     int return_value;
-    bool liquid;
+    bool liquid; // True if rendering liquid surface
 } render_t;
 
 int start_renderer();

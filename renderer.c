@@ -158,7 +158,7 @@ int start_renderer()
     mover_GLstate.mover_type = render_state.master_params[0].mover_type;
 
     // Allocate particle receive array
-    int num_coords = 2;
+    int num_coords = 5;
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
@@ -328,6 +328,9 @@ int start_renderer()
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
+        // DEV HACK
+        bool render_blend = true;
+
         // Render liquid or particles
         if(render_state.liquid) {
             // Create points array (x,y)
@@ -336,6 +339,19 @@ int start_renderer()
                 points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
             }
             render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
+        }
+        else if(render_blend) {
+            // Create points array (x,y,r,g,b)
+            // j == coordinate pair
+            for(j=0; j<coords_recvd/5; j++) {
+                points[j*5]   = particle_coords[j*5]/(float)SHRT_MAX;
+                points[j*5+1] = particle_coords[j*5+1]/(float)SHRT_MAX;
+                points[j*5+2] = particle_coords[j*5+2]/(float)255;
+                points[j*5+3] = particle_coords[j*5+3]/(float)255;
+                points[j*5+4] = particle_coords[j*5+4]/(float)255;
+            }
+
+            render_particles(points, particle_diameter_pixels, coords_recvd/5, &particle_GLstate);
         }
         else {
             // Create points array (x,y,r,g,b)
@@ -360,6 +376,8 @@ int start_renderer()
 
             render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
         }
+
+
         // Render exit menu
         if(render_state.quit_mode)
             render_exit_menu(&exit_menu_state, mover_center[0], mover_center[1]);
