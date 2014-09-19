@@ -58,7 +58,7 @@ int start_renderer()
     render_state.show_dividers = false;
     render_state.pause = false;
     render_state.quit_mode = false;
-    render_state.liquid = true;
+    render_state.liquid = false;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -192,9 +192,8 @@ int start_renderer()
         hsv_to_rgb(HSV, colors_by_rank+3*i);
     }
  
-    #if defined LIGHT || defined BLINK1
+    // Broadcast colors used by all ranks
     MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
-    #endif
 
     int num_coords_rank;
     int current_rank, num_parts;

@@ -33,10 +33,11 @@ THE SOFTWARE.
 #include "geometry.h"
 #include "fluid.h"
 #include "communication.h"
+#include <unistd.h>
+
 
 #ifdef LIGHT
 #include "rgb_light.h"
-#include <unistd.h>
 #endif
 
 #ifdef BLINK1
@@ -247,16 +248,20 @@ void start_simulation()
     int *null_displs = NULL;
     MPI_Gatherv(&params.tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
+    // Set colors used by all ranks
+    float *colors_by_rank = malloc(3*nprocs*sizeof(float));
+    MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
     // Initialize RGB Light if present
     #if defined LIGHT || defined BLINK1
     rgb_light_t light_state;
-    float *colors_by_rank = malloc(3*nprocs*sizeof(float));
-    MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     init_rgb_light(&light_state, 255*colors_by_rank[3*rank], 255*colors_by_rank[3*rank+1], 255*colors_by_rank[3*rank+2]);
-    free(colors_by_rank);
     // Without this pause the lights can sometimes change color too quickly the first time step
     sleep(1);
     #endif    
+
+    // Set initial color of particle
+    setParticleColor(fluid_particle_pointers, colors_by_rank, &params);
 
     fluid_particle *p;
     fluid_particle *null_particle = NULL;
@@ -359,8 +364,22 @@ void start_simulation()
         if(sub_step == steps_per_frame-1)
         {
             if(render_blend){
+                 unsigned char target_r =255*colors_by_rank[3*rank];
+                 unsigned char target_g =255*colors_by_rank[3*rank+1];
+                 unsigned char target_b =255*colors_by_rank[3*rank+2];
+
                 for(i=0; i<params.number_fluid_particles_local; i++) {
                     p = fluid_particle_pointers[i];
+
+                    // Simple average blend
+                    short r_diff = target_r - p->r;
+                    short g_diff = target_g - p->g;
+                    short b_diff = target_b - p->b;
+
+                    p->r += r_diff/50.0;
+                    p->g += g_diff/50.0;
+                    p->b += b_diff/50.0;
+
                     fluid_particle_coords[i*5] = (2.0f*p->x/boundary_global.max_x - 1.0f) * SHRT_MAX; // convert to short using full range
                     fluid_particle_coords[(i*5)+1] = (2.0f*p->y/boundary_global.max_y - 1.0f) * SHRT_MAX; // convert to short using full range
                     fluid_particle_coords[(i*5)+2] = (short)p->r;
@@ -393,6 +412,7 @@ void start_simulation()
     #endif
 
     // Release memory
+    free(colors_by_rank);
     free(fluid_particles);
     free(fluid_particle_coords);
     free(fluid_particle_pointers);
@@ -781,8 +801,19 @@ void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *flu
         fluid_particle_pointers[i]->a_y = 0.0f;
         fluid_particle_pointers[i]->v_x = 0.0f;
         fluid_particle_pointers[i]->v_y = 0.0f;
-        fluid_particle_pointers[i]->r = 0;
-        fluid_particle_pointers[i]->g = 255;
-        fluid_particle_pointers[i]->b = 0;
+    }
+}
+
+void setParticleColor(fluid_particle **fluid_particle_pointers, float *colors_by_rank, param* params)
+{
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+
+    // Initialize particle colors
+    int i;
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        fluid_particle_pointers[i]->r = 255*colors_by_rank[3*rank];
+        fluid_particle_pointers[i]->g = 255*colors_by_rank[3*rank+1];
+        fluid_particle_pointers[i]->b =  255*colors_by_rank[3*rank+2];
     }
 }
