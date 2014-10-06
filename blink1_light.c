@@ -19,6 +19,7 @@ void init_rgb_light(rgb_light_t *state, uint8_t r, uint8_t g, uint8_t b) {
     state->color[2] = b;
 
     state->dev =  blink1_open();
+    printf("blink1 device found: %d\n", state->dev);
     blink1_setRGB( state->dev, state->color[0], state->color[1], state->color[2] );
 }
 
