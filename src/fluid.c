@@ -340,7 +340,7 @@ void start_simulation()
         // update velocity
         updateVelocities(fluid_particle_pointers, &edges, &boundary_global, &params);
 
-        vorticity_confinement(fluid_particle_pointers, neighbors, &params);
+//        vorticity_confinement(fluid_particle_pointers, neighbors, &params);
 
         XSPH_viscosity(fluid_particle_pointers, neighbors, &params);
 
