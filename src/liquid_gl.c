@@ -29,11 +29,7 @@ THE SOFTWARE.
 #include "liquid_gl.h"
 #include "ogl_utils.h"
 
-#ifdef GLFW
-  #include "glfw_utils.h"
-#else
-  #include "egl_utils.h"
-#endif
+#include "glfw_utils.h"
 
 void init_liquid(liquid_t *state, int screen_width, int screen_height)
 {

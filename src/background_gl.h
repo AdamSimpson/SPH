@@ -25,11 +25,7 @@ THE SOFTWARE.
 #ifndef BACKGROUND_GL_H
 #define BACKGROUND_GL_H
 
-#ifdef GLFW
-  #include "glfw_utils.h"
-#else
-  #include "egl_utils.h"
-#endif
+#include "glfw_utils.h"
 
 typedef struct background_t {
     GLuint program;

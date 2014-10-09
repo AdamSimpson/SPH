@@ -27,11 +27,7 @@ THE SOFTWARE.
 
 #include "renderer.h"
 
-#ifdef GLFW
-  #include "glfw_utils.h"
-#else
-  #include "egl_utils.h"
-#endif
+#include "glfw_utils.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H

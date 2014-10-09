@@ -25,12 +25,7 @@ THE SOFTWARE.
 #ifndef MOVER_GL_H
 #define MOVER_GL_H
 
-#ifdef GLFW
-    #include "glfw_utils.h"
-#else
-    #include "GLES2/gl2.h"
-    #include "egl_utils.h"
-#endif
+#include "glfw_utils.h"
 
 typedef struct mover_t
 {

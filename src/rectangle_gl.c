@@ -28,12 +28,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include "rectangle_gl.h"
 #include "ogl_utils.h"
-
-#ifdef GLFW
-  #include "glfw_utils.h"
-#else
-  #include "egl_utils.h"
-#endif
+#include "glfw_utils.h"
 
 void init_rectangle(rectangle_t *state)
 {
