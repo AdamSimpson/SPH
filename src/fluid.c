@@ -96,7 +96,6 @@ void start_simulation()
     params.tunable_params.rest_density = 10.0;
     params.tunable_params.mover_width = 10.0f;
     params.tunable_params.mover_height = 10.0f;
-    params.tunable_params.mover_type = SPHERE_MOVER;
 
     #ifdef RASPI
     int steps_per_frame = 1; // Number of steps to compute before updating render node
@@ -762,27 +761,23 @@ void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params)
     float center_y = params->tunable_params.mover_center_y;
 
     // Boundary condition for sphere mover
-    if(params->tunable_params.mover_type == SPHERE_MOVER)
-    {
-        // Sphere width == height
-        float radius = params->tunable_params.mover_width*0.5f;
-        float norm_x;
-        float norm_y;
+    // Sphere width == height
+    float radius = params->tunable_params.mover_width*0.5f;
+    float norm_x; 
+    float norm_y;
 
-        // Test if inside of circle
-        float d;
-        float d2 = (p->x_star - center_x)*(p->x_star - center_x) + (p->y_star - center_y)*(p->y_star - center_y);
-        if(d2 <= radius*radius && d2 > 0.0f) {
-            d = sqrt(d2);
-            norm_x = (center_x-p->x_star)/d;
-            norm_y = (center_y-p->y_star)/d;
+    // Test if inside of circle
+    float d;
+    float d2 = (p->x_star - center_x)*(p->x_star - center_x) + (p->y_star - center_y)*(p->y_star - center_y);
+    if(d2 <= radius*radius && d2 > 0.0f) {
+        d = sqrt(d2);
+        norm_x = (center_x-p->x_star)/d;
+        norm_y = (center_y-p->y_star)/d;
 	    
-	    // With no collision impulse we can handle penetration here
-            float pen_dist = radius - d;
-            p->x_star -= pen_dist * norm_x;
-            p->y_star -= pen_dist * norm_y;
-        }
-
+        // With no collision impulse we can handle penetration here
+        float pen_dist = radius - d;
+        p->x_star -= pen_dist * norm_x;
+        p->y_star -= pen_dist * norm_y;
     }
 
     // Make sure object is not outside boundary

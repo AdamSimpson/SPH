@@ -42,9 +42,6 @@ void init_mover(mover_t *state)
 
     // Create shader programs
     create_sphere_mover_program(state);
-
-    // Need to update shaders
-//    create_rectangle_mover_program(state);
 }
 
 // Update coordinates of point mover and then render
@@ -90,12 +87,8 @@ void render_mover(float *center, float *gl_dims, float *color, mover_t *state)
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    if(state->mover_type == SPHERE_MOVER) {
-        float radius = half_width;
-        draw_circle_mover(state, center, radius, color);
-    }
-    else if(state->mover_type == RECTANGLE_MOVER)
-        draw_rectangle_mover(state, center, color);
+    float radius = half_width;
+    draw_circle_mover(state, center, radius, color);
 }
 
 void create_mover_buffers(mover_t *state)
@@ -151,44 +144,6 @@ void create_sphere_mover_program(mover_t *state)
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
 }
 
-// Compile rectnagle program
-void create_rectangle_mover_program(mover_t *state)
-{
-    // Compile vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/mover_rectangle_es.vert");
-    #else
-      compile_shader(vertexShader, "mover_rectangle.vert");
-    #endif
-
-    // Compile frag shader
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/mover_rectangle_es.frag");
-    #else
-      compile_shader(fragmentShader, "mover_rectangle.frag");
-    #endif
-
-    // Create shader program
-    state->rectangle_program = glCreateProgram();
-    glAttachShader(state->rectangle_program, vertexShader);
-    glAttachShader(state->rectangle_program, fragmentShader);
-
-    // Link and use program
-    glLinkProgram(state->rectangle_program);
-    show_program_log(state->rectangle_program);
-
-    // Get position location
-    state->rectangle_position_location = glGetAttribLocation(state->rectangle_program, "position");
-    state->rectangle_tex_coord_location = glGetAttribLocation(state->rectangle_program, "tex_coord");
-
-    // Get rectangle location
-    state->rectangle_color_location = glGetUniformLocation(state->rectangle_program, "color");
-    // Get center location
-    state->rectangle_center_location = glGetUniformLocation(state->rectangle_program, "center");
-}
-
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
 {
 
@@ -222,35 +177,3 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-
-void draw_rectangle_mover(mover_t *state, float *center, float *color)
-{
-
-    // Bind rectangle shader program
-    glUseProgram(state->rectangle_program);
-
-    // set color uniform
-    glUniform3fv(state->rectangle_color_location, 1, color);
-
-    // set center uniform
-    glUniform2fv(state->rectangle_center_location, 1, center);
-
-    // Bind buffer
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-
-    // Setup verticies
-    glVertexAttribPointer(state->rectangle_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
-    glVertexAttribPointer(state->rectangle_tex_coord_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
-    glEnableVertexAttribArray(state->rectangle_position_location);
-
-    // Blend is required to show cleared color when the frag shader draws transparent pixels
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // Draw
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    // Unbind buffer
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-

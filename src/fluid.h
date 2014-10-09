@@ -43,10 +43,6 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
 #define debug_print(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
-// MPI doesn't have a C enum type
-// Defines will be ok for our use
-#define SPHERE_MOVER 0
-#define RECTANGLE_MOVER 1
 
 ////////////////////////////////////////////////
 // Structures

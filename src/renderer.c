@@ -154,9 +154,6 @@ int start_renderer()
     for(i=0; i<render_state.num_compute_procs; i++)
         render_state.master_params[i] = node_params[i];
 
-    // Set mover state
-    mover_GLstate.mover_type = render_state.master_params[0].mover_type;
-
     // Allocate particle receive array
     int num_coords = 2;
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
