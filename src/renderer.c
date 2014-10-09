@@ -52,7 +52,6 @@ int start_renderer()
     init_ogl(&gl_state, &render_state);
     render_state.show_dividers = false;
     render_state.pause = false;
-    render_state.quit_mode = false;
     render_state.liquid = true;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
@@ -108,7 +107,6 @@ int start_renderer()
     render_state.num_compute_procs = num_compute_procs;
     render_state.num_compute_procs_active = num_compute_procs;
     render_state.selected_parameter = 0;
-    render_state.return_value = 0;
 
     int i,j;
 
@@ -364,7 +362,7 @@ int start_renderer()
     free(particle_coordinate_ranks);
     free(colors_by_rank);
 
-    return render_state.return_value;
+    return 0;
 }
 
 // Translate between OpenGL coordinates with origin at screen center
