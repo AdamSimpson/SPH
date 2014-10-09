@@ -29,7 +29,6 @@ THE SOFTWARE.
 #include "glfw_utils.h"
 #include "renderer.h"
 #include "controls.h"
-#include "exit_menu_gl.h"
 
 void check_user_input(gl_t *state)
 {
@@ -46,9 +45,9 @@ void error_callback(int error, const char* description)
 bool window_should_close(gl_t *state)
 {
     if(glfwWindowShouldClose(state->window))
-	    return true;
+	return true;
     else
-	    return false;
+	return false;
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -65,7 +64,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                toggle_quit_mode(render_state);              
+                exit_program(window);              
 	        break;
             case GLFW_KEY_RIGHT:
                 increase_parameter(render_state);
@@ -92,8 +91,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 set_fluid_y(render_state);
                 break;
             case GLFW_KEY_A:
-                if(render_state->quit_mode)
-                    exit_with_selected_program(render_state, window);
                 set_fluid_a(render_state);
                 break;
             case GLFW_KEY_B:
@@ -241,19 +238,8 @@ void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y
 }
 
 // Exit and set return value for specific program if one selected
-void exit_with_selected_program(render_t *render_state, GLFWwindow* window)
+void exit_program(GLFWwindow* window)
 {
-    if(render_state->exit_menu_state->mandelbrot_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        render_state->return_value = 10;
-    }
-    else if (render_state->exit_menu_state->sph_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        render_state->return_value = 20;
-    }
-    else if (render_state->exit_menu_state->terminal_state->selected) {
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        render_state->return_value = 0;
-    }
+    glfwSetWindowShouldClose(window, GL_TRUE);
 }
 

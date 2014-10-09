@@ -35,7 +35,6 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "font_gl.h"
 #include "dividers_gl.h"
-#include "exit_menu_gl.h"
 #include "renderer.h"
 
 #ifdef BLINK1
@@ -82,11 +81,6 @@ int start_renderer()
     // Initialize node divider OpenGL state
     dividers_t dividers_state;
     init_dividers(&dividers_state, gl_state.screen_width, gl_state.screen_height);
-
-    // Initialize exit menu
-    exit_menu_t exit_menu_state;
-    init_exit_menu(&exit_menu_state, &gl_state);
-    render_state.exit_menu_state = &exit_menu_state;
 
     // Initialize RGB Light if present
     #if defined BLINK1
@@ -344,11 +338,9 @@ int start_renderer()
 
             render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
         }
-        // Render exit menu
-        if(render_state.quit_mode)
-            render_exit_menu(&exit_menu_state, mover_center[0], mover_center[1]);
-        else // Render over particles to hide penetration
-            render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
+
+        // Render over particles to hide penetration
+        render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);
@@ -362,7 +354,6 @@ int start_renderer()
 
     // Clean up memory
     exit_ogl(&gl_state);
-    exit_exit_menu(&exit_menu_state);
     free(node_params);
     free(master_params);
     free(param_counts);

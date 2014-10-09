@@ -5,7 +5,7 @@ CFLAGS= -DGLFW -O3 -ffast-math -lm
 
 all:
 	mkdir -p bin
-	cd src && $(CC) $(CINCLUDES) $(CFLAGS) $(CLIBS) ogl_utils.c dividers_gl.c particles_gl.c liquid_gl.c mover_gl.c font_gl.c lodepng.c exit_menu_gl.c rectangle_gl.c renderer.c glfw_utils.c image_gl.c cursor_gl.c background_gl.c controls.c geometry.c hash.c communication.c fluid.c -o ../bin/sph.out
+	cd src && $(CC) $(CINCLUDES) $(CFLAGS) $(CLIBS) ogl_utils.c dividers_gl.c particles_gl.c liquid_gl.c mover_gl.c font_gl.c lodepng.c renderer.c glfw_utils.c image_gl.c cursor_gl.c background_gl.c controls.c geometry.c hash.c communication.c fluid.c -o ../bin/sph.out
 clean:
 	rm -f ./sph.out
 	rm -f ./*.o

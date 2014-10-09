@@ -28,8 +28,6 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "stdbool.h"
 
-struct exit_menu_t; //blarg...
-
 // enum of displayed parameter values
 typedef enum {
     MIN = 0,
@@ -55,7 +53,6 @@ typedef struct render_t {
     bool pause;
     bool quit_mode;
     double last_activity_time; // Used to determine if simulation is being used or not
-    struct exit_menu_t *exit_menu_state;
     int return_value;
     bool liquid;
 } render_t;
