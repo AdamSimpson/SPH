@@ -34,11 +34,6 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "communication.h"
 
-#ifdef LIGHT
-#include "rgb_light.h"
-#include <unistd.h>
-#endif
-
 #ifdef BLINK1
 #include "blink1_light.h"
 #endif
@@ -251,7 +246,7 @@ void start_simulation()
     MPI_Gatherv(&params.tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
     // Initialize RGB Light if present
-    #if defined LIGHT || defined BLINK1
+    #if defined BLINK1
     rgb_light_t light_state;
     float *colors_by_rank = malloc(3*nprocs*sizeof(float));
     MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
@@ -285,7 +280,7 @@ void start_simulation()
 	        MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
         }
 
-        #if defined LIGHT || defined BLINK1
+        #if defined BLINK1
         char previously_active = params.tunable_params.active;
         #endif
 
@@ -293,7 +288,7 @@ void start_simulation()
         if(sub_step == steps_per_frame-1)
             MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
-        #if defined LIGHT || defined BLINK1
+        #if defined BLINK1
         // If recently added to computation turn light to light state color
         // If recently taken out of computation turn light to white
         char currently_active = params.tunable_params.active;
@@ -366,7 +361,7 @@ void start_simulation()
 
     }
 
-    #if defined LIGHT || defined BLINK1
+    #if defined BLINK1
         shutdown_rgb_light(&light_state);
     #endif
 
