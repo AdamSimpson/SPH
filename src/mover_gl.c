@@ -90,11 +90,9 @@ void render_mover(float *center, float *gl_dims, float *color, mover_t *state)
 void create_mover_buffers(mover_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -105,19 +103,11 @@ void create_sphere_mover_program(mover_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/mover_circle_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/mover_circle.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/mover_circle.vert");
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/mover_circle_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/mover_circle.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/mover_circle.frag");
 
     // Create shader program
     state->sphere_program = glCreateProgram();

@@ -21,68 +21,37 @@ void init_exit_menu(exit_menu_t *state, gl_t *gl_state)
     float lower_left_x = -1.0f + dx;
     state->mandelbrot_state = malloc(sizeof(image_t));
 
-    #ifdef RASPI
-    init_image(state->mandelbrot_state,
-               gl_state,
-               "SPH/images/mandelbrot.png",
-               "SPH/images/mandelbrot-selected.png",
-               lower_left_x, lower_left_y,
-               image_width, image_height);
-    #else
     init_image(state->mandelbrot_state,
                gl_state,
                "images/mandelbrot.png",
                "images/mandelbrot-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
-    #endif
 
     lower_left_x += 2.0f*half_width + dx;
     state->terminal_state = malloc(sizeof(image_t));
-    #ifdef RASPI
-    init_image(state->terminal_state,
-               gl_state,
-               "SPH/images/terminal.png",
-               "SPH/images/terminal-selected.png",
-               lower_left_x, lower_left_y,
-               image_width, image_height);
-    #else
     init_image(state->terminal_state,
                gl_state,
                "images/terminal.png",
                "images/terminal-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
-    #endif
 
     lower_left_x += 2.0f*half_width + dx;
     state->sph_state = malloc(sizeof(image_t));
-    #ifdef RASPI
-    init_image(state->sph_state,
-               gl_state,
-               "SPH/images/sph.png",
-               "SPH/images/sph-selected.png",
-               lower_left_x, lower_left_y,
-               image_width, image_height);
-    #else
     init_image(state->sph_state,
                gl_state,
                "images/sph.png",
                "images/sph-selected.png",
                lower_left_x, lower_left_y,
                image_width, image_height);
-    #endif
 
     // Initialize cursor
     state->cursor_state = malloc(sizeof(cursor_t));
     int cursor_width = gl_state->screen_width/16.0;
     int cursor_height = gl_state->screen_height/7.5;
 
-    #ifdef RASPI
-    init_cursor(state->cursor_state, gl_state, "SPH/images/cursor.png", cursor_width, cursor_height);
-    #else
     init_cursor(state->cursor_state, gl_state, "images/cursor.png", cursor_width, cursor_height); 
-    #endif
 
     // Initialize cursor
     state->rectangle_state = malloc(sizeof(rectangle_t));

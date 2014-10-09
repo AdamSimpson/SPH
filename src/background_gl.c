@@ -35,19 +35,11 @@ void create_backround_program(background_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-        compile_shader(vertex_shader, "SPH/shaders/background_es.vert");
-    #else
-        compile_shader(vertex_shader, "shaders/background.vert");
-    #endif
+    compile_shader(vertex_shader, "shaders/background.vert");
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-        compile_shader(frag_shader, "SPH/shaders/background_es.frag");
-    #else
-        compile_shader(frag_shader, "shaders/background.frag");
-    #endif
+    compile_shader(frag_shader, "shaders/background.frag");
 
     // Create shader program
     state->program = glCreateProgram();
@@ -69,11 +61,9 @@ void create_backround_program(background_t *state)
 void create_background_buffers(background_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -135,11 +125,7 @@ void create_background_texture(background_t *state)
     unsigned char* image;
     unsigned width, height;
 
-    #ifdef RASPI
-    error = lodepng_decode32_file(&image, &width, &height, "SPH/images/OakRidgeLeaf.png");
-    #else
     error = lodepng_decode32_file(&image, &width, &height, "images/OakRidgeLeaf.png");
-    #endif
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
     state->background_width = state->screen_width/3.2;

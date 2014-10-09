@@ -81,11 +81,9 @@ void render_rectangle(rectangle_t *state, float *center, float *gl_dims, float *
 void create_rectangle_buffers(rectangle_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -96,19 +94,11 @@ void create_rectangle_program(rectangle_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/rectangle_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/rectangle.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/rectangle.vert");
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/rectangle_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/rectangle.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/rectangle.frag");
 
     // Create shader program
     state->rectangle_program = glCreateProgram();

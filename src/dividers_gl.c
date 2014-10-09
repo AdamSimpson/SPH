@@ -121,11 +121,9 @@ void render_dividers(dividers_t *state, float *node_edges, float *colors_by_rank
 void create_dividers_buffers(dividers_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -135,19 +133,11 @@ void create_dividers_shaders(dividers_t *state)
 {
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/divider_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/divider.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/divider.vert");
 
     // Compile frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/divider_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/divider.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/divider.frag");
 
     // Create shader program
     state->program = glCreateProgram();

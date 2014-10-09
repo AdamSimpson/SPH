@@ -92,19 +92,11 @@ void start_simulation()
     params.tunable_params.mover_width = 10.0f;
     params.tunable_params.mover_height = 10.0f;
 
-    #ifdef RASPI
-    int steps_per_frame = 1; // Number of steps to compute before updating render node
-    #else
-    int steps_per_frame = 4;
+    int steps_per_frame = 4; // Number of steps to compute before updating render node
 //    params.tunable_params.time_step /= (float)steps_per_frame;
-    #endif
 
     // The number of particles used may differ slightly
-    #ifdef RASPI
     params.number_fluid_particles_global = 1500;
-    #else
-    params.number_fluid_particles_global = 1500;
-    #endif
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0

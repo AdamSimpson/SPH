@@ -194,11 +194,7 @@ int start_renderer()
     float mover_gl_dims[2];
 
     int frames_per_fps = 30;
-    #ifdef RASPI
     int frames_per_check = 1;
-    #else
-    int frames_per_check = 1;
-    #endif
     int num_steps = 0;
     double current_time;
     double wall_time = MPI_Wtime();
@@ -209,13 +205,8 @@ int start_renderer()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    #ifdef RASPI
     float particle_diameter_pixels = gl_state.screen_width * 0.0125;
     float liquid_particle_diameter_pixels = gl_state.screen_width * 0.020;
-    #else
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125;
-    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.020;
-    #endif
 
     MPI_Status status;
 

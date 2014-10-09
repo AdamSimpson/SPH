@@ -37,11 +37,7 @@ void init_liquid(liquid_t *state, int screen_width, int screen_height)
     state->screen_height = screen_height;
 
     // Amount fluid texture will be reduced from screen resolution
-    #ifdef RASPI
-    state->reduction = 8;
-    #else
     state->reduction = 2;
-    #endif
 
     // Create circle buffers
     create_liquid_buffers(state);
@@ -77,11 +73,9 @@ void render_liquid(float *points, float diameter_pixels, int num_points, liquid_
 void create_liquid_buffers(liquid_t *state)
 {
     // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -108,12 +102,6 @@ void create_liquid_buffers(liquid_t *state)
     // Attach image to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->tex_uniform, 0);
 
-    #ifdef RASPI
-    // Create frame buffer object for render to textures
-    glGenFramebuffers(1, &state->frame_buffer_three);
-    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_three);
-    #endif
-
     // Blur step requires additional texture to write into
     // Create texture buffer
     glGenTextures(1, &state->blur_horz_tex_uniform);
@@ -127,12 +115,7 @@ void create_liquid_buffers(liquid_t *state)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    #ifdef RASPI
-    // Attach image to framebuffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->blur_horz_tex_uniform, 0);
-    #else
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, state->blur_horz_tex_uniform, 0);
-    #endif
 
     // Reset frame buffer and texture
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -172,19 +155,11 @@ void create_liquid_shaders(liquid_t *state)
 {
     // Compile metaball vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/liquid_particle_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/liquid_particle.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/liquid_particle.vert");
 
     // Compile metaball frag shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/liquid_particle_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/liquid_particle.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/liquid_particle.frag");
 
     // Create metaball shader program
     state->program = glCreateProgram();
@@ -197,19 +172,11 @@ void create_liquid_shaders(liquid_t *state)
 
     // Compile texture vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/render_liquid_texture_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/render_liquid_texture.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/render_liquid_texture.vert");
 
     // Compile texture frag shader
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/render_liquid_texture_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/render_liquid_texture.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/render_liquid_texture.frag");
 
     // Create texture shader program
     state->tex_program = glCreateProgram();
@@ -222,19 +189,11 @@ void create_liquid_shaders(liquid_t *state)
 
     // Compile vert blur vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/vert_blur_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/vert_blur.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/vert_blur.vert");
 
     // Compile blur fragment shader(shared between horz vert blur vertex shaders)
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-      compile_shader(fragmentShader, "SPH/shaders/blur_es.frag");
-    #else
-      compile_shader(fragmentShader, "shaders/blur.frag");
-    #endif
+    compile_shader(fragmentShader, "shaders/blur.frag");
 
     // Create vert blur shader program
     state->vert_blur_program = glCreateProgram();
@@ -247,11 +206,7 @@ void create_liquid_shaders(liquid_t *state)
 
     // Compile horz blur vertex shader
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-      compile_shader(vertexShader, "SPH/shaders/horz_blur_es.vert");
-    #else
-      compile_shader(vertexShader, "shaders/horz_blur.vert");
-    #endif
+    compile_shader(vertexShader, "shaders/horz_blur.vert");
 
     // Create horz blur shader program
     state->horz_blur_program = glCreateProgram();
@@ -289,9 +244,7 @@ void create_liquid_shaders(liquid_t *state)
     state->horz_blur_tex_location = glGetUniformLocation(state->horz_blur_program, "tex");
 
     // Enable point size to be specified in the shader
-    #ifndef RASPI
     glEnable(GL_PROGRAM_POINT_SIZE);
-    #endif
 
 //   GLfloat fSizes[2];
 //   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
@@ -327,10 +280,8 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     // Set viewport for low resolution texture
     glViewport(0,0,state->screen_width/state->reduction, state->screen_height/state->reduction);
 
-    #ifndef RASPI
     // Set color attachment to draw into
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    #endif
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -365,13 +316,8 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
     glUniform1i(state->vert_blur_tex_location, 0);
 
-    #ifdef RASPI
-        // Bind frame buffer for render to texture
-        glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_three);
-    #else
-        // Set color attachment to draw into
-        glDrawBuffer(GL_COLOR_ATTACHMENT1);
-    #endif
+    // Set color attachment to draw into
+    glDrawBuffer(GL_COLOR_ATTACHMENT1);
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -396,15 +342,9 @@ void draw_liquid(liquid_t *state, float diameter_pixels, int num_points)
     glBindTexture(GL_TEXTURE_2D, state->blur_horz_tex_uniform);
     glUniform1i(state->horz_blur_tex_location, 0);    
 
-
-    #ifdef RASPI
-    // Bind frame buffer for render to texture
-    glBindFramebuffer(GL_FRAMEBUFFER, state->frame_buffer_two);
-    #else
     // Set color attachment to draw into
     // Draw back into original attachment
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    #endif
 
     // Set background color
     glClearColor(0.0, 0.0, 0.0, 0.0);

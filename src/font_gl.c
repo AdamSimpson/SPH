@@ -39,19 +39,11 @@ void create_font_program(font_t *state)
 {
     // Compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    #ifdef RASPI
-        compile_shader(vertex_shader, "SPH/shaders/font_es.vert");
-    #else
-        compile_shader(vertex_shader, "shaders/font.vert");
-    #endif
+    compile_shader(vertex_shader, "shaders/font.vert");
 
     // Compile fragment shader
     GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    #ifdef RASPI
-        compile_shader(frag_shader, "SPH/shaders/font_es.frag");
-    #else
-        compile_shader(frag_shader, "shaders/font.frag");
-    #endif
+    compile_shader(frag_shader, "shaders/font.frag");
 
     // Create shader program
     state->program = glCreateProgram();
@@ -78,11 +70,9 @@ void create_font_program(font_t *state)
 void create_font_buffers(font_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    #ifndef RASPI
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    #endif
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -140,11 +130,7 @@ void create_font_atlas(font_t *state)
     state->atlas_height = h;
 
     // Allocate texture
-    #ifdef RASPI
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, 0);
-    #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-    #endif
 
     // Fill texture with glyph bitmaps and cache placements
     char_info_t *char_info = state->char_info;
@@ -166,11 +152,7 @@ void create_font_atlas(font_t *state)
 	    }
 
 	    // fill texture with glyph
-            #ifdef RASPI
-	    glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE, g->bitmap.buffer);
-            #else
 	    glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, g->bitmap.width, g->bitmap.rows, GL_RED, GL_UNSIGNED_BYTE, g->bitmap.buffer);	
-            #endif
 
 	    // Cache values
 	    char_info[i].ax = g->advance.x >> 6;
@@ -380,17 +362,10 @@ void init_font(font_t *state, int screen_width, int screen_height)
 	state->screen_height = screen_height;
 
 	// Load font face
-        #ifdef RASPI
-	if(FT_New_Face(state->ft, "SPH/DroidSerif-Regular.ttf", 0, &state->face)) {
-		printf("Error loading font face\n");
-		exit(EXIT_FAILURE);
-	}
-        #else
 	if(FT_New_Face(state->ft, "DroidSerif-Regular.ttf", 0, &state->face)) {
 		printf("Error loading font face\n");
 		exit(EXIT_FAILURE);
 	}
-        #endif
 
 	// Set pixel size
 	FT_Set_Pixel_Sizes(state->face, 0, 24);
