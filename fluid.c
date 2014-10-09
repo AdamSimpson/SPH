@@ -39,6 +39,10 @@ THE SOFTWARE.
 #include <unistd.h>
 #endif
 
+#ifdef BLINK1
+#include "blink1_light.h"
+#endif
+
 int main(int argc, char *argv[])
 {
     int return_value;
@@ -93,6 +97,13 @@ void start_simulation()
     params.tunable_params.mover_width = 10.0f;
     params.tunable_params.mover_height = 10.0f;
     params.tunable_params.mover_type = SPHERE_MOVER;
+
+    #ifdef RASPI
+    int steps_per_frame = 1; // Number of steps to compute before updating render node
+    #else
+    int steps_per_frame = 4;
+//    params.tunable_params.time_step /= (float)steps_per_frame;
+    #endif
 
     // The number of particles used may differ slightly
     #ifdef RASPI
@@ -241,7 +252,7 @@ void start_simulation()
     MPI_Gatherv(&params.tunable_params, 1, TunableParamtype, null_tunable_param, null_recvcnts, null_displs, TunableParamtype, 0, MPI_COMM_WORLD);
 
     // Initialize RGB Light if present
-    #ifdef LIGHT
+    #if defined LIGHT || defined BLINK1
     rgb_light_t light_state;
     float *colors_by_rank = malloc(3*nprocs*sizeof(float));
     MPI_Bcast(colors_by_rank, 3*nprocs, MPI_FLOAT, 0, MPI_COMM_WORLD);
@@ -257,11 +268,6 @@ void start_simulation()
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
 
-    #ifdef RASPI
-    int steps_per_frame = 1; // Number of steps to compute before updating render node
-    #else
-    int steps_per_frame = 4; 
-    #endif
     int sub_step = 0; // substep range from 0 to < steps_per_frame
 
     // Main simulation loop
@@ -280,7 +286,7 @@ void start_simulation()
 	        MPI_Wait(&coords_req, MPI_STATUS_IGNORE);
         }
 
-        #ifdef LIGHT
+        #if defined LIGHT || defined BLINK1
         char previously_active = params.tunable_params.active;
         #endif
 
@@ -288,7 +294,7 @@ void start_simulation()
         if(sub_step == steps_per_frame-1)
             MPI_Scatterv(null_tunable_param, 0, null_displs, TunableParamtype, &params.tunable_params, 1, TunableParamtype, 0,  MPI_COMM_WORLD);
 
-        #ifdef LIGHT
+        #if defined LIGHT || defined BLINK1
         // If recently added to computation turn light to light state color
         // If recently taken out of computation turn light to white
         char currently_active = params.tunable_params.active;
@@ -361,8 +367,8 @@ void start_simulation()
 
     }
 
-    #ifdef LIGHT
-    rgb_light_off(&light_state);
+    #if defined LIGHT || defined BLINK1
+        shutdown_rgb_light(&light_state);
     #endif
 
     // Release memory

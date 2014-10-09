@@ -7,7 +7,7 @@ void main() {
     float rad_squared = dot(local_frag_coord, local_frag_coord);
 
     // If outside of the 2D circle discard
-    if(rad_squared > 1.0)
+    if(rad_squared > 0.34)
         discard;
 
     float intensity = 1.0 - 3.0*rad_squared;

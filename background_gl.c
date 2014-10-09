@@ -142,8 +142,8 @@ void create_background_texture(background_t *state)
     #endif
     if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
-    state->background_width = width;
-    state->background_height = height;
+    state->background_width = state->screen_width/3.2;
+    state->background_height = state->screen_height/1.5;
 
     printf("Background image loaded: %d x %d pixels\n", width, height);
 

@@ -42,6 +42,10 @@ THE SOFTWARE.
     #include "rgb_light.h"
 #endif
 
+#ifdef BLINK1
+    #include "blink1_light.h"
+#endif
+
 int start_renderer()
 {
     // Setup initial OpenGL state
@@ -89,7 +93,7 @@ int start_renderer()
     render_state.exit_menu_state = &exit_menu_state;
 
     // Initialize RGB Light if present
-    #ifdef LIGHT
+    #if defined LIGHT || defined BLINK1
     rgb_light_t light_state;
     init_rgb_light(&light_state, 255, 0, 0);
     #endif
@@ -188,7 +192,7 @@ int start_renderer()
         hsv_to_rgb(HSV, colors_by_rank+3*i);
     }
  
-    #ifdef LIGHT
+    #if defined LIGHT || defined BLINK1
     MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     #endif
 
@@ -223,8 +227,8 @@ int start_renderer()
     MPI_Status status;
 
     // Remove all partitions but one initially
-    for(i=0; i<render_state.num_compute_procs-1; i++)
-        remove_partition(&render_state);
+//    for(i=0; i<render_state.num_compute_procs-1; i++)
+//        remove_partition(&render_state);
 
     while(1){
         // Every frames_per_fps steps calculate FPS
@@ -368,8 +372,8 @@ int start_renderer()
         num_steps++;
     }
 
-    #ifdef LIGHT
-    rgb_light_off(&light_state);
+    #if defined LIGHT || defined BLINK1
+    shutdown_rgb_light(&light_state);
     #endif
 
     // Clean up memory
@@ -488,25 +492,43 @@ bool input_is_active(render_t *render_state)
 // Renderer will move mover if annactive
 void update_inactive_state(render_t *render_state)
 {
-   float gl_x, gl_y;
-   sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
+    float gl_x, gl_y;
+    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
 
-   float dx = 0.01f;
+    // Reset to water params
+    set_fluid_x(render_state);
 
-   // This is dirty...
-   // Static to hold direction while inactive
-   static int direction = 1;
+    // Turn off dividers
+    if(render_state->show_dividers)
+        toggle_dividers(render_state);
 
-   gl_x += dx*direction;
+    // Reset mover radius
+    reset_mover_size(render_state);
 
-   // If outside boundary switch direction
-   if (gl_x > 1.0f || gl_x < -1.0f)
-       direction *= -1;
+    // Add in all nodes
+    int i;
+    for(i=render_state->num_compute_procs_active; i<=render_state->num_compute_procs; i++)
+        add_partition(render_state);
 
-   // Move in sin pattern
-   gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
+    float dx = 0.01f;
 
-   set_mover_gl_center(render_state, gl_x, gl_y);
+    // This is dirty...
+    // Static to hold direction while inactive
+    static int direction = 1;
+
+    gl_x += dx*direction;
+
+    // If outside boundary switch direction
+    if (gl_x > 1.0f || gl_x < -1.0f)
+        direction *= -1;
+
+    if (gl_x < -1.0f)
+        toggle_liquid(render_state);
+
+    // Move in sin pattern
+    gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
+
+    set_mover_gl_center(render_state, gl_x, gl_y);
 }
 
 // Convert hsv to rgb
