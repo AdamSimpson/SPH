@@ -45,8 +45,8 @@ typedef struct render_t {
     float screen_width;
     float screen_height;
     parameters selected_parameter;
-    tunable_parameters *node_params; // Holds all nodes paramters including start/end lengths
-    tunable_parameters *master_params; // Holds parameters shared by all nodes
+    tunable_parameters_t *node_params; // Holds all nodes paramters including start/end lengths
+    tunable_parameters_t *master_params; // Holds parameters shared by all nodes
     int num_compute_procs;
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
     bool show_dividers;
@@ -55,7 +55,7 @@ typedef struct render_t {
     bool liquid;
 } render_t;
 
-int start_renderer();
+void start_renderer();
 void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y);
 void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float *gl_y);
 void update_node_params(render_t *render_state);

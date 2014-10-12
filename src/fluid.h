@@ -25,17 +25,17 @@ THE SOFTWARE.
 #ifndef fluid_fluid_h
 #define fluid_fluid_h
 
-typedef struct FLUID_PARTICLE fluid_particle;
-typedef struct NEIGHBOR neighbor;
-typedef struct PARAM param;
-typedef struct TUNABLE_PARAMETERS tunable_parameters;
+typedef struct FLUID_PARTICLE_T fluid_particle_t;
+typedef struct PARAM_T param_t;
+typedef struct TUNABLE_PARAMETERS_T tunable_parameters_t;
+typedef struct FLUID_SIM_T fluid_sim_t;
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include "hash.h"
-#include "geometry.h"
+#include "setup.h"
 #include "communication.h"
 
 // Debug print statement
@@ -49,7 +49,7 @@ typedef struct TUNABLE_PARAMETERS tunable_parameters;
 ////////////////////////////////////////////////
 
 // Standard fluid particle paramaters
-struct FLUID_PARTICLE {
+struct FLUID_PARTICLE_T {
     float x_star;
     float y_star;
     float x;
@@ -63,13 +63,8 @@ struct FLUID_PARTICLE {
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
-struct NEIGHBOR{
-    fluid_particle **fluid_neighbors;
-    int number_fluid_neighbors;
-};
-
 // These parameters are tunable by the render node
-struct TUNABLE_PARAMETERS {
+struct TUNABLE_PARAMETERS_T {
     float rest_density;
     float smoothing_radius;
     float g;
@@ -91,42 +86,54 @@ struct TUNABLE_PARAMETERS {
 };
 
 // Full parameters struct for simulation
-struct PARAM {
-    tunable_parameters tunable_params;
+struct PARAM_T {
+    tunable_parameters_t tunable_params;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles not including halo
     int max_fluid_particle_index;     // Max index used in actual particle array
     int number_halo_particles;        // Starting at max_fluid_particle_index
+    int max_fluid_particles_local;    // Maximum number of fluid particles
     int number_halo_particles_left;   // Number of halo particles from left neighbor
     int number_halo_particles_right;  // Number of halo particles from right neighbor
+    int steps_per_frame;              // Number of simulation steps before updating render node
     float particle_mass; // "mass" of particle so that density is particle count independent
 }; // Simulation paramaters
+
+// Struct containing all simulation information
+struct FLUID_SIM_T {
+    param_t *params;
+    AABB_t *water_volume_global;
+    AABB_t *boundary_global;
+    edge_t *edges;
+    oob_t *out_of_bounds;
+    neighbor_grid_t *neighbor_grid;  // Neighbor grid setup
+    fluid_particle_t *fluid_particles; // Storage for fluid particles
+    short *fluid_particle_coords;    // (x,y) coordinate array, transfer pixel coords
+    fluid_particle_t **fluid_particle_pointers;  //pointer array used to traverse non vacant particles
+};
 
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
 //void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
-void boundaryConditions(fluid_particle *p, AABB_t *boundary, param *params);
-void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                   AABB_t *water, int start_x, int number_particles_x, 
-		   edge_t *edges, int max_fluid_particles_local, float spacing, param* params);
-
+void boundaryConditions(fluid_particle_t *p, fluid_sim_t *fluid_sim);
+void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x);
 void start_simulation();
-void calculate_density(fluid_particle *p, fluid_particle *q, float h, float mass);
-void apply_gravity(fluid_particle **fluid_particle_pointers, param *params);
-void updateVelocity(fluid_particle *p, param *params);
-void updateVelocities(fluid_particle **fluid_particle_pointers, edge_t *edges, AABB_t *boundary_global, param *params);
+void calculate_density(fluid_particle_t *p, fluid_particle_t *q, float h, float mass);
+void apply_gravity(fluid_sim_t *fluid_sim);
+void updateVelocity(fluid_particle_t *p, param_t *params);
+void updateVelocities(fluid_sim_t *fluid_sim);
 void checkVelocity(float *v_x, float *v_y);
-void identify_oob_particles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, AABB_t *boundary_global, param *params);
+void identify_oob_particles(fluid_sim_t *fluid_sim);
 float del_W(float r, float h);
 float W(float r, float h);
-void predict_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
-void update_dp_positions(fluid_particle **fluid_particle_pointers, AABB_t *boundary_global, param *params);
-void update_positions(fluid_particle **fluid_particle_pointers, param *params);
-void calculate_lambda(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void update_dp(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void compute_densities(fluid_particle **fluid_particle_pointers,  neighbor *neighbors, param *params);
-void XSPH_viscosity(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void vorticity_confinement(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
+void predict_positions(fluid_sim_t *fluid_sim);
+void update_dp_positions(fluid_sim_t *fluid_sim);
+void update_positions(fluid_sim_t *fluid_sim);
+void calculate_lambda(fluid_sim_t *fluid_sim);
+void update_dp(fluid_sim_t *fluid_sim);
+void compute_densities(fluid_sim_t *fluid_sim);
+void XSPH_viscosity(fluid_sim_t *fluid_sim);
+void vorticity_confinement(fluid_sim_t *fluid_sim);
 
 #endif

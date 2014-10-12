@@ -32,7 +32,7 @@ THE SOFTWARE.
 
 // Uniform grid hash, this prevents having to check duplicates when inserting
 // Fabs needed as neighbor search can go out of bounds
-unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param *params)
+unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param_t *params)
 {
     const float spacing = grid->spacing;
 
@@ -48,11 +48,15 @@ unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param *params)
 
 // Add halo particles to neighbors array
 // We also calculate the density as it's convenient
-void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid, param *params)
+void hash_halo(fluid_sim_t *fluid_sim)
 {
+    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    neighbor_grid_t *grid = fluid_sim->neighbor_grid;
+    param_t *params = fluid_sim->params;
+
     int index,i,dx,dy,n, grid_x, grid_y;
     float x,y,r2, r;
-    fluid_particle *h_p, *p;
+    fluid_particle_t *h_p, *p;
 
     int n_start = params->number_fluid_particles_local; // Start of halo particles
     int n_finish = n_start + params->number_halo_particles;  // End of halo particles
@@ -61,12 +65,12 @@ void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid,
 
     unsigned int max_neighbors = grid->max_neighbors;
     float spacing = grid->spacing;
-    neighbor *neighbors = grid->neighbors;
+    neighbor_t *neighbors = grid->neighbors;
     bucket_t *grid_buckets = grid->grid_buckets;
 
     float ratio;
     float h2 = h*h;
-    neighbor *ne;
+    neighbor_t *ne;
 
     // Loop over each halo particle
     for(i=n_start; i<n_finish; i++)
@@ -119,8 +123,12 @@ void hash_halo(fluid_particle **fluid_particle_pointers,  neighbor_grid_t *grid,
 // The following function will fill the i'th neighbor bucket with the i'th fluid_particle_pointers particle neighbors
 // Only the forward half of the neighbors are added as the forces are symmetrized.
 // We also calculate the density as it's convenient
-void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor_grid_t *grid, param *params)
+void hash_fluid(fluid_sim_t *fluid_sim)
 {
+        fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+        neighbor_grid_t *grid = fluid_sim->neighbor_grid;
+        param_t *params = fluid_sim->params;
+
         int i,j,dx,dy,n,c;
         float x,y, px,py;
         float h = params->tunable_params.smoothing_radius;
@@ -130,12 +138,12 @@ void hash_fluid(fluid_particle **fluid_particle_pointers, neighbor_grid_t *grid,
 
         unsigned int max_neighbors = grid->max_neighbors;
         unsigned int max_bucket_size = grid->max_bucket_size;
-        neighbor *neighbors = grid->neighbors;
+        neighbor_t *neighbors = grid->neighbors;
         bucket_t *grid_buckets = grid->grid_buckets; 
         unsigned int length_hash = grid->size_x * grid->size_y;
 
-        fluid_particle *p, *q, *q_neighbor;
-        neighbor *ne;
+        fluid_particle_t *p, *q, *q_neighbor;
+        neighbor_t *ne;
         float r,r2, ratio; 
         unsigned int index, neighbor_index;
 

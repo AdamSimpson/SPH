@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef fluid_geometry_h
-#define fluid_geometry_h
+#ifndef fluid_setup_h
+#define fluid_setup_h
 
 typedef struct AABB_T AABB_t;
 
@@ -42,10 +42,15 @@ struct AABB_T {
 float min(float a, float b);
 float max(float a, float b);
 int sgn(float x);
-void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_start, int *length_x, float spacing, param *params);
-void setParticleNumbers(AABB_t *boundary_global, AABB_t *fluid_global, edge_t *edges, oob_t *out_of_bounds, int number_particles_x, float spacing, param *params);
-
-void constructFluidVolume(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, AABB_t* fluid, int start_x, 
-                          int number_particles_x, edge_t *edges, float spacing, param *params);
+void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float spacing);
+void partition_geometry(fluid_sim_t *fluid_sim, float *x_start, int *number_particles_x, float spacing);
+void partition_simulation(fluid_sim_t *fluid_sim, float *x_start, int *number_particles_x);
+void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_particles_x);
+void alloc_sim_structs(fluid_sim_t *fluid_sim);
+void free_sim_structs(fluid_sim_t *fluid_sim);
+void init_params(fluid_sim_t *fluid_sim);
+void sync_initial_params(fluid_sim_t *fluid_sim);
+void alloc_sim(fluid_sim_t *fluid_sim);
+void free_sim_memory(fluid_sim_t *fluid_sim);
 
 #endif

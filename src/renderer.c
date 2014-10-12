@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include "mover_gl.h"
 #include "background_gl.h"
 #include "mpi.h"
-#include "geometry.h"
+#include "setup.h"
 #include "communication.h"
 #include "fluid.h"
 #include "font_gl.h"
@@ -41,7 +41,7 @@ THE SOFTWARE.
     #include "blink1_light.h"
 #endif
 
-int start_renderer()
+void start_renderer()
 {
     // Setup initial OpenGL state
     gl_t gl_state;
@@ -95,11 +95,11 @@ int start_renderer()
 
     // Allocate array of paramaters
     // So we can use MPI_Gather instead of MPI_Gatherv
-    tunable_parameters *node_params = malloc(num_compute_procs*sizeof(tunable_parameters));
+    tunable_parameters_t *node_params = malloc(num_compute_procs*sizeof(tunable_parameters_t));
 
     // The render node must keep it's own set of master parameters
     // This is due to the GLFW key callback method
-    tunable_parameters *master_params = malloc(num_compute_procs*sizeof(tunable_parameters));
+    tunable_parameters_t *master_params = malloc(num_compute_procs*sizeof(tunable_parameters_t));
 
     // Setup render state
     render_state.node_params = node_params;
@@ -361,8 +361,6 @@ int start_renderer()
     free(particle_coordinate_counts);
     free(particle_coordinate_ranks);
     free(colors_by_rank);
-
-    return 0;
 }
 
 // Translate between OpenGL coordinates with origin at screen center
@@ -410,7 +408,7 @@ void check_partition_left(render_t *render_state, int *particle_counts, int tota
     h = render_state->master_params[0].smoothing_radius;
     dx = h*0.125;
 
-    tunable_parameters *master_params = render_state->master_params;
+    tunable_parameters_t *master_params = render_state->master_params;
 
     for(rank=render_state->num_compute_procs_active; rank-- > 1; )
     {

@@ -44,8 +44,8 @@ MPI_Group group_render;
 // Particles that are within 2*h distance of node edge
 struct EDGE_T {
     int max_edge_particles;
-    fluid_particle **edge_pointers_left;
-    fluid_particle **edge_pointers_right;
+    fluid_particle_t **edge_pointers_left;
+    fluid_particle_t **edge_pointers_right;
     int number_edge_particles_left;
     int number_edge_particles_right;
     MPI_Request reqs[4];
@@ -62,13 +62,13 @@ struct OOB_T {
     int number_vacancies;
 };
 
-void createMpiTypes();
+void create_MPI_types();
 void create_communicators();
-void freeMpiTypes();
-void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge_t *edges, param *params);
-void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge_t *edges, param *params);
-void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob_t *out_of_bounds, param *params);
-void update_halo_lambdas(fluid_particle **fluid_particle_pointers, edge_t *edges, param *params);
-void update_halo_positions(fluid_particle **fluid_particle_pointers, edge_t *edges, param *params);
+void free_MPI_types();
+void start_halo_exchange(fluid_sim_t *fluid_sim);
+void finish_halo_exchange(fluid_sim_t *fluid_sim);
+void transfer_OOB_particles(fluid_sim_t *fluid_sim);
+void update_halo_lambdas(fluid_sim_t *fluid_sim);
+void update_halo_positions(fluid_sim_t *fluid_sim);
 
 #endif
