@@ -135,6 +135,25 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
     free(fluid_sim->out_of_bounds->vacant_indicies);
 }
 
+void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
+{
+    int i;
+    fluid_particle_t *p;
+
+    // Create fluid volume
+    construct_fluid_volume(fluid_sim, start_x, number_particles_x);
+
+    // NULL out unused fluid pointers
+    for(i=fluid_sim->params->number_fluid_particles_local; i<fluid_sim->params->max_fluid_particles_local; i++)
+        fluid_sim->fluid_particle_pointers[i] = NULL;
+
+    // Initialize particle values
+    for(i=0; i<fluid_sim->params->number_fluid_particles_local; i++) {
+        fluid_sim->fluid_particle_pointers[i]->v_x = 0.0f;
+        fluid_sim->fluid_particle_pointers[i]->v_y = 0.0f;
+    }
+}
+
 // Allocate base structs used for simulation
 void alloc_sim_structs(fluid_sim_t *fluid_sim)
 {

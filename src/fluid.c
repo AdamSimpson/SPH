@@ -670,23 +670,3 @@ void boundaryConditions(fluid_particle_t *p, fluid_sim_t *fluid_sim)
         p->y_star = boundary->max_y-0.001f;
     }
 }
-
-// Initialize particles
-void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
-{
-    int i;
-    fluid_particle_t *p;
-
-    // Create fluid volume
-    construct_fluid_volume(fluid_sim, start_x, number_particles_x);
-
-    // NULL out unused fluid pointers
-    for(i=fluid_sim->params->number_fluid_particles_local; i<fluid_sim->params->max_fluid_particles_local; i++)
-        fluid_sim->fluid_particle_pointers[i] = NULL;
-
-    // Initialize particle values
-    for(i=0; i<fluid_sim->params->number_fluid_particles_local; i++) {
-        fluid_sim->fluid_particle_pointers[i]->v_x = 0.0f;
-        fluid_sim->fluid_particle_pointers[i]->v_y = 0.0f;
-    }
-}

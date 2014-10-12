@@ -53,5 +53,6 @@ void sync_initial_params(fluid_sim_t *fluid_sim);
 void alloc_sim(fluid_sim_t *fluid_sim);
 void free_sim_memory(fluid_sim_t *fluid_sim);
 void alloc_and_init_sim(fluid_sim_t *fluid_sim);
+void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x);
 
 #endif

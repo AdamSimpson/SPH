@@ -117,7 +117,6 @@ struct FLUID_SIM_T {
 ////////////////////////////////////////////////
 //void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
 void boundaryConditions(fluid_particle_t *p, fluid_sim_t *fluid_sim);
-void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x);
 void start_simulation();
 void calculate_density(fluid_particle_t *p, fluid_particle_t *q, float h, float mass);
 void apply_gravity(fluid_sim_t *fluid_sim);
