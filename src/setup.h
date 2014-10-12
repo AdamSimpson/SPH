@@ -52,5 +52,6 @@ void init_params(fluid_sim_t *fluid_sim);
 void sync_initial_params(fluid_sim_t *fluid_sim);
 void alloc_sim(fluid_sim_t *fluid_sim);
 void free_sim_memory(fluid_sim_t *fluid_sim);
+void alloc_and_init_sim(fluid_sim_t *fluid_sim);
 
 #endif

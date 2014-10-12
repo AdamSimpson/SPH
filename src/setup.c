@@ -26,6 +26,28 @@ THE SOFTWARE.
 #include "setup.h"
 #include "fluid.h"
 
+// Main memory allocation and particle initialization
+void alloc_and_init_sim(fluid_sim_t *fluid_sim)
+{
+    float start_x = 0.0f;
+    int number_particles_x = 0;
+
+    // Partition simulation and set particle numbers
+    // Requires MPI_Send for particle counts
+    partition_simulation(fluid_sim, &start_x, &number_particles_x);
+
+    // Allocate main simulation memory and set struct values
+    alloc_sim(fluid_sim);
+
+    // Initialize particles
+    init_sim_particles(fluid_sim, start_x, number_particles_x);
+
+    // Print some parameters
+    int rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
+    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, fluid_sim->params->number_fluid_particles_local, fluid_sim->params->tunable_params.smoothing_radius);
+}
+
 // Allocate main simulation memory
 void alloc_sim(fluid_sim_t *fluid_sim)
 {

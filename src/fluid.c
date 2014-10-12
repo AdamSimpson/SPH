@@ -65,8 +65,6 @@ int main(int argc, char *argv[])
 void start_simulation()
 {
     unsigned int i;
-    float start_x = 0.0f;
-    int number_particles_x = 0;
 
     int rank, nprocs;
 
@@ -86,18 +84,9 @@ void start_simulation()
     // Requires MPI_Bcast to send screen aspect ratio
     init_params(&fluid_sim);
 
-    // Partition simulation and set particle numbers
+    // Partition problem, allocate memory, and initialize particles
     // Requires MPI_Send for particle counts
-    partition_simulation(&fluid_sim, &start_x, &number_particles_x);
-
-    // Allocate main simulation memory and set struct values
-    alloc_sim(&fluid_sim);
-
-    // Initialize particles
-    init_sim_particles(&fluid_sim, start_x, number_particles_x);
-
-    // Print some parameters
-    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, fluid_sim.params->number_fluid_particles_local, fluid_sim.params->tunable_params.smoothing_radius);
+    alloc_and_init_sim(&fluid_sim);
 
     // Send initial parameters to render node and initialize light
     // Requires MPI_Gatherv
