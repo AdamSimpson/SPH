@@ -103,10 +103,7 @@ void start_simulation()
     sleep(1);
     #endif    
 
-    fluid_particle_t *p;
-
     // Setup dummy values for MPI
-    fluid_particle_t *null_particle = NULL;
     float *null_float = NULL;
 
     MPI_Request coords_req = MPI_REQUEST_NULL;
@@ -161,7 +158,7 @@ void start_simulation()
         start_halo_exchange(&fluid_sim);
         finish_halo_exchange(&fluid_sim);
 
-        // Hash particles, sort, find all neighbors
+        // Hash particles, sort, fill particle neighbors
         find_all_neighbors(&fluid_sim);
 
         int solve_iterations = 4;
@@ -248,6 +245,7 @@ float del_W(float r, float h)
     return del_W;
 }
 
+/*
 void vorticity_confinement(fluid_sim_t *fluid_sim)
 {
     fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers; 
@@ -305,15 +303,16 @@ void vorticity_confinement(fluid_sim_t *fluid_sim)
         p->v_y -= epsilon*dt*N_x*vort_z;
     }
 }
+*/
 
 void XSPH_viscosity(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint **fluid_particle_indices = fluid_sim->fluid_particle_indices;
     neighbor_t *neighbors = fluid_sim->neighbor_grid->neighbors;
     param_t *params = fluid_sim->params;
 
     int i,j;
-    fluid_particle_t *p, *q;
+    uint p_index, q_index;
     neighbor_t *n;
     float c = 0.1f;
 
@@ -321,7 +320,7 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
-        p = fluid_particle_pointers[i];
+        p_index = fluid_particle_indices[i];
         n = &neighbors[i];
 
         float partial_sum_x = 0.0f;
@@ -534,11 +533,11 @@ void identify_oob_particles(fluid_sim_t *fluid_sim)
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = fluid_particle_pointers[i];
 
-        // Set OOB particle indicies and update number
+        // Set OOB particle indices and update number
         if (p->x < params->tunable_params.node_start_x)
-            out_of_bounds->oob_pointer_indicies_left[out_of_bounds->number_oob_particles_left++] = i;
+            out_of_bounds->oob_pointer_indices_left[out_of_bounds->number_oob_particles_left++] = i;
         else if (p->x > params->tunable_params.node_end_x)
-            out_of_bounds->oob_pointer_indicies_right[out_of_bounds->number_oob_particles_right++] = i;
+            out_of_bounds->oob_pointer_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  
    // Transfer particles that have left the processor bounds

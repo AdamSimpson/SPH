@@ -44,8 +44,8 @@ MPI_Group group_render;
 // Particles that are within 2*h distance of node edge
 struct EDGE_T {
     int max_edge_particles;
-    fluid_particle_t **edge_pointers_left;
-    fluid_particle_t **edge_pointers_right;
+    uint *edge_indicies_left;
+    uint *edge_indicies_right;
     int number_edge_particles_left;
     int number_edge_particles_right;
     MPI_Request reqs[4];
@@ -54,11 +54,11 @@ struct EDGE_T {
 // Particles that have left the node
 struct OOB_T {
     int max_oob_particles;
-    int *oob_pointer_indicies_left; // Indicies in particle pointer array for particles traveling left
-    int *oob_pointer_indicies_right;
+    uint *oob_pointer_indicies_left; // Indicies in particle pointer array for particles traveling left
+    uint *oob_pointer_indicies_right;
     int number_oob_particles_left;
     int number_oob_particles_right;
-    int *vacant_indicies; // Indicies in particle array that are vacant
+    uint *vacant_indicies; // Indicies in particle array that are vacant
     int number_vacancies;
 };
 

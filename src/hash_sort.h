@@ -41,8 +41,8 @@ struct NEIGHBOR_GRID_T {
     float spacing;  // Spacing between buckets
     uint size_x; // Number of buckets in x
     uint size_y; // Number of buckets in y
-    uint *start_indexes; // Start index for hash values
-    uint *end_indexes;   // End index for hash values
+    uint *start_indices; // Start index for hash values
+    uint *end_indices;   // End index for hash values
     uint *hash_values; // Array of hash values
     uint *particle_ids; // Array of particle id's
     uint max_neighbors; // Maximum neighbors allowed for each particle

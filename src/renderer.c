@@ -197,8 +197,8 @@ void start_renderer()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    float particle_diameter_pixels = gl_state.screen_width * 0.0125;
-    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.020;
+    float particle_diameter_pixels = gl_state.screen_width * 0.00825;
+    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.015;
 
     MPI_Status status;
 

@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef fluid_fluid_h
 #define fluid_fluid_h
 
-typedef struct FLUID_PARTICLE_T fluid_particle_t;
+typedef struct FLUID_PARTICLES_T fluid_particles_t;
 typedef struct PARAM_T param_t;
 typedef struct TUNABLE_PARAMETERS_T tunable_parameters_t;
 typedef struct FLUID_SIM_T fluid_sim_t;
@@ -51,18 +51,18 @@ typedef unsigned int uint;
 ////////////////////////////////////////////////
 
 // Standard fluid particle paramaters
-struct FLUID_PARTICLE_T {
-    float x_star;
-    float y_star;
-    float x;
-    float y;
-    float v_x;
-    float v_y;
-    float density;
-    float dp_x;
-    float dp_y;
-    float lambda;
-    int id; // Id is 'local' index within the fluid particle pointer array
+struct FLUID_PARTICLES_T {
+    float *x_star;
+    float *y_star;
+    float *x;
+    float *y;
+    float *v_x;
+    float *v_y;
+    float *dp_x;
+    float *dp_y;
+    float *density;
+    float *lambda;
+    int *id; // Id is 'local' index within the fluid particle pointer array
 };
 
 // These parameters are tunable by the render node
@@ -108,10 +108,10 @@ struct FLUID_SIM_T {
     AABB_t *boundary_global;
     edge_t *edges;
     oob_t *out_of_bounds;
-    neighbor_grid_t *neighbor_grid;  // Neighbor grid setup
-    fluid_particle_t *fluid_particles; // Storage for fluid particles
-    short *fluid_particle_coords;    // (x,y) coordinate array, transfer pixel coords
-    fluid_particle_t **fluid_particle_pointers;  //pointer array used to traverse non vacant particles
+    neighbor_grid_t *neighbor_grid;      // Neighbor grid setup
+    fluid_particles_t *fluid_particles;  // Pointer to fluid_particles SoA
+    uint *fluid_particle_indices;        // Index of local fluid particles, used to traverse non vacant particles
+    short *fluid_particle_coords;        // (x,y) coordinate array, transfer pixel coords
 };
 
 ////////////////////////////////////////////////

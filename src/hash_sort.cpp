@@ -90,15 +90,15 @@ void sort_hash(fluid_sim_t *fluid_sim)
 // Note that end index is one past the "end"
 void find_cell_bounds(fluid_sim_t *fluid_sim)
 {
-    uint *start_indexes = fluid_sim->neighbor_grid->start_indexes;
-    uint *end_indexes = fluid_sim->neighbor_grid->end_indexes;
+    uint *start_indices = fluid_sim->neighbor_grid->start_indices;
+    uint *end_indices = fluid_sim->neighbor_grid->end_indices;
     uint *hash_values = fluid_sim->neighbor_grid->hash_values;
     uint *particle_ids = fluid_sim->neighbor_grid->particle_ids;
     param_t *params = fluid_sim->params;
 
-    // Reset start indexes
+    // Reset start indicies
     unsigned int length_hash = fluid_sim->neighbor_grid->size_x * fluid_sim->neighbor_grid->size_y;
-    memset(start_indexes, 0xffffffff, length_hash*sizeof(uint));
+    memset(start_indicies, 0xffffffff, length_hash*sizeof(uint));
 
     int num_particles = params->number_fluid_particles_local + params->number_halo_particles;
 
@@ -119,14 +119,14 @@ void find_cell_bounds(fluid_sim_t *fluid_sim)
 
         if(i==0 || hash!=hash_prev)
         {
-            start_indexes[hash] = i;
+            start_indices[hash] = i;
  
             if(i > 0)
-                end_indexes[hash_prev] = i;
+                end_indices[hash_prev] = i;
         }
 
         if(i == num_particles - 1)
-            end_indexes[hash] = i+1;
+            end_indices[hash] = i+1;
     }
 }
 
@@ -149,8 +149,8 @@ void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p)
     int dx,dy, grid_x, grid_y, bucket_index;
     fluid_particle_t *q;
 
-    uint *start_indexes = fluid_sim->neighbor_grid->start_indexes;
-    uint *end_indexes = fluid_sim->neighbor_grid->end_indexes;
+    uint *start_indices = fluid_sim->neighbor_grid->start_indices;
+    uint *end_indices = fluid_sim->neighbor_grid->end_indices;
 
     neighbors->number_fluid_neighbors = 0;
 
@@ -173,12 +173,12 @@ void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p)
              bucket_index = (grid_y+dy) *fluid_sim->neighbor_grid->size_x + grid_x+dx;
 
              // Start index for hash value of current neighbor grid bucket
-             start_index = start_indexes[bucket_index];
+             start_index = start_indicies[bucket_index];
 
              // If neighbor grid bucket is not empty
              if (start_index != 0xffffffff)
              {
-                end_index = end_indexes[bucket_index];
+                end_index = end_indicies[bucket_index];
 
                 for(int j=start_index; j<end_index; j++)
                 {
