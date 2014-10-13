@@ -26,17 +26,10 @@ THE SOFTWARE.
 #define fluid_hash_h
 
 
-typedef struct BUCKET_T bucket_t;
 typedef struct NEIGHBOR_T neighbor_t;
 typedef struct NEIGHBOR_GRID_T neighbor_grid_t;
 
 #include "fluid.h"
-
- // neighbor 'bucket' for hash value, all particles of particular hash value go in here
-struct BUCKET_T {
-    fluid_particle_t **fluid_particles;
-    unsigned int number_fluid;
-};
 
 // Bucket to hold each particles nearest neighbors
 struct NEIGHBOR_T{
@@ -46,17 +39,20 @@ struct NEIGHBOR_T{
 
 struct NEIGHBOR_GRID_T {
     float spacing;  // Spacing between buckets
-    unsigned int size_x; // Number of buckets in x
-    unsigned int size_y; // Number of buckets in y
+    uint size_x; // Number of buckets in x
+    uint size_y; // Number of buckets in y
+    uint *start_indexes; // Start index for hash values
+    uint *end_indexes;   // End index for hash values
+    uint *hash_values; // Array of hash values
+    uint *particle_ids; // Array of particle id's
+    uint max_neighbors; // Maximum neighbors allowed for each particle
     neighbor_t *neighbors; // Particle neighbor buckets
-    bucket_t *grid_buckets; // Grid to place hashed particles into
-    unsigned int max_neighbors; // Maximum neighbors allowed for each particle
-    unsigned int max_bucket_size; // Maximum particles in hash bucket
 };
 
-unsigned int hash_val(float x, float y, neighbor_grid_t *grid, param_t *params);
-void hash_fluid(fluid_sim_t *fluid_sim);
-void hash_halo(fluid_sim_t *fluid_sim);
+uint hash_val(float x, float y, neighbor_grid_t *grid, param_t *params);
+void hash_particles(fluid_sim_t *fluid_sim);
+void sort_hash(fluid_sim_t *fluid_sim);
+void find_cell_start(fluid_sim_t *fluid_sim);
+void fill_neighbors(fluid_sim_t *fluid_sim);
 
 #endif
-

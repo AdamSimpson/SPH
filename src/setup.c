@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include "setup.h"
 #include "fluid.h"
+#include "hash_sort.h"
 
 // Main memory allocation and particle initialization
 void alloc_and_init_sim(fluid_sim_t *fluid_sim)
@@ -55,8 +56,7 @@ void alloc_sim(fluid_sim_t *fluid_sim)
 
     // Neighbor grid setup
     fluid_sim->neighbor_grid = (neighbor_grid_t*)malloc(sizeof(neighbor_grid_t));
-    fluid_sim->neighbor_grid->max_bucket_size = 100;
-    fluid_sim->neighbor_grid->max_neighbors = fluid_sim->neighbor_grid->max_bucket_size*4;
+    fluid_sim->neighbor_grid->max_neighbors = 400;
     fluid_sim->neighbor_grid->spacing = fluid_sim->params->tunable_params.smoothing_radius;
 
     size_t total_bytes = 0;
@@ -99,10 +99,18 @@ void alloc_sim(fluid_sim_t *fluid_sim)
                                        / fluid_sim->neighbor_grid->spacing);
     unsigned int length_hash = fluid_sim->neighbor_grid->size_x * fluid_sim->neighbor_grid->size_y;
     printf("grid x: %d grid y %d\n", fluid_sim->neighbor_grid->size_x, fluid_sim->neighbor_grid->size_y);
-    fluid_sim->neighbor_grid->grid_buckets = calloc(length_hash, sizeof(bucket_t));
-    fluid_particle_t **bucket_particles = calloc(length_hash * fluid_sim->neighbor_grid->max_bucket_size, sizeof(fluid_particle_t *));
-    for(i=0; i < length_hash; i++)
-        fluid_sim->neighbor_grid->grid_buckets[i].fluid_particles = &(bucket_particles[i*fluid_sim->neighbor_grid->max_bucket_size]);
+
+    // Start index for hash values
+    fluid_sim->neighbor_grid->start_indexes = calloc(length_hash, sizeof(uint));
+
+    // End index for hash values
+    fluid_sim->neighbor_grid->end_indexes = calloc(length_hash, sizeof(uint));
+    // Array of hash values
+    fluid_sim->neighbor_grid->hash_values = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
+
+    // Array of particle id's
+    fluid_sim->neighbor_grid->particle_ids = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
+
     total_bytes+= (length_hash * sizeof(bucket_t) + fluid_sim->neighbor_grid->max_bucket_size * sizeof(fluid_particle_t *));
     if(fluid_sim->neighbor_grid->grid_buckets == NULL || bucket_particles == NULL)
         printf("Could not allocate hash\n");
