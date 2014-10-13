@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include <limits.h>
 
 #include "mpi.h"
-#include "hash.h"
+#include "hash_sort.h"
 #include "renderer.h"
 #include "setup.h"
 #include "fluid.h"
@@ -157,15 +157,12 @@ void start_simulation()
         // Identify out of bounds particles and send them to appropriate rank
         identify_oob_particles(&fluid_sim);
 
-        // Hash the non halo regions
-        hash_fluid(&fluid_sim);
-
          // Exchange halo particles
         start_halo_exchange(&fluid_sim);
         finish_halo_exchange(&fluid_sim);
 
-        // Add the halo particles to neighbor buckets
-        hash_halo(&fluid_sim);
+        // Hash particles, sort, find all neighbors
+        find_all_neighbors(&fluid_sim);
 
         int solve_iterations = 4;
         int si;

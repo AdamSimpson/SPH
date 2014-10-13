@@ -111,9 +111,11 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     // Array of particle id's
     fluid_sim->neighbor_grid->particle_ids = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
 
-    total_bytes+= (length_hash * sizeof(bucket_t) + fluid_sim->neighbor_grid->max_bucket_size * sizeof(fluid_particle_t *));
-    if(fluid_sim->neighbor_grid->grid_buckets == NULL || bucket_particles == NULL)
-        printf("Could not allocate hash\n");
+    total_bytes+= (length_hash + fluid_sim->params->max_fluid_particles_local) * sizeof(uint);
+    if(fluid_sim->neighbor_grid->start_indexes  == NULL || fluid_sim->neighbor_grid->end_indexes == NULL)
+        printf("Could not allocate start/end indexes\n");
+    if(fluid_sim->neighbor_grid->hash_values  == NULL || fluid_sim->neighbor_grid->particle_ids == NULL)
+        printf("Could not allocate hash_values/particle_ids\n");
 
     // Allocate edge index arrays
     fluid_sim->edges->edge_pointers_left = malloc(fluid_sim->edges->max_edge_particles * sizeof(fluid_particle_t*));
@@ -134,8 +136,6 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
     free(fluid_sim->fluid_particle_pointers);
     free(fluid_sim->neighbor_grid->neighbors[0].fluid_neighbors);
     free(fluid_sim->neighbor_grid->neighbors);
-    free(fluid_sim->neighbor_grid->grid_buckets[0].fluid_particles);
-    free(fluid_sim->neighbor_grid->grid_buckets);
     free(fluid_sim->edges->edge_pointers_left);
     free(fluid_sim->edges->edge_pointers_right);
     free(fluid_sim->out_of_bounds->oob_pointer_indicies_left);

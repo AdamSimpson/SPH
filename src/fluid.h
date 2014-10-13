@@ -30,11 +30,13 @@ typedef struct PARAM_T param_t;
 typedef struct TUNABLE_PARAMETERS_T tunable_parameters_t;
 typedef struct FLUID_SIM_T fluid_sim_t;
 
+typedef unsigned int uint;
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "hash.h"
+#include "hash_sort.h"
 #include "setup.h"
 #include "communication.h"
 

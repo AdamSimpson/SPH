@@ -52,7 +52,17 @@ struct NEIGHBOR_GRID_T {
 uint hash_val(float x, float y, neighbor_grid_t *grid, param_t *params);
 void hash_particles(fluid_sim_t *fluid_sim);
 void sort_hash(fluid_sim_t *fluid_sim);
-void find_cell_start(fluid_sim_t *fluid_sim);
+void find_cell_bounds(fluid_sim_t *fluid_sim);
+void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p);
 void fill_neighbors(fluid_sim_t *fluid_sim);
+
+// This gets compiled by both c and c++ compilers
+#ifdef __cplusplus
+extern "C" {
+#endif
+void find_all_neighbors(fluid_sim_t *fluid_sim);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
