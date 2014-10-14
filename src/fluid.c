@@ -307,7 +307,8 @@ void vorticity_confinement(fluid_sim_t *fluid_sim)
 
 void XSPH_viscosity(fluid_sim_t *fluid_sim)
 {
-    uint **fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     neighbor_t *neighbors = fluid_sim->neighbor_grid->neighbors;
     param_t *params = fluid_sim->params;
 
@@ -327,11 +328,11 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
         float partial_sum_y = 0.0f;
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
-            q = n->fluid_neighbors[j];
-            x_diff = p->x_star - q->x_star;
-            y_diff = p->y_star - q->y_star;
-            vx_diff = q->v_x - p->v_x;
-            vy_diff = q->v_y - p->v_y;
+            q_index = n->fluid_neighbors[j];
+            x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
+            y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
+            vx_diff = fluid_particles->v_x[q_index] - fluid_particles->v_x[p_index];
+            vy_diff = fluid_particles->v_y[q_index] - fluid_particles->v_y[p_index];
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
             w = W(r_mag, params->tunable_params.smoothing_radius);
             partial_sum_x += vx_diff * w;
@@ -339,105 +340,121 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
         }
         partial_sum_x *= c;
         partial_sum_y *= c;
-        p->v_x += partial_sum_x;
-        p->v_y += partial_sum_y;
+        fluid_particles->v_x[p_index] += partial_sum_x;
+        fluid_particles->v_y[p_index] += partial_sum_y;
     }
 }
 
 void compute_densities(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     neighbor_t *neighbors = fluid_sim->neighbor_grid->neighbors;
     param_t *params = fluid_sim->params;
 
     int i,j;
-    fluid_particle_t *p, *q;
+    uint p_index, q_index;
     neighbor_t *n;
+    float h = params->tunable_params.smoothing_radius;
+    float mass = params->particle_mass;
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
-        p = fluid_particle_pointers[i];
+        p_index = fluid_particle_indices[i];
         n = &neighbors[i];
 
-        p->density = 0.0f;
+        float x_diff, y_diff, r_mag, density;
+        density = 0.0f;
 
         // Own contribution to density
-        calculate_density(p,p,params->tunable_params.smoothing_radius, params->particle_mass);
+        density += mass*W(0.0f, h);
+
         // Neighbor contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
-            q = n->fluid_neighbors[j];
-            calculate_density(p, q, params->tunable_params.smoothing_radius, params->particle_mass);
+            q_index = n->fluid_neighbors[j];
+            x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
+            y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            if(r_mag <= h)
+                density += mass*W(r_mag, h);
         }
+
+        // Update particle density
+        fluid_particles->density[p_index] = density;
     }
 
 }
 
 void apply_gravity(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
     float dt = params->tunable_params.time_step;
     float g = -params->tunable_params.g;
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
-        p = fluid_particle_pointers[i];
-        p->v_y += g*dt;
+        p_index = fluid_particle_indices[i];
+        fluid_particles->v_y[p_index] += g*dt;
      }
 }
 
 void update_dp_positions(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
-        p = fluid_particle_pointers[i];
-        p->x_star += p->dp_x;
-        p->y_star += p->dp_y;
+        p_index = fluid_particle_indices[i];
+        fluid_particles->x_star[p_index] += fluid_particles->dp_x[p_index];
+        fluid_particles->y_star[p_index] += fluid_particles->dp_y[p_index];
 
 	// Enforce boundary conditions
-        boundaryConditions(p, fluid_sim);
+        boundaryConditions(p_index, fluid_sim);
     }    
 }
 
 void update_positions(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
      int i;
-     fluid_particle_t *p;
+     uint p_index;
 
      for(i=0; i<(params->number_fluid_particles_local); i++) {
-        p = fluid_particle_pointers[i];
-        p->x = p->x_star;
-        p->y = p->y_star;
+        p_index = fluid_particle_indices[i];
+        fluid_particles->x[p_index] = fluid_particles->x_star[p_index];
+        fluid_particles->y[p_index] = fluid_particles->y_star[p_index];
     }    
 }
 
 void calculate_lambda(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     neighbor_t *neighbors = fluid_sim->neighbor_grid->neighbors;
     param_t *params = fluid_sim->params;
 
     int i,j;
-    fluid_particle_t *p, *q;
+    uint p_index, q_index;
     neighbor_t *n;
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     { 
-        p = fluid_particle_pointers[i];
+        p = fluid_particle_indices[i];
         n = &neighbors[i];
 
-        float Ci = p->density/params->tunable_params.rest_density - 1.0f;
+        float Ci = fluid_particles->density[p_index]/params->tunable_params.rest_density - 1.0f;
 
         float sum_C, x_diff, y_diff, r_mag, grad, grad_x, grad_y;
 
@@ -447,12 +464,12 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
         // Add k = i contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
-            q = n->fluid_neighbors[j];
-            x_diff = p->x_star - q->x_star;
-            y_diff = p->y_star - q->y_star;
+            q_index = n->fluid_neighbors[j];
+            x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
+            y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
             grad = del_W(r_mag, params->tunable_params.smoothing_radius);
-            grad_x += grad*x_diff ;
+            grad_x += grad*x_diff;
             grad_y += grad*y_diff;
            }
            sum_C += grad_x*grad_x + grad_y*grad_y;
@@ -460,9 +477,9 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
         // Add k =j contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
-            q = n->fluid_neighbors[j];
-            x_diff = p->x_star - q->x_star;
-            y_diff = p->y_star - q->y_star;
+            q_index = n->fluid_neighbors[j];
+            x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
+            y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
             grad = del_W(r_mag, params->tunable_params.smoothing_radius);
             grad_x = grad*x_diff ;
@@ -473,24 +490,25 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
         sum_C *= (1.0f/params->tunable_params.rest_density*params->tunable_params.rest_density);  
 
         float epsilon = 1.0f;
-        p->lambda = -Ci/(sum_C + epsilon);
+        fluid_particles->lambda[p_index] = -Ci/(sum_C + epsilon);
     }
 }
 
 void update_dp(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     neighbor_t *neighbors = fluid_sim->neighbor_grid->neighbors;
     param_t *params = fluid_sim->params;
 
-    fluid_particle_t *p, *q;
+    uint p_index, q_index;
     neighbor_t *n;
     float x_diff, y_diff, dp, r_mag;
 
     int i,j;
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
-        p = fluid_particle_pointers[i];
+        p_index = fluid_particle_indices[i];
         n = &neighbors[i];
 
         float dp_x = 0.0f;
@@ -502,41 +520,42 @@ void update_dp(fluid_sim_t *fluid_sim)
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
-            q = n->fluid_neighbors[j];
-            x_diff = p->x_star - q->x_star;
-            y_diff = p->y_star - q->y_star;
+            q_index = n->fluid_neighbors[j];
+            x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
+            y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
             s_corr = -k*(powf(W(r_mag, params->tunable_params.smoothing_radius)/Wdq, 4.0f));
-            dp = (p->lambda + q->lambda + s_corr)*del_W(r_mag, params->tunable_params.smoothing_radius);
+            dp = (fluid_particles->lambda[p_index] + fluid_particles->lambda[q_index] + s_corr)*del_W(r_mag, params->tunable_params.smoothing_radius);
             dp_x += dp*x_diff;
             dp_y += dp*y_diff;
         }
-        p->dp_x = dp_x/params->tunable_params.rest_density;
-        p->dp_y = dp_y/params->tunable_params.rest_density;
+        fluid_particles->dp_x[p_index] = dp_x/params->tunable_params.rest_density;
+        fluid_particles->dp_y[p_index] = dp_y/params->tunable_params.rest_density;
     }   
 }
 
 // Identify out of bounds particles and send them to appropriate rank
 void identify_oob_particles(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     oob_t *out_of_bounds = fluid_sim->out_of_bounds;
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
 
     // Reset OOB numbers
     out_of_bounds->number_oob_particles_left = 0;
     out_of_bounds->number_oob_particles_right = 0;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
+        p_index = fluid_particle_indices[i];
 
         // Set OOB particle indices and update number
-        if (p->x < params->tunable_params.node_start_x)
+        if (fluid_particles->x[p_index] < params->tunable_params.node_start_x)
             out_of_bounds->oob_pointer_indices_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x > params->tunable_params.node_end_x)
+        else if (fluid_particles->x[p_index] > params->tunable_params.node_end_x)
             out_of_bounds->oob_pointer_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  
@@ -548,33 +567,22 @@ void identify_oob_particles(fluid_sim_t *fluid_sim)
 // Predict position
 void predict_positions(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
     float dt = params->tunable_params.time_step;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = fluid_particle_pointers[i];
-	p->x_star = p->x  + (p->v_x * dt);
-        p->y_star = p->y + (p->v_y * dt);
+        p_index = fluid_particle_indices[i];
+	fluid_particles->x_star[p_index] = fluid_particles->x[p_index] + (fluid_particles->v_x[p_index] * dt);
+        fluid_particles->y_star[p_index] = fluid_particles->y[p_index] + (fluid_particles->v_y[p_index] * dt);
 
 	// Enforce boundary conditions
-        boundaryConditions(p, fluid_sim);
+        boundaryConditions(p_index, fluid_sim);
     }
-}
-
-// Calculate the density contribution of p on q and q on p
-// r is passed in as this function is called in the hash which must also calculate r
-void calculate_density(fluid_particle_t *p, fluid_particle_t *q, float h, float mass)
-{
-    float x_diff, y_diff, r_mag;
-    x_diff = p->x_star - q->x_star;
-    y_diff = p->y_star - q->y_star;
-    r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
-    if(r_mag <= h)
-        p->density += mass*W(r_mag, h);
 }
 
 void checkVelocity(float *v_x, float *v_y)
@@ -591,24 +599,28 @@ void checkVelocity(float *v_x, float *v_y)
         *v_y = -v_max;
 }
 
-void updateVelocity(fluid_particle_t *p, param_t *params)
+void updateVelocity(uint p_index, param_t *params)
 {
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
+
     float dt = params->tunable_params.time_step;
     float v_x, v_y;
 
-    v_x = (p->x_star-p->x)/dt;
-    v_y = (p->y_star-p->y)/dt;
+    v_x = (fluid_particles->x_star[p_index] - fluid_particles->x[p_index])/dt;
+    v_y = (fluid_particles->y_star[p_index] - fluid_particles->y[p_index])/dt;
 
     checkVelocity(&v_x, &v_y);
 
-    p->v_x = v_x;
-    p->v_y = v_y;
+    fluid_particles->v_x[p_index] = v_x;
+    fluid_particles->v_y[p_index] = v_y;
 }
 
 // Update particle position and check boundary
 void updateVelocities(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
     int i;
