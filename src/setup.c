@@ -199,19 +199,19 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
 void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
 {
     int i;
-    fluid_particle_t *p;
+    uint p_index;
 
     // Create fluid volume
     construct_fluid_volume(fluid_sim, start_x, number_particles_x);
 
-    // NULL out unused fluid pointers
+    // invalidate unused fluid pointers
     for(i=fluid_sim->params->number_fluid_particles_local; i<fluid_sim->params->max_fluid_particles_local; i++)
-        fluid_sim->fluid_particle_pointers[i] = NULL;
+        fluid_sim->fluid_particle_indices[i] = ((uint)-1);
 
     // Initialize particle values
     for(i=0; i<fluid_sim->params->number_fluid_particles_local; i++) {
-        fluid_sim->fluid_particle_pointers[i]->v_x = 0.0f;
-        fluid_sim->fluid_particle_pointers[i]->v_y = 0.0f;
+        fluid_sim->fluid_particles->v_x[i] = 0.0f;
+        fluid_sim->fluid_particles->v_y[i] = 0.0f;
     }
 }
 
@@ -279,9 +279,15 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->water_volume_global->min_y = 10.0f;
     fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-10.0f;
 
+    // Zero out number of halo particles
     params->number_halo_particles = 0;
     params->number_halo_particles_left = 0;
     params->number_halo_particles_right = 0;
+
+    // zero out number of edge particles
+    edges->number_edge_particles_left = 0;
+    edges->number_edge_particles_right = 0;
+
 }
 
 void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
@@ -289,8 +295,9 @@ void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_pa
     int num_y;
 
     // Unpack fluid_sim
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
-    fluid_particle_t *fluid_particles = fluid_sim->fluid_particles;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
+
     AABB_t* fluid = fluid_sim->water_volume_global;
     edge_t *edges = fluid_sim->edges;
     param_t *params = fluid_sim->params;
@@ -300,28 +307,23 @@ void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_pa
     // Number of particles in y,z, number in x is passed in
     num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
     
-    // zero out number of edge particles
-    edges->number_edge_particles_left = 0;
-    edges->number_edge_particles_right = 0;
-
     // Place particles inside bounding volume
     float x,y;
     int nx = 0;
     int ny = 0;
     int i = 0;
-    fluid_particle_t *p;
+    uint p;
 
     for(ny=0; ny<num_y; ny++) {
         y = fluid->min_y + ny*spacing;
         for(nx=0; nx<number_particles_x; nx++) {
             x = fluid->min_x + (start_x + nx)*spacing;
-            p = fluid_particles + i;
-            p->x = x;
-            p->y = y;
+            fluid_particles->x[i] = x;
+            fluid_particles->y[i] = y;
             
-            // Set pointer array
-            fluid_particle_pointers[i] = p;
-	    fluid_particle_pointers[i]->id = i;
+            // Set index array
+            fluid_particle_indices[i] = i;
+	    fluid_particles->id[i] = i;
             i++;
         }
     }

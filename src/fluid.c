@@ -581,11 +581,11 @@ void predict_positions(fluid_sim_t *fluid_sim)
         fluid_particles->y_star[p_index] = fluid_particles->y[p_index] + (fluid_particles->v_y[p_index] * dt);
 
 	// Enforce boundary conditions
-        boundaryConditions(p_index, fluid_sim);
+        boundary_conditions(p_index, fluid_sim);
     }
 }
 
-void checkVelocity(float *v_x, float *v_y)
+void check_velocity(float *v_x, float *v_y)
 {
     const float v_max = 20.0f;
 
@@ -599,42 +599,35 @@ void checkVelocity(float *v_x, float *v_y)
         *v_y = -v_max;
 }
 
-void updateVelocity(uint p_index, param_t *params)
-{
-    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
-    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
-
-    float dt = params->tunable_params.time_step;
-    float v_x, v_y;
-
-    v_x = (fluid_particles->x_star[p_index] - fluid_particles->x[p_index])/dt;
-    v_y = (fluid_particles->y_star[p_index] - fluid_particles->y[p_index])/dt;
-
-    checkVelocity(&v_x, &v_y);
-
-    fluid_particles->v_x[p_index] = v_x;
-    fluid_particles->v_y[p_index] = v_y;
-}
-
 // Update particle position and check boundary
-void updateVelocities(fluid_sim_t *fluid_sim)
+void update_velocities(fluid_sim_t *fluid_sim)
 {
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
+
+    float dt = params->tunable_params.time_step;
+    float v_x, v_y;
 
     // Update local and halo particles, update halo so that XSPH visc. is correct
     for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
-        p = fluid_particle_pointers[i];
-        updateVelocity(p, params);
+        p_index = fluid_particle_indices[i];
+
+        v_x = (fluid_particles->x_star[p_index] - fluid_particles->x[p_index])/dt;
+        v_y = (fluid_particles->y_star[p_index] - fluid_particles->y[p_index])/dt;
+
+        check_velocity(&v_x, &v_y);
+
+        fluid_particles->v_x[p_index] = v_x;
+        fluid_particles->v_y[p_index] = v_y;
     }
 }
 
 // Assume AABB with min point being axis origin
-void boundaryConditions(fluid_particle_t *p, fluid_sim_t *fluid_sim)
+void boundary_conditions(uint p, fluid_sim_t *fluid_sim)
 {
     AABB_t *boundary = fluid_sim->boundary_global;
     param_t *params = fluid_sim->params;
@@ -650,31 +643,33 @@ void boundaryConditions(fluid_particle_t *p, fluid_sim_t *fluid_sim)
 
     // Test if inside of circle
     float d;
-    float d2 = (p->x_star - center_x)*(p->x_star - center_x) + (p->y_star - center_y)*(p->y_star - center_y);
+    float d2 = (fluid_particles->x_star[p_index] - center_x)*(fluid_particles->x_star[p_index] - center_x)
+             + (fluid_particles->y_star[p_index] - center_y)*(fluid_particles->y_star[p_index] - center_y);
+
     if(d2 <= radius*radius && d2 > 0.0f) {
         d = sqrt(d2);
-        norm_x = (center_x-p->x_star)/d;
-        norm_y = (center_y-p->y_star)/d;
+        norm_x = (center_x - fluid_particles->x_star[p_index])/d;
+        norm_y = (center_y - fluid_particles->y_star[p_index])/d;
 	    
         // With no collision impulse we can handle penetration here
         float pen_dist = radius - d;
-        p->x_star -= pen_dist * norm_x;
-        p->y_star -= pen_dist * norm_y;
+        fluid_particles->x_star[p_index] -= pen_dist * norm_x;
+        fluid_particles->y_star[p_index] -= pen_dist * norm_y;
     }
 
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash potentially won't pick it up
     // as the particle will in the 'next' after last bin
-    if(p->x_star < boundary->min_x) {
-        p->x_star = boundary->min_x;
+    if(fluid_particles->x_star[p_index]  < boundary->min_x) {
+        fluid_particles->x_star[p_index]  = boundary->min_x;
     }
-    else if(p->x_star > boundary->max_x){
-        p->x_star = boundary->max_x-0.001f;
+    else if(fluid_particles->x_star[p_index]  > boundary->max_x){
+        p->fluid_particles->x_star[p_index]  = boundary->max_x-0.001f;
     }
-    if(p->y_star <  boundary->min_y) {
-        p->y_star = boundary->min_y;
+    if(fluid_particles->y_star[p_index]  <  boundary->min_y) {
+        fluid_particles->y_star[p_index]  = boundary->min_y;
     }
-    else if(p->y_star > boundary->max_y){
-        p->y_star = boundary->max_y-0.001f;
+    else if(fluid_particles->y_star[p_index]  > boundary->max_y){
+        fluid_particles->y_star[p_index]  = boundary->max_y-0.001f;
     }
 }

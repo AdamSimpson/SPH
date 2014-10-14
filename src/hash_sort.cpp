@@ -98,7 +98,8 @@ void find_cell_bounds(fluid_sim_t *fluid_sim)
 
     // Reset start indicies
     unsigned int length_hash = fluid_sim->neighbor_grid->size_x * fluid_sim->neighbor_grid->size_y;
-    memset(start_indicies, 0xffffffff, length_hash*sizeof(uint));
+//    memset(start_indicies, 0xffffffff, length_hash*sizeof(uint));
+    memset(start_indices, ((uint)-1), length_hash*sizeof(uint));
 
     int num_particles = params->number_fluid_particles_local + params->number_halo_particles;
 

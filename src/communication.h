@@ -32,7 +32,7 @@ typedef struct OOB_T oob_t;
 #include "mpi.h"
 
 // MPI globals
-MPI_Datatype Particletype;
+//MPI_Datatype Particletype;
 MPI_Datatype TunableParamtype;
 MPI_Datatype LeftEdgetype;
 MPI_Datatype RightEdgetype;

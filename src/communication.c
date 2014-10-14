@@ -54,6 +54,7 @@ void create_MPI_types()
     int blocklens[30];
     int i; 
 
+/*
     // Create fluid particle type;
     for (i=0; i<10; i++) types[i] = MPI_FLOAT;
     types[10] = MPI_INT;
@@ -73,7 +74,7 @@ void create_MPI_types()
     // Commit type
     MPI_Type_create_struct( 11, blocklens, disps, types, &Particletype );
     MPI_Type_commit( &Particletype );
-
+*/
     // Create param type
     for(i=0; i<15; i++) types[i] = MPI_FLOAT;
     types[15] = MPI_CHAR;
