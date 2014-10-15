@@ -451,7 +451,7 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     { 
-        p = fluid_particle_indices[i];
+        p_index = fluid_particle_indices[i];
         n = &neighbors[i];
 
         float Ci = fluid_particles->density[p_index]/params->tunable_params.rest_density - 1.0f;
@@ -554,9 +554,9 @@ void identify_oob_particles(fluid_sim_t *fluid_sim)
 
         // Set OOB particle indices and update number
         if (fluid_particles->x[p_index] < params->tunable_params.node_start_x)
-            out_of_bounds->oob_pointer_indices_left[out_of_bounds->number_oob_particles_left++] = i;
+            out_of_bounds->oob_indices_left[out_of_bounds->number_oob_particles_left++] = i;
         else if (fluid_particles->x[p_index] > params->tunable_params.node_end_x)
-            out_of_bounds->oob_pointer_indices_right[out_of_bounds->number_oob_particles_right++] = i;
+            out_of_bounds->oob_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  
    // Transfer particles that have left the processor bounds

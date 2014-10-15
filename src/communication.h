@@ -48,14 +48,13 @@ struct EDGE_T {
     uint *edge_indicies_right;
     int number_edge_particles_left;
     int number_edge_particles_right;
-    MPI_Request reqs[4];
 };
 
 // Particles that have left the node
 struct OOB_T {
     int max_oob_particles;
-    uint *oob_pointer_indicies_left; // Indicies in particle pointer array for particles traveling left
-    uint *oob_pointer_indicies_right;
+    uint *oob_indicies_left; // Indicies in particle pointer array for particles traveling left
+    uint *oob_indicies_right;
     int number_oob_particles_left;
     int number_oob_particles_right;
     uint *vacant_indicies; // Indicies in particle array that are vacant
@@ -65,8 +64,9 @@ struct OOB_T {
 void create_MPI_types();
 void create_communicators();
 void free_MPI_types();
-void start_halo_exchange(fluid_sim_t *fluid_sim);
-void finish_halo_exchange(fluid_sim_t *fluid_sim);
+void halo_exchange(fluid_sim_t *fluid_sim);
+void pack_halo_components(packed_recv_left, packed_recv_right, edges, fluid_particles);
+void unpack_halo_components(packed_recv_left, packed_recv_right, edges, fluid_particles);
 void transfer_OOB_particles(fluid_sim_t *fluid_sim);
 void update_halo_lambdas(fluid_sim_t *fluid_sim);
 void update_halo_positions(fluid_sim_t *fluid_sim);
