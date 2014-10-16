@@ -554,9 +554,9 @@ void identify_oob_particles(fluid_sim_t *fluid_sim)
 
         // Set OOB particle indices and update number
         if (fluid_particles->x[p_index] < params->tunable_params.node_start_x)
-            out_of_bounds->oob_indices_left[out_of_bounds->number_oob_particles_left++] = i;
+            out_of_bounds->oob_index_indices_left[out_of_bounds->number_oob_particles_left++] = i;
         else if (fluid_particles->x[p_index] > params->tunable_params.node_end_x)
-            out_of_bounds->oob_indices_right[out_of_bounds->number_oob_particles_right++] = i;
+            out_of_bounds->oob_index_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  
    // Transfer particles that have left the processor bounds

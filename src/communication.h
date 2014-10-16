@@ -53,11 +53,11 @@ struct EDGE_T {
 // Particles that have left the node
 struct OOB_T {
     int max_oob_particles;
-    uint *oob_indicies_left; // Indicies in particle pointer array for particles traveling left
-    uint *oob_indicies_right;
-    int number_oob_particles_left;
+    uint *oob_index_indicies_left; // Indicies in particle index array for particles traveling left
+    uint *oob_index_indicies_right;
+    int number_oob_particles_left; // Number of OOB sending left
     int number_oob_particles_right;
-    uint *vacant_indicies; // Indicies in particle array that are vacant
+    uint *vacant_indicies; // Indicies in global particle array that are vacant
     int number_vacancies;
 };
 
