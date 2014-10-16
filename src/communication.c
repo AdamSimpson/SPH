@@ -54,27 +54,6 @@ void create_MPI_types()
     int blocklens[30];
     int i; 
 
-/*
-    // Create fluid particle type;
-    for (i=0; i<10; i++) types[i] = MPI_FLOAT;
-    types[10] = MPI_INT;
-    for (i=0; i<11; i++) blocklens[i] = 1;
-    // Get displacement of each struct member
-    disps[0] = offsetof( fluid_particle_t, x_star);
-    disps[1] = offsetof( fluid_particle_t, y_star);
-    disps[2] = offsetof( fluid_particle_t, x);
-    disps[3] = offsetof( fluid_particle_t, y);
-    disps[4] = offsetof( fluid_particle_t, v_x);
-    disps[5] = offsetof( fluid_particle_t, v_y);
-    disps[6] = offsetof( fluid_particle_t, density);
-    disps[7]   = offsetof( fluid_particle_t, dp_x);
-    disps[8]   = offsetof( fluid_particle_t, dp_y);
-    disps[9]   = offsetof( fluid_particle_t, lambda);
-    disps[10] = offsetof( fluid_particle_t, id);
-    // Commit type
-    MPI_Type_create_struct( 11, blocklens, disps, types, &Particletype );
-    MPI_Type_commit( &Particletype );
-*/
     // Create param type
     for(i=0; i<15; i++) types[i] = MPI_FLOAT;
     types[15] = MPI_CHAR;
@@ -106,7 +85,6 @@ void create_MPI_types()
 
 void free_MPI_types()
 {
-    MPI_Type_free(&Particletype);
     MPI_Type_free(&TunableParamtype);
 
     MPI_Group_free(&group_world);
@@ -121,7 +99,7 @@ void update_halo_lambdas(fluid_sim_t *fluid_sim)
     param_t *params = fluid_sim->params;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
@@ -222,7 +200,7 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
         send_positions_left[i+1] = fluid_particles->y_star[p_index];
     }
     for(i=0; i<num_moving_right; i+=2) {
-        p_index = edges->edge_pointers_right[i/2];
+        p_index = edges->edge_indices_right[i/2];
         send_positions_right[i] = fluid_particles->x_star[p_index];
         send_positions_right[i+1] = fluid_particles->y_star[p_index];
     }
@@ -251,7 +229,7 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
         fluid_particles->y_star[p_index] = recv_positions_left[i+1];
     }
     for(i=0; i<num_from_right; i+=2) {
-        p = fluid_particle_indices[params->number_fluid_particles_local + num_from_left/2 + i/2];
+        p_index = fluid_particle_indices[params->number_fluid_particles_local + num_from_left/2 + i/2];
         fluid_particles->x_star[p_index] = recv_positions_right[i];
         fluid_particles->y_star[p_index] = recv_positions_right[i+1];
     }
@@ -266,13 +244,14 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
 // Pack particle struct float components into contiguous memory
 void pack_halo_components(float *left_send, float *right_send, fluid_sim_t *fluid_sim)
 {
+    param_t *params = fluid_sim->params;
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     edge_t *edges = fluid_sim->edges;
 
     // Append halos, fluid particle struct has 10 float components
     int i, p_index;
-    for (i=0; i<num_moving_left; i++) {
+    for (i=0; i<edges->number_edge_particles_left; i++) {
         p_index = edges->edge_indices_left[i];
         left_send[i*10]     = fluid_particles->x_star[p_index];
         left_send[i*10 + 1] = fluid_particles->y_star[p_index];
@@ -285,7 +264,7 @@ void pack_halo_components(float *left_send, float *right_send, fluid_sim_t *flui
         left_send[i*10 + 8] = fluid_particles->density[p_index];
         left_send[i*10 + 9] = fluid_particles->lambda[p_index];
     }
-    for (i=0; i<num_moving_right; i++) {
+    for (i=0; i<edges->number_edge_particles_right; i++) {
         p_index = edges->edge_indices_right[i];
         right_send[i*10]     = fluid_particles->x_star[p_index];
         right_send[i*10 + 1] = fluid_particles->y_star[p_index];
@@ -301,10 +280,11 @@ void pack_halo_components(float *left_send, float *right_send, fluid_sim_t *flui
 }
 
 // Unpack halo components
-void unpack_halo_components(packed_recv_left, packed_recv_right, edges, fluid_sim_t *fluid_sim)
+void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, fluid_sim_t *fluid_sim)
 {
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
+    param_t *params = fluid_sim->params;
     edge_t *edges = fluid_sim->edges;
 
     int i;
@@ -406,10 +386,10 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     float *packed_recv_right = (float*)malloc(num_components * num_from_right * sizeof(float));
 
     // Pack halo particle struct components to send
-    pack_halo_components(packed_left_send, packed_right_send, fluid_sim);
+    pack_halo_components(packed_send_left, packed_send_right, fluid_sim);
 
     debug_print("rank %d, prams->max_fluid_particle_index: %d\n", rank,  params->max_fluid_particle_index);
-    debug_print("rank %d, halo: send %d to left, %d to right, indexToRecieveLeft %d, indexToReceiveRight %d \n", rank, num_moving_left, num_moving_right, indexToReceiveLeft, indexToReceiveRight);
+    debug_print("rank %d, halo: send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
 
     tag = 4312;
     // Send packed particles to right and receive from left
@@ -423,7 +403,7 @@ void halo_exchange(fluid_sim_t *fluid_sim)
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     // Need to automatically add rank to debug print
-    debug_print("halo: recv %d from left, %d from right\n",num_received_left,num_received_right);
+    debug_print("halo: recv %d from left, %d from right\n",num_from_left,num_from_right);
 
     // Update params struct with halo values
     int total_received = num_from_left + num_from_right;
@@ -432,7 +412,7 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     params->number_halo_particles_right = num_from_right;
 
     // Unpack halo components from left and right
-    unpack_halo_components(packed_left_recv, packed_right_recv, fluid_sim);
+    unpack_halo_components(packed_recv_left, packed_recv_right, fluid_sim);
 
     // Free memory
     free(packed_send_left);
@@ -446,12 +426,12 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
 {
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
-    oob_t *oob = fluid_sim->oob;
+    oob_t *oob = fluid_sim->out_of_bounds;
 
     // Append halos, fluid particle struct has 10 float components
     int i, p_index;
-    for (i=0; i<params->number_oob_particles_left; i++) {
-        p_index = oob->oob_indices_left[i];
+    for (i=0; i<oob->number_oob_particles_left; i++) {
+        p_index = fluid_particle_indices[oob->oob_index_indices_left[i]];
         left_send[i*10]     = fluid_particles->x_star[p_index];
         left_send[i*10 + 1] = fluid_particles->y_star[p_index];
         left_send[i*10 + 2] = fluid_particles->x[p_index];
@@ -462,9 +442,15 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
         left_send[i*10 + 7] = fluid_particles->dp_y[p_index];
         left_send[i*10 + 8] = fluid_particles->density[p_index];
         left_send[i*10 + 9] = fluid_particles->lambda[p_index];
+
+        // Invalidate index entry as particle is now gone
+        fluid_particle_indices[oob->oob_index_indices_right[i]] = ((uint)-1);
+
+        // Add index to array of vacancies
+        oob->vacant_indices[oob->number_vacancies++] = p_index;
     }
-    for (i=0; i<params->number_oob_particles_right; i++) {
-        p_index = oob->oob_indices_right[i];
+    for (i=0; i<oob->number_oob_particles_right; i++) {
+        p_index = fluid_particle_indices[oob->oob_index_indices_right[i]];
         right_send[i*10]     = fluid_particles->x_star[p_index];
         right_send[i*10 + 1] = fluid_particles->y_star[p_index];
         right_send[i*10 + 2] = fluid_particles->x[p_index];
@@ -475,26 +461,56 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
         right_send[i*10 + 7] = fluid_particles->dp_y[p_index];
         right_send[i*10 + 8] = fluid_particles->density[p_index];
         right_send[i*10 + 9] = fluid_particles->lambda[p_index];
+
+        // Invalidate index entry as particle is now gone
+        fluid_particle_indices[oob->oob_index_indices_right[i]] = ((uint)-1);
+
+        // Add index to array of vacancies
+        oob->vacant_indices[oob->number_vacancies++] = p_index;
     }
 }
 
 // Unpack out of bounds components
-void unpack_oob_components(float *packed_recv, int num_recv, edge_t *edges, fluid_sim_t *fluid_sim)
+void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_sim)
 {
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
-    oob_t *oob = fluid_sim->oob;
+    oob_t *oob = fluid_sim->out_of_bounds;
+    param_t *params = fluid_sim->params;
 
     int i;
+
+    // We must fill in invalid entries in the particle_index array
+    // Invalid entries are caused by particles that have just left
+    int num_invalid_left = oob->number_oob_particles_left;
+    int num_invalid_right = oob->number_oob_particles_right;
+    int num_invalid_total = num_invalid_left + num_invalid_right;
+
     uint p_index;
-    // Unpack oob particles
+
+    // Number of invalidated index entries that have been replaced
+    int indices_replaced = 0;
+
+    // Unpack oob particles into vacancies if possible
     for(i=0; i<num_recv; i++)
     {
         // Unpack into vacancies first
         if(oob->number_vacancies > 0)
-            p_index = fluid_particle_indices[oob->vancant_indices[oob->number_vacancies--]];
-        else
+            p_index = oob->vacant_indices[oob->number_vacancies--];
+        else // If no vacancies add onto end of global array
             p_index = ++params->max_fluid_particle_index;
+
+        // Update pointer array
+        if(i < num_invalid_total) { // If there are invalid entries in pointer array update those first
+            if(indices_replaced < num_invalid_left) 
+                fluid_particle_indices[oob->oob_index_indices_left[indices_replaced]] = p_index; 
+            else
+                fluid_particle_indices[oob->oob_index_indices_right[i-num_invalid_left]] = p_index;
+
+            indices_replaced ++;
+        }
+        else // If no invalid entries add to end of index array and increase number of local particles
+            fluid_particle_indices[params->number_fluid_particles_local++] = p_index;
 
         fluid_particles->x_star[p_index]  = packed_recv[i*10];
         fluid_particles->y_star[p_index]  = packed_recv[i*10 + 1];
@@ -565,51 +581,29 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     int total_sent = num_moving_left + num_moving_right;
     int total_received = num_from_right + num_from_left;
 
-    // Update vacancies to include particles that were just sent
-    for (i=0; i<num_moving_left; i++) {
-        // Index in particle index array of particle that has left
-        oob_index = (int) out_of_bounds->oob_index_indices_left[i];
-        // Add index to array of vacancies
-        out_of_bounds->vacant_indices[out_of_bounds->number_vacancies] = oob_index;
-        // Incriment the number of vacancies
-        out_of_bounds->number_vacancies++;
-        // Invalidate index as particle is now gone
-        fluid_particle_indices[oob_index] = ((uint)-1);
-    }
-    for (i=0; i<num_moving_right; i++) {
-        // Index in particle index array of particle that has left
-        oob_index = (int) out_of_bounds->oob_index_indices_right[i];
-        // Add index to array of vacancies
-        out_of_bounds->vacant_indices[out_of_bounds->number_vacancies] = oob_index;
-        // Incriment the number of vacancies
-        out_of_bounds->number_vacancies++;
-        // Invalidate index as particle is now gone
-        fluid_particle_indices[oob_index] = ((uint)-1);
-    }
-
     // Unpack components and update vacancies for particles that were just received
     unpack_oob_components(packed_recv, total_received, fluid_sim);
 
     debug_print("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_from_left, num_from_right);
     debug_print("rank %d OOB: num vacant %d\n", rank, out_of_bounds->number_vacancies);
 
-    // If more particles received than sent update shit
-
-    // Update particle pointer array
     // Go through all possible fluid particles and remove null entries
     int num_particles = 0;
-    for (i=0; i<max_fluid_pointers; i++) {
-        p = fluid_particle_pointers[i];
-        if (p != (uint)-1) {
-            fluid_particle_pointers[num_particles] = p;
-            fluid_particle_pointers[num_particles]->id = num_particles;
+    for (i=0; i<params->max_fluid_particle_index; i++) {
+        p_index = fluid_particle_indices[i];
+        if (p_index != (uint)-1) {
+            fluid_particle_indices[num_particles] = p_index;
+            fluid_particles->id[p_index] = num_particles;
             num_particles++;
         }
     }
 
-    params->number_fluid_particles_local = num_particles;
-
     // Need to add rank to debug_print
     debug_print("num local: %d\n", num_particles);
+
+    // Free memory
+    free(packed_send_left);
+    free(packed_send_right);
+    free(packed_recv);
 }
 

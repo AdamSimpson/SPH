@@ -111,6 +111,7 @@ void start_simulation()
     tunable_parameters_t *null_tunable_param = NULL;
     int *null_recvcnts = NULL;
     int *null_displs = NULL;
+    uint p_index;
 
     int sub_step = 0; // substep range from 0 to < steps_per_frame
 
@@ -155,8 +156,7 @@ void start_simulation()
         identify_oob_particles(&fluid_sim);
 
          // Exchange halo particles
-        start_halo_exchange(&fluid_sim);
-        finish_halo_exchange(&fluid_sim);
+        halo_exchange(&fluid_sim);
 
         // Hash particles, sort, fill particle neighbors
         find_all_neighbors(&fluid_sim);
@@ -179,7 +179,7 @@ void start_simulation()
         }
 
         // update velocity
-        updateVelocities(&fluid_sim);
+        update_velocities(&fluid_sim);
 
 //        vorticity_confinement(fluid_particle_pointers, neighbors, &params);
 
@@ -193,9 +193,11 @@ void start_simulation()
         if(sub_step == fluid_sim.params->steps_per_frame-1)
         {
             for(i=0; i<fluid_sim.params->number_fluid_particles_local; i++) {
-                p = fluid_sim.fluid_particle_pointers[i];
-                fluid_sim.fluid_particle_coords[i*2] = (2.0f*p->x/fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-                fluid_sim.fluid_particle_coords[(i*2)+1] = (2.0f*p->y/fluid_sim.boundary_global->max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                p_index = fluid_sim.fluid_particle_indices[i];
+                fluid_sim.fluid_particle_coords[i*2] = (2.0f*fluid_sim.fluid_particles->x[p_index]
+                                                       /fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
+                fluid_sim.fluid_particle_coords[(i*2)+1] = (2.0f*fluid_sim.fluid_particles->y[p_index]
+                                                           /fluid_sim.boundary_global->max_y - 1.0f) * SHRT_MAX; // convert to short using full range
             }
             // Async send fluid particle coordinates to render node
             MPI_Isend(fluid_sim.fluid_particle_coords, 2*fluid_sim.params->number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
@@ -418,7 +420,7 @@ void update_dp_positions(fluid_sim_t *fluid_sim)
         fluid_particles->y_star[p_index] += fluid_particles->dp_y[p_index];
 
 	// Enforce boundary conditions
-        boundaryConditions(p_index, fluid_sim);
+        boundary_conditions(p_index, fluid_sim);
     }    
 }
 
@@ -627,8 +629,10 @@ void update_velocities(fluid_sim_t *fluid_sim)
 }
 
 // Assume AABB with min point being axis origin
-void boundary_conditions(uint p, fluid_sim_t *fluid_sim)
+void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim)
 {
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     AABB_t *boundary = fluid_sim->boundary_global;
     param_t *params = fluid_sim->params;
 
@@ -664,7 +668,7 @@ void boundary_conditions(uint p, fluid_sim_t *fluid_sim)
         fluid_particles->x_star[p_index]  = boundary->min_x;
     }
     else if(fluid_particles->x_star[p_index]  > boundary->max_x){
-        p->fluid_particles->x_star[p_index]  = boundary->max_x-0.001f;
+        fluid_particles->x_star[p_index]  = boundary->max_x-0.001f;
     }
     if(fluid_particles->y_star[p_index]  <  boundary->min_y) {
         fluid_particles->y_star[p_index]  = boundary->min_y;

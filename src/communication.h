@@ -44,8 +44,8 @@ MPI_Group group_render;
 // Particles that are within 2*h distance of node edge
 struct EDGE_T {
     int max_edge_particles;
-    uint *edge_indicies_left;
-    uint *edge_indicies_right;
+    uint *edge_indices_left;
+    uint *edge_indices_right;
     int number_edge_particles_left;
     int number_edge_particles_right;
 };
@@ -53,11 +53,11 @@ struct EDGE_T {
 // Particles that have left the node
 struct OOB_T {
     int max_oob_particles;
-    uint *oob_index_indicies_left; // Indicies in particle index array for particles traveling left
-    uint *oob_index_indicies_right;
+    uint *oob_index_indices_left; // Indicies in particle index array for particles traveling left
+    uint *oob_index_indices_right;
     int number_oob_particles_left; // Number of OOB sending left
     int number_oob_particles_right;
-    uint *vacant_indicies; // Indicies in global particle array that are vacant
+    uint *vacant_indices; // Indicies in global particle array that are vacant
     int number_vacancies;
 };
 
@@ -65,8 +65,10 @@ void create_MPI_types();
 void create_communicators();
 void free_MPI_types();
 void halo_exchange(fluid_sim_t *fluid_sim);
-void pack_halo_components(packed_recv_left, packed_recv_right, edges, fluid_particles);
-void unpack_halo_components(packed_recv_left, packed_recv_right, edges, fluid_particles);
+void pack_halo_components(float *packed_recv_left, float *packed_recv_right, fluid_sim_t *fluid_sim);
+void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, fluid_sim_t *fluid_sim);
+void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid_sim);
+void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_sim);
 void transfer_OOB_particles(fluid_sim_t *fluid_sim);
 void update_halo_lambdas(fluid_sim_t *fluid_sim);
 void update_halo_positions(fluid_sim_t *fluid_sim);

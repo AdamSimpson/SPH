@@ -62,7 +62,7 @@ struct FLUID_PARTICLES_T {
     float *dp_y;
     float *density;
     float *lambda;
-    int *id; // Id is 'local' index within the fluid particle pointer array
+    uint *id; // Id is 'local' index within the fluid particle pointer array
 };
 
 // These parameters are tunable by the render node
@@ -120,7 +120,7 @@ struct FLUID_SIM_T {
 //void collisionImpulse(fluid_particle *p, float norm_x, float norm_y, param *params);
 void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim);
 void start_simulation();
-void calculate_density(uint p_index, fluid_particle_t *q, float h, float mass);
+void calculate_density(uint p_index, uint q_index, float h, float mass);
 void apply_gravity(fluid_sim_t *fluid_sim);
 void update_velocities(fluid_sim_t *fluid_sim);
 void check_velocity(float *v_x, float *v_y);

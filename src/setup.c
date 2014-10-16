@@ -127,7 +127,7 @@ void alloc_sim(fluid_sim_t *fluid_sim)
 
     // Allocate neighbor array
     fluid_sim->neighbor_grid->neighbors = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(neighbor_t));
-    fluid_particle_t **fluid_neighbors = calloc(fluid_sim->params->max_fluid_particles_local * fluid_sim->neighbor_grid->max_neighbors, sizeof(uint));
+    uint *fluid_neighbors = calloc(fluid_sim->params->max_fluid_particles_local * fluid_sim->neighbor_grid->max_neighbors, sizeof(uint));
     // Set pointer in each bucket
     for(i=0; i< fluid_sim->params->max_fluid_particles_local; i++ )
         fluid_sim->neighbor_grid->neighbors[i].fluid_neighbors = &(fluid_neighbors[i*fluid_sim->neighbor_grid->max_neighbors]);
@@ -164,8 +164,8 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     fluid_sim->edges->edge_indices_left = malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
     fluid_sim->edges->edge_indices_right = malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
     // Allocate out of bound index arrays
-    fluid_sim->out_of_bounds->oob_pointer_indices_left = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
-    fluid_sim->out_of_bounds->oob_pointer_indices_right = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
+    fluid_sim->out_of_bounds->oob_index_indices_left = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
+    fluid_sim->out_of_bounds->oob_index_indices_right = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
     fluid_sim->out_of_bounds->vacant_indices = malloc(2*fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
 
     printf("bytes allocated: %lu\n", total_bytes);
@@ -189,10 +189,10 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
     free(fluid_sim->fluid_particle_indices);
     free(fluid_sim->neighbor_grid->neighbors[0].fluid_neighbors);
     free(fluid_sim->neighbor_grid->neighbors);
-    free(fluid_sim->edges->edge_pointers_left);
-    free(fluid_sim->edges->edge_pointers_right);
-    free(fluid_sim->out_of_bounds->oob_pointer_indices_left);
-    free(fluid_sim->out_of_bounds->oob_pointer_indices_right);
+    free(fluid_sim->edges->edge_indices_left);
+    free(fluid_sim->edges->edge_indices_right);
+    free(fluid_sim->out_of_bounds->oob_index_indices_left);
+    free(fluid_sim->out_of_bounds->oob_index_indices_right);
     free(fluid_sim->out_of_bounds->vacant_indices);
 }
 
@@ -241,6 +241,7 @@ void free_sim_structs(fluid_sim_t *fluid_sim)
 // Additionally set world boudnary
 void init_params(fluid_sim_t *fluid_sim)
 {
+    edge_t *edges = fluid_sim->edges;
     param_t *params = fluid_sim->params;
 
     params->tunable_params.kill_sim = false;

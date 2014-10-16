@@ -55,19 +55,20 @@ uint hash_val(float x, float y, fluid_sim_t *fluid_sim)
 // Hash all particles
 void hash_particles(fluid_sim_t *fluid_sim)
 {
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     uint *hash_values = fluid_sim->neighbor_grid->hash_values;
     uint *particle_ids = fluid_sim->neighbor_grid->particle_ids;
     param_t *params = fluid_sim->params;
 
     int num_particles = params->number_fluid_particles_local + params->number_halo_particles;
 
-    fluid_particle_t *p;
+    uint p_index;
 
     int i;
     for(i=0; i<num_particles; i++) {
-        p = fluid_particle_pointers[i];
-        hash_values[i] =  hash_val(p->x, p->y, fluid_sim);
+        p_index = fluid_particle_indices[i];
+        hash_values[i] =  hash_val(fluid_particles->x[p_index], fluid_particles->y[p_index], fluid_sim);
         particle_ids[i] = i;
     }
 }
@@ -132,23 +133,25 @@ void find_cell_bounds(fluid_sim_t *fluid_sim)
 }
 
 // Neighbors are accessed multiple times per step so we keep them in buckets
-void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p)
+void fill_particle_neighbors(fluid_sim_t *fluid_sim, uint p_index)
 {
 
     uint max_neighbors = fluid_sim->neighbor_grid->max_neighbors;
     param_t *params = fluid_sim->params;
     float smoothing_radius2 = params->tunable_params.smoothing_radius * params->tunable_params.smoothing_radius;
 
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
+
     uint *particle_ids = fluid_sim->neighbor_grid->particle_ids;
 
     // Get neighbor bucket for particle p
-    neighbor_t * neighbors = &fluid_sim->neighbor_grid->neighbors[p->id];
+    neighbor_t * neighbors = &fluid_sim->neighbor_grid->neighbors[fluid_particles->id[p_index]];
 
     float spacing = fluid_sim->neighbor_grid->spacing;
     uint start_index, end_index;
     int dx,dy, grid_x, grid_y, bucket_index;
-    fluid_particle_t *q;
+    uint q_index;
 
     uint *start_indices = fluid_sim->neighbor_grid->start_indices;
     uint *end_indices = fluid_sim->neighbor_grid->end_indices;
@@ -156,8 +159,8 @@ void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p)
     neighbors->number_fluid_neighbors = 0;
 
     // Calculate coordinates within bucket grid
-    grid_x = floor(p->x/spacing);
-    grid_y = floor(p->y/spacing);
+    grid_x = floor(fluid_particles->x[p_index]/spacing);
+    grid_y = floor(fluid_particles->y[p_index]/spacing);
 
     float r2;
 
@@ -174,27 +177,30 @@ void fill_particle_neighbors(fluid_sim_t *fluid_sim, fluid_particle_t *p)
              bucket_index = (grid_y+dy) *fluid_sim->neighbor_grid->size_x + grid_x+dx;
 
              // Start index for hash value of current neighbor grid bucket
-             start_index = start_indicies[bucket_index];
+             start_index = start_indices[bucket_index];
 
              // If neighbor grid bucket is not empty
-             if (start_index != 0xffffffff)
+             if (start_index != (uint)-1)
              {
-                end_index = end_indicies[bucket_index];
+                end_index = end_indices[bucket_index];
 
                 for(int j=start_index; j<end_index; j++)
                 {
-                    q = fluid_particle_pointers[particle_ids[j]];
+                    q_index = fluid_particle_indices[particle_ids[j]];
 
                     // Continue if same particle
-                    if (p==q)
+                    if (p_index==q_index)
                         continue;
                     
                     // Calculate distance squared
-                    r2 = (p->x-q->x)*(p->x-q->x) + (p->y-q->y)*(p->y-q->y);
+                    r2 = (fluid_particles->x[p_index]-fluid_particles->x[q_index])
+                        *(fluid_particles->x[p_index]-fluid_particles->x[q_index])
+                        +(fluid_particles->y[p_index]-fluid_particles->y[q_index])
+                        *(fluid_particles->y[p_index]-fluid_particles->y[q_index]);
 
                     // If inside smoothing radius and enough space in p's neighbor bucket add q
                     if(r2<smoothing_radius2 && neighbors->number_fluid_neighbors < max_neighbors)
-                        neighbors->fluid_neighbors[neighbors->number_fluid_neighbors++] = q;
+                        neighbors->fluid_neighbors[neighbors->number_fluid_neighbors++] = q_index;
                 }
            }
        }
@@ -206,14 +212,15 @@ void fill_neighbors(fluid_sim_t *fluid_sim)
 {
     param_t *params = fluid_sim->params;
     int total_particles = params->number_fluid_particles_local;
-    fluid_particle_t **fluid_particle_pointers = fluid_sim->fluid_particle_pointers;
+    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
 
     int i;
-    fluid_particle_t *p;
+    uint p_index;
 
     // Fill neighbor bucket for all resident particles
     for(i=0; i<total_particles; i++) {
-        p = fluid_particle_pointers[i];
-        fill_particle_neighbors(fluid_sim, p);
+        p_index = fluid_particle_indices[i];
+        fill_particle_neighbors(fluid_sim, p_index);
     }       
 }
