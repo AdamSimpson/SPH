@@ -386,7 +386,9 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     float *packed_recv_right = (float*)malloc(num_components * num_from_right * sizeof(float));
 
     // Pack halo particle struct components to send
+    debug_print("rank %d begin halo pack\n", rank);
     pack_halo_components(packed_send_left, packed_send_right, fluid_sim);
+    debug_print("rank %d done halo pack\n", rank);
 
     debug_print("rank %d, prams->max_fluid_particle_index: %d\n", rank,  params->max_fluid_particle_index);
     debug_print("rank %d, halo: send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
@@ -403,7 +405,7 @@ void halo_exchange(fluid_sim_t *fluid_sim)
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     // Need to automatically add rank to debug print
-    debug_print("halo: recv %d from left, %d from right\n",num_from_left,num_from_right);
+    debug_print("rank %d halo: recv %d from left, %d from right\n",rank, num_from_left,num_from_right);
 
     // Update params struct with halo values
     int total_received = num_from_left + num_from_right;
@@ -444,7 +446,7 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
         left_send[i*10 + 9] = fluid_particles->lambda[p_index];
 
         // Invalidate index entry as particle is now gone
-        fluid_particle_indices[oob->oob_index_indices_right[i]] = ((uint)-1);
+        fluid_particle_indices[oob->oob_index_indices_left[i]] = ((uint)-1);
 
         // Add index to array of vacancies
         oob->vacant_indices[oob->number_vacancies++] = p_index;
@@ -565,7 +567,9 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     float *packed_recv = (float*)malloc(num_components * (num_from_right+num_from_left) * sizeof(float));
 
     // Pack OOB particle struct components to send
+    debug_print("rank %d begin oob pack\n", rank);
     pack_oob_components(packed_send_left, packed_send_right, fluid_sim);
+    debug_print("rank %d end oob pack\n", rank);
 
     // Send packed particles to right and receive from left
     tag = 2522;
@@ -582,7 +586,9 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     int total_received = num_from_right + num_from_left;
 
     // Unpack components and update vacancies for particles that were just received
+    debug_print("rank %d begin oob unpack\n", rank);
     unpack_oob_components(packed_recv, total_received, fluid_sim);
+    debug_print("rank %d end oob unpack\n", rank);
 
     debug_print("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_from_left, num_from_right);
     debug_print("rank %d OOB: num vacant %d\n", rank, out_of_bounds->number_vacancies);

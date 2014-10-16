@@ -1,4 +1,4 @@
-CC=mpiCC
+CC=mpicc
 CLIBS= -lglfw3 -lGLEW -framework OpenGL -framework Cocoa -framework IOkit -framework CoreVideo -L/usr/local/lib -lfreetype
 CINCLUDES= -I/usr/local/include/freetype2 -I/Developer/NVIDIA/CUDA-6.5/include/
 CFLAGS= -DGLFW -O3 -ffast-math -lm -DTHRUST_DEVICE_SYSTEM_CPP -lm -lstdc++
