@@ -1,6 +1,6 @@
 CC=mpicc
 CLIBS= -lglfw3 -lGLEW -framework OpenGL -framework Cocoa -framework IOkit -framework CoreVideo -L/usr/local/lib -lfreetype
-CINCLUDES= -I/usr/local/include/freetype2 -I/Developer/NVIDIA/CUDA-6.5/include/
+CINCLUDES= -I/usr/local/include/freetype2 -I/Developer/NVIDIA/CUDA-6.5/include/ -I/Users/atj/Downloads
 CFLAGS= -DGLFW -O3 -ffast-math -lm -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP -DTHRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP -lstdc++
 
 all:

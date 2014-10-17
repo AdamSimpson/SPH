@@ -366,9 +366,9 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     // Get number of halo particles from right and left
     int num_from_left = 0;
     int num_from_right = 0;
-    int tag = 3217;
 
     // Send number of particles to right and receive from left
+    int tag = 3217;
     MPI_Sendrecv(&num_moving_right, 1, MPI_INT, proc_to_right, tag, &num_from_left,1,MPI_INT,proc_to_left,tag,MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
     // Send number of particles to left and receive from right
     tag = 8425;
@@ -585,7 +585,7 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     tag = 1165;
     // Send packed particles to left and receive from right
     MPI_Sendrecv(packed_send_left,  num_components*num_moving_left, MPI_FLOAT, proc_to_left, tag,
-                 (packed_recv + num_from_left), num_components*num_from_right,  MPI_FLOAT, proc_to_right,tag,
+                 (packed_recv + num_components*num_from_left), num_components*num_from_right,  MPI_FLOAT, proc_to_right,tag,
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     int total_received = num_from_right + num_from_left;
