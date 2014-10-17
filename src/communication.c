@@ -287,6 +287,7 @@ void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, f
 
     int i;
     uint p_index;
+
     // Unpack halo particles from left rank first
     for(i=0; i<params->number_halo_particles_left; i++)
     {
@@ -322,7 +323,6 @@ void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, f
         fluid_particles->id[p_index]      = params->number_fluid_particles_local + params->number_halo_particles_left + i;
         fluid_particle_indices[params->number_fluid_particles_local + params->number_halo_particles_left + i] = p_index;
    }
-
 }
 
 void halo_exchange(fluid_sim_t *fluid_sim)
@@ -384,9 +384,7 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     float *packed_recv_right = (float*)malloc(num_components * num_from_right * sizeof(float));
 
     // Pack halo particle struct components to send
-    debug_print("rank %d begin halo pack\n", rank);
     pack_halo_components(packed_send_left, packed_send_right, fluid_sim);
-    debug_print("rank %d done halo pack\n", rank);
 
     debug_print("rank %d, prams->max_fluid_particle_index: %d\n", rank,  params->max_fluid_particle_index);
     debug_print("rank %d, halo: send %d to left, %d to right\n", rank, num_moving_left, num_moving_right);
@@ -517,8 +515,9 @@ void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_
 
             indices_replaced ++;
         }
-        else // If no invalid entries add to end of index array and increase number of local particles
+        else { // If no invalid entries add to end of index array and increase number of local particles
             fluid_particle_indices[params->number_fluid_particles_local] = p_index;
+        }
 
         // Incriment number of local fluid particles
         params->number_fluid_particles_local++;
@@ -576,9 +575,7 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     float *packed_recv = (float*)malloc(num_components * (num_from_right+num_from_left) * sizeof(float));
 
     // Pack OOB particle struct components to send
-    debug_print("rank %d begin oob pack\n", rank);
     pack_oob_components(packed_send_left, packed_send_right, fluid_sim);
-    debug_print("rank %d end oob pack\n", rank);
 
     // Send packed particles to right and receive from left
     tag = 2522;
@@ -595,9 +592,7 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     int total_sent     = num_moving_right + num_moving_left;
 
     // Unpack components and update vacancies for particles that were just received
-    debug_print("rank %d begin oob unpack\n", rank);
     unpack_oob_components(packed_recv, total_received, fluid_sim);
-    debug_print("rank %d end oob unpack\n", rank);
 
     debug_print("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_from_left, num_from_right);
     debug_print("rank %d OOB: num vacant %d\n", rank, out_of_bounds->number_vacancies);
