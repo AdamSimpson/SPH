@@ -244,8 +244,6 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
 // Pack particle struct float components into contiguous memory
 void pack_halo_components(float *left_send, float *right_send, fluid_sim_t *fluid_sim)
 {
-    param_t *params = fluid_sim->params;
-    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     edge_t *edges = fluid_sim->edges;
 
@@ -497,8 +495,10 @@ void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_
     for(i=0; i<num_recv; i++)
     {
         // Unpack into vacancies first
-        if(oob->number_vacancies > 0)
-            p_index = oob->vacant_indices[oob->number_vacancies--];
+        if(oob->number_vacancies > 0) {
+            p_index = oob->vacant_indices[oob->number_vacancies-1];
+            oob->number_vacancies--;
+        }
         else // If no vacancies add onto end of global array
             p_index = ++params->max_fluid_particle_index;
 
@@ -582,7 +582,6 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
                  (packed_recv + num_from_left), num_components*num_from_right,  MPI_FLOAT, proc_to_right,tag,
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
-    int total_sent = num_moving_left + num_moving_right;
     int total_received = num_from_right + num_from_left;
 
     // Unpack components and update vacancies for particles that were just received

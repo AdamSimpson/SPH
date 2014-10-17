@@ -631,7 +631,6 @@ void update_velocities(fluid_sim_t *fluid_sim)
 // Assume AABB with min point being axis origin
 void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim)
 {
-    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     AABB_t *boundary = fluid_sim->boundary_global;
     param_t *params = fluid_sim->params;
