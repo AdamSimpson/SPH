@@ -427,6 +427,7 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     oob_t *oob = fluid_sim->out_of_bounds;
+    param_t *params = fluid_sim->params;
 
     // Append halos, fluid particle struct has 10 float components
     int i, p_index;
@@ -448,6 +449,8 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
 
         // Add index to array of vacancies
         oob->vacant_indices[oob->number_vacancies++] = p_index;
+
+        params->number_fluid_particles_local--;
     }
     for (i=0; i<oob->number_oob_particles_right; i++) {
         p_index = fluid_particle_indices[oob->oob_index_indices_right[i]];
@@ -467,6 +470,9 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
 
         // Add index to array of vacancies
         oob->vacant_indices[oob->number_vacancies++] = p_index;
+
+        // Decrement number of fluid particles
+        params->number_fluid_particles_local--;
     }
 }
 
@@ -512,7 +518,10 @@ void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_
             indices_replaced ++;
         }
         else // If no invalid entries add to end of index array and increase number of local particles
-            fluid_particle_indices[params->number_fluid_particles_local++] = p_index;
+            fluid_particle_indices[params->number_fluid_particles_local] = p_index;
+
+        // Incriment number of local fluid particles
+        params->number_fluid_particles_local++;
 
         fluid_particles->x_star[p_index]  = packed_recv[i*10];
         fluid_particles->y_star[p_index]  = packed_recv[i*10 + 1];
@@ -583,6 +592,7 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     int total_received = num_from_right + num_from_left;
+    int total_sent     = num_moving_right + num_moving_left;
 
     // Unpack components and update vacancies for particles that were just received
     debug_print("rank %d begin oob unpack\n", rank);
@@ -594,7 +604,12 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
 
     // Go through all possible fluid particles and remove null entries
     int num_particles = 0;
-    for (i=0; i<params->max_fluid_particle_index; i++) {
+    int diff = 0;
+    // If more particles were sent than recvd we need to check more indices than number_fluid_particles_local
+    if(total_sent>total_received)
+        diff = total_sent-total_received;
+    int check_length = params->number_fluid_particles_local + diff; //The max length in the index array we need to check
+    for (i=0; i<check_length; i++) {
         p_index = fluid_particle_indices[i];
         if (p_index != (uint)-1) {
             fluid_particle_indices[num_particles] = p_index;
@@ -604,7 +619,8 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     }
 
     // Need to add rank to debug_print
-    debug_print("num local: %d\n", num_particles);
+    debug_print("rank %d num local: %d\n", rank, num_particles);
+    debug_print("rank %d params->num local %d\n", rank, params->number_fluid_particles_local);
 
     // Free memory
     free(packed_send_left);
