@@ -54,12 +54,16 @@ typedef unsigned int uint;
 struct FLUID_PARTICLES_T {
     float *x_star;
     float *y_star;
+    float *z_star;
     float *x;
     float *y;
+    float *z;
     float *v_x;
     float *v_y;
+    float *v_z;
     float *dp_x;
     float *dp_y;
+    float *dp_z;
     float *density;
     float *lambda;
     uint *id; // Id is 'local' index within the fluid particle pointer array
@@ -80,6 +84,7 @@ struct TUNABLE_PARAMETERS_T {
     float node_end_x;
     float mover_center_x;
     float mover_center_y;
+    float mover_center_z;
     float mover_width;
     float mover_height;
     char mover_type;
@@ -123,7 +128,7 @@ void start_simulation();
 void calculate_density(uint p_index, uint q_index, float h, float mass);
 void apply_gravity(fluid_sim_t *fluid_sim);
 void update_velocities(fluid_sim_t *fluid_sim);
-void check_velocity(float *v_x, float *v_y);
+void check_velocity(float *v_x, float *v_y, float *v_z);
 void identify_oob_particles(fluid_sim_t *fluid_sim);
 float del_W(float r, float h);
 float W(float r, float h);

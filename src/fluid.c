@@ -194,13 +194,15 @@ void start_simulation()
         {
             for(i=0; i<fluid_sim.params->number_fluid_particles_local; i++) {
                 p_index = fluid_sim.fluid_particle_indices[i];
-                fluid_sim.fluid_particle_coords[i*2] = (2.0f*fluid_sim.fluid_particles->x[p_index]
+                fluid_sim.fluid_particle_coords[i*3] = (2.0f*fluid_sim.fluid_particles->x[p_index]
                                                        /fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
-                fluid_sim.fluid_particle_coords[(i*2)+1] = (2.0f*fluid_sim.fluid_particles->y[p_index]
+                fluid_sim.fluid_particle_coords[(i*3)+1] = (2.0f*fluid_sim.fluid_particles->y[p_index]
                                                            /fluid_sim.boundary_global->max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                fluid_sim.fluid_particle_coords[(i*3)+2] = (2.0f*fluid_sim.fluid_particles->z[p_index]
+                                                           /fluid_sim.boundary_global->max_z - 1.0f) * SHRT_MAX; // convert to short using full range
             }
             // Async send fluid particle coordinates to render node
-            MPI_Isend(fluid_sim.fluid_particle_coords, 2*fluid_sim.params->number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
+            MPI_Isend(fluid_sim.fluid_particle_coords, 3*fluid_sim.params->number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
         }
 
         if(sub_step == fluid_sim.params->steps_per_frame-1)
@@ -223,26 +225,21 @@ void start_simulation()
 
 // Smoothing kernels
 
-// (h^2 - r^2)^3 normalized in 2D
+// (h^2 - r^2)^3 normalized in 3D (poly6)
 float W(float r, float h)
 {
     if(r > h)
         return 0.0f;
 
-    float C = 4.0f/(M_PI*h*h*h*h*h*h*h*h);
-    float W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
+    double C = 315.0/(64.0*M_PI*pow((double)h,9.0));
+    float W = C*pow((double)(h*h-r*r), 3.0);
     return W;
 }
 
-// Gradient (h-r)^3 normalized in 2D
+// Gradient (h-r)^3 normalized in 3D (Spikey)
 float del_W(float r, float h)
 {
-    if(r > h)
-        return 0.0f;
-
-    float eps  = 0.000001f;
-    float coef = -30.0f/M_PI;
-    float C = coef/(h*h*h*h*h * (r+eps));
+    float C = -45.0/(M_PI * pow((double)h, 6.0));
     float del_W = C*(h-r)*(h-r);
     return del_W;
 }
@@ -319,7 +316,7 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
     neighbor_t *n;
     float c = 0.1f;
 
-    float x_diff, y_diff, vx_diff, vy_diff, r_mag, w;
+    float x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff, r_mag, w;
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
@@ -328,22 +325,31 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
 
         float partial_sum_x = 0.0f;
         float partial_sum_y = 0.0f;
+        float partial_sum_z = 0.0f;
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
             q_index = n->fluid_neighbors[j];
             x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
             y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
+            z_diff = fluid_particles->z_star[p_index] - fluid_particles->z_star[q_index];
+
             vx_diff = fluid_particles->v_x[q_index] - fluid_particles->v_x[p_index];
             vy_diff = fluid_particles->v_y[q_index] - fluid_particles->v_y[p_index];
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            vz_diff = fluid_particles->v_z[q_index] - fluid_particles->v_z[p_index];
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff * z_diff*z_diff);
             w = W(r_mag, params->tunable_params.smoothing_radius);
             partial_sum_x += vx_diff * w;
             partial_sum_y += vy_diff * w;
+            partial_sum_z += vz_diff * w;
         }
         partial_sum_x *= c;
         partial_sum_y *= c;
+        partial_sum_z *= c;
+
         fluid_particles->v_x[p_index] += partial_sum_x;
         fluid_particles->v_y[p_index] += partial_sum_y;
+        fluid_particles->v_z[p_index] += partial_sum_z;
     }
 }
 
@@ -365,7 +371,7 @@ void compute_densities(fluid_sim_t *fluid_sim)
         p_index = fluid_particle_indices[i];
         n = &neighbors[i];
 
-        float x_diff, y_diff, r_mag, density;
+        float x_diff, y_diff, z_diff, r_mag, density;
         density = 0.0f;
 
         // Own contribution to density
@@ -377,7 +383,9 @@ void compute_densities(fluid_sim_t *fluid_sim)
             q_index = n->fluid_neighbors[j];
             x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
             y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            z_diff = fluid_particles->z_star[p_index] - fluid_particles->z_star[q_index];
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
             if(r_mag <= h)
                 density += mass*W(r_mag, h);
         }
@@ -385,7 +393,6 @@ void compute_densities(fluid_sim_t *fluid_sim)
         // Update particle density
         fluid_particles->density[p_index] = density;
     }
-
 }
 
 void apply_gravity(fluid_sim_t *fluid_sim)
@@ -401,7 +408,7 @@ void apply_gravity(fluid_sim_t *fluid_sim)
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
         p_index = fluid_particle_indices[i];
-        fluid_particles->v_y[p_index] += g*dt;
+        fluid_particles->v_z[p_index] += g*dt;
      }
 }
 
@@ -418,6 +425,7 @@ void update_dp_positions(fluid_sim_t *fluid_sim)
         p_index = fluid_particle_indices[i];
         fluid_particles->x_star[p_index] += fluid_particles->dp_x[p_index];
         fluid_particles->y_star[p_index] += fluid_particles->dp_y[p_index];
+        fluid_particles->z_star[p_index] += fluid_particles->dp_z[p_index];
 
 	// Enforce boundary conditions
         boundary_conditions(p_index, fluid_sim);
@@ -437,6 +445,7 @@ void update_positions(fluid_sim_t *fluid_sim)
         p_index = fluid_particle_indices[i];
         fluid_particles->x[p_index] = fluid_particles->x_star[p_index];
         fluid_particles->y[p_index] = fluid_particles->y_star[p_index];
+        fluid_particles->z[p_index] = fluid_particles->z_star[p_index];
     }    
 }
 
@@ -458,23 +467,27 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
 
         float Ci = fluid_particles->density[p_index]/params->tunable_params.rest_density - 1.0f;
 
-        float sum_C, x_diff, y_diff, r_mag, grad, grad_x, grad_y;
+        float sum_C, x_diff, y_diff, z_diff, r_mag, grad, grad_x, grad_y, grad_z;
 
         sum_C = 0.0f;
         grad_x = 0.0f;
         grad_y = 0.0f;
+        grad_z = 0.0f;
         // Add k = i contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
             q_index = n->fluid_neighbors[j];
             x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
             y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            z_diff = fluid_particles->z_star[p_index] - fluid_particles->z_star[q_index];
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
             grad = del_W(r_mag, params->tunable_params.smoothing_radius);
             grad_x += grad*x_diff;
             grad_y += grad*y_diff;
+            grad_z += grad*z_diff;
            }
-           sum_C += grad_x*grad_x + grad_y*grad_y;
+           sum_C += grad_x*grad_x + grad_y*grad_y + grad_z*grad_z;
 
         // Add k =j contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
@@ -482,11 +495,14 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
             q_index = n->fluid_neighbors[j];
             x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
             y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            z_diff = fluid_particles->z_star[p_index] - fluid_particles->z_star[q_index];
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
             grad = del_W(r_mag, params->tunable_params.smoothing_radius);
             grad_x = grad*x_diff ;
             grad_y = grad*y_diff;
-            sum_C += (grad_x*grad_x + grad_y*grad_y);
+            grad_z = grad*z_diff;
+            sum_C += (grad_x*grad_x + grad_y*grad_y + grad_z*grad_z);
         }
 
         sum_C *= (1.0f/params->tunable_params.rest_density*params->tunable_params.rest_density);  
@@ -581,13 +597,14 @@ void predict_positions(fluid_sim_t *fluid_sim)
         p_index = fluid_particle_indices[i];
 	fluid_particles->x_star[p_index] = fluid_particles->x[p_index] + (fluid_particles->v_x[p_index] * dt);
         fluid_particles->y_star[p_index] = fluid_particles->y[p_index] + (fluid_particles->v_y[p_index] * dt);
+        fluid_particles->z_star[p_index] = fluid_particles->z[p_index] + (fluid_particles->v_z[p_index] * dt);
 
 	// Enforce boundary conditions
         boundary_conditions(p_index, fluid_sim);
     }
 }
 
-void check_velocity(float *v_x, float *v_y)
+void check_velocity(float *v_x, float *v_y, float *v_z)
 {
     const float v_max = 20.0f;
 
@@ -599,6 +616,11 @@ void check_velocity(float *v_x, float *v_y)
         *v_y = v_max;
     else if(*v_y < -v_max)
         *v_y = -v_max;
+    if(*v_z > v_max)
+        *v_z = v_max;
+    else if(*v_z < -v_max)
+        *v_z = -v_max;
+
 }
 
 // Update particle position and check boundary
@@ -612,7 +634,7 @@ void update_velocities(fluid_sim_t *fluid_sim)
     uint p_index;
 
     float dt = params->tunable_params.time_step;
-    float v_x, v_y;
+    float v_x, v_y, v_z;
 
     // Update local and halo particles, update halo so that XSPH visc. is correct
     for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
@@ -620,11 +642,13 @@ void update_velocities(fluid_sim_t *fluid_sim)
 
         v_x = (fluid_particles->x_star[p_index] - fluid_particles->x[p_index])/dt;
         v_y = (fluid_particles->y_star[p_index] - fluid_particles->y[p_index])/dt;
+        v_z = (fluid_particles->z_star[p_index] - fluid_particles->z[p_index])/dt;
 
-        check_velocity(&v_x, &v_y);
+        check_velocity(&v_x, &v_y, &v_z);
 
         fluid_particles->v_x[p_index] = v_x;
         fluid_particles->v_y[p_index] = v_y;
+        fluid_particles->v_z[p_index] = v_z;
     }
 }
 
@@ -637,27 +661,32 @@ void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim)
 
     float center_x = params->tunable_params.mover_center_x;
     float center_y = params->tunable_params.mover_center_y;
+    float center_z = params->tunable_params.mover_center_z;
 
     // Boundary condition for sphere mover
     // Sphere width == height
     float radius = params->tunable_params.mover_width*0.5f;
     float norm_x; 
     float norm_y;
+    float norm_z;
 
-    // Test if inside of circle
+    // Test if inside of sphere
     float d;
     float d2 = (fluid_particles->x_star[p_index] - center_x)*(fluid_particles->x_star[p_index] - center_x)
-             + (fluid_particles->y_star[p_index] - center_y)*(fluid_particles->y_star[p_index] - center_y);
+             + (fluid_particles->y_star[p_index] - center_y)*(fluid_particles->y_star[p_index] - center_y)
+             + (fluid_particles->z_star[p_index] - center_z)*(fluid_particles->z_star[p_index] - center_z);
 
     if(d2 <= radius*radius && d2 > 0.0f) {
         d = sqrt(d2);
         norm_x = (center_x - fluid_particles->x_star[p_index])/d;
         norm_y = (center_y - fluid_particles->y_star[p_index])/d;
+        norm_z = (center_z - fluid_particles->z_star[p_index])/d;
 	    
         // With no collision impulse we can handle penetration here
         float pen_dist = radius - d;
         fluid_particles->x_star[p_index] -= pen_dist * norm_x;
         fluid_particles->y_star[p_index] -= pen_dist * norm_y;
+        fluid_particles->z_star[p_index] -= pen_dist * norm_z;
     }
 
     // Make sure object is not outside boundary
@@ -674,5 +703,11 @@ void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim)
     }
     else if(fluid_particles->y_star[p_index]  > boundary->max_y){
         fluid_particles->y_star[p_index]  = boundary->max_y-0.001f;
+    }
+    if(fluid_particles->z_star[p_index]  <  boundary->min_z) {
+        fluid_particles->z_star[p_index]  = boundary->min_z;
+    }
+    else if(fluid_particles->z_star[p_index]  > boundary->max_z){
+        fluid_particles->z_star[p_index]  = boundary->max_z-0.001f;
     }
 }

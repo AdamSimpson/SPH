@@ -56,7 +56,7 @@ void alloc_sim(fluid_sim_t *fluid_sim)
 
     // Neighbor grid setup
     fluid_sim->neighbor_grid = (neighbor_grid_t*)malloc(sizeof(neighbor_grid_t));
-    fluid_sim->neighbor_grid->max_neighbors = 400;
+    fluid_sim->neighbor_grid->max_neighbors = 50;
     fluid_sim->neighbor_grid->spacing = fluid_sim->params->tunable_params.smoothing_radius;
 
     size_t total_bytes = 0;
@@ -74,6 +74,10 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     if(fluid_sim->fluid_particles->y_star == NULL)
         printf("Could not allocate y_star\n");
     total_bytes+=bytes;
+    fluid_sim->fluid_particles->z_star = (float*) malloc(bytes);
+    if(fluid_sim->fluid_particles->z_star == NULL)
+        printf("Could not allocate z_star\n");
+    total_bytes+=bytes;
     fluid_sim->fluid_particles->x = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->x == NULL)
         printf("Could not allocate x\n");
@@ -81,6 +85,10 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     fluid_sim->fluid_particles->y = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->y == NULL)
         printf("Could not allocate y\n");
+    total_bytes+=bytes;
+    fluid_sim->fluid_particles->z = (float*) malloc(bytes);
+    if(fluid_sim->fluid_particles->z == NULL)
+        printf("Could not allocate z\n");
     total_bytes+=bytes;
     fluid_sim->fluid_particles->v_x = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->v_x == NULL)
@@ -90,6 +98,10 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     if(fluid_sim->fluid_particles->v_y == NULL)
         printf("Could not allocate v_y\n");
     total_bytes+=bytes;
+    fluid_sim->fluid_particles->v_z = (float*) malloc(bytes);
+    if(fluid_sim->fluid_particles->v_z == NULL)
+        printf("Could not allocate v_z\n");
+    total_bytes+=bytes;
     fluid_sim->fluid_particles->dp_x = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->dp_x == NULL)
         printf("Could not allocate dp_x\n");
@@ -97,6 +109,10 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     fluid_sim->fluid_particles->dp_y = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->dp_y == NULL)
         printf("Could not allocate dp_y\n");
+    total_bytes+=bytes;
+    fluid_sim->fluid_particles->dp_z = (float*) malloc(bytes);
+    if(fluid_sim->fluid_particles->dp_z == NULL)
+        printf("Could not allocate dp_z\n");
     total_bytes+=bytes;
     fluid_sim->fluid_particles->density = (float*) malloc(bytes);
     if(fluid_sim->fluid_particles->density == NULL)
@@ -111,8 +127,8 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     if(fluid_sim->fluid_particles->id == NULL) 
         printf("Could not allocate id\n");
 
-    // Allocate (x,y) coordinate array, transfer pixel coords
-    bytes = 2 * fluid_sim->params->max_fluid_particles_local * sizeof(short);
+    // Allocate (x,y,z) coordinate array, transfer pixel coords
+    bytes = 3 * fluid_sim->params->max_fluid_particles_local * sizeof(short);
     total_bytes+=bytes;
     fluid_sim->fluid_particle_coords = malloc(bytes);
     if(fluid_sim->fluid_particle_coords == NULL)
@@ -140,8 +156,10 @@ void alloc_sim(fluid_sim_t *fluid_sim)
                                        / fluid_sim->neighbor_grid->spacing);
     fluid_sim->neighbor_grid->size_y = ceil((fluid_sim->boundary_global->max_y - fluid_sim->boundary_global->min_y) 
                                        / fluid_sim->neighbor_grid->spacing);
-    unsigned int length_hash = fluid_sim->neighbor_grid->size_x * fluid_sim->neighbor_grid->size_y;
-    printf("grid x: %d grid y %d\n", fluid_sim->neighbor_grid->size_x, fluid_sim->neighbor_grid->size_y);
+    fluid_sim->neighbor_grid->size_z = ceil((fluid_sim->boundary_global->max_z - fluid_sim->boundary_global->min_z)
+                                       / fluid_sim->neighbor_grid->spacing);
+    unsigned int length_hash = fluid_sim->neighbor_grid->size_x * fluid_sim->neighbor_grid->size_y *  fluid_sim->neighbor_grid->size_z;
+    printf("grid x: %d grid y: %d grid z: %d\n", fluid_sim->neighbor_grid->size_x, fluid_sim->neighbor_grid->size_y,  fluid_sim->neighbor_grid->size_z);
 
     // Start index for hash values
     fluid_sim->neighbor_grid->start_indices = calloc(length_hash, sizeof(uint));
@@ -176,12 +194,16 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
 {
     free(fluid_sim->fluid_particles->x_star);
     free(fluid_sim->fluid_particles->y_star);
+    free(fluid_sim->fluid_particles->z_star);
     free(fluid_sim->fluid_particles->x);
     free(fluid_sim->fluid_particles->y);
+    free(fluid_sim->fluid_particles->z);
     free(fluid_sim->fluid_particles->v_x);
     free(fluid_sim->fluid_particles->v_y);
+    free(fluid_sim->fluid_particles->v_z);
     free(fluid_sim->fluid_particles->dp_x);
     free(fluid_sim->fluid_particles->dp_y);
+    free(fluid_sim->fluid_particles->dp_z);
     free(fluid_sim->fluid_particles->density);
     free(fluid_sim->fluid_particles->lambda);
     free(fluid_sim->fluid_particles->id);
@@ -212,6 +234,7 @@ void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_partic
     for(i=0; i<fluid_sim->params->number_fluid_particles_local; i++) {
         fluid_sim->fluid_particles->v_x[i] = 0.0f;
         fluid_sim->fluid_particles->v_y[i] = 0.0f;
+        fluid_sim->fluid_particles->v_z[i] = 0.0f;
     }
 }
 
@@ -266,6 +289,8 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->boundary_global->min_x = 0.0f;
     fluid_sim->boundary_global->max_x = 100.0f;
     fluid_sim->boundary_global->min_y = 0.0f;
+    fluid_sim->boundary_global->min_z = 0.0f;
+    fluid_sim->boundary_global->max_z = 100.0f;
 
     // Receive aspect ratio to scale world y max
     short pixel_dims[2];
@@ -279,6 +304,8 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->water_volume_global->max_x = fluid_sim->boundary_global->max_x-10.0f;
     fluid_sim->water_volume_global->min_y = 10.0f;
     fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-10.0f;
+    fluid_sim->water_volume_global->min_z = 10.0f;
+    fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-10.0f;
 
     // Zero out number of halo particles
     params->number_halo_particles = 0;
@@ -288,12 +315,11 @@ void init_params(fluid_sim_t *fluid_sim)
     // zero out number of edge particles
     edges->number_edge_particles_left = 0;
     edges->number_edge_particles_right = 0;
-
 }
 
 void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
 {
-    int num_y;
+    int num_y,num_z;
 
     // Unpack fluid_sim
     uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
@@ -307,25 +333,31 @@ void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_pa
 
     // Number of particles in y,z, number in x is passed in
     num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
-    
+    num_z = floor((fluid->max_z - fluid->min_z ) / spacing);    
+
     // Place particles inside bounding volume
-    float x,y;
+    float x,y,z;
     int nx = 0;
     int ny = 0;
+    int nz = 0;
     int i = 0;
     uint p;
 
-    for(ny=0; ny<num_y; ny++) {
-        y = fluid->min_y + ny*spacing;
-        for(nx=0; nx<number_particles_x; nx++) {
-            x = fluid->min_x + (start_x + nx)*spacing;
-            fluid_particles->x[i] = x;
-            fluid_particles->y[i] = y;
-            
-            // Set index array
-            fluid_particle_indices[i] = i;
-	    fluid_particles->id[i] = i;
-            i++;
+    for(nz=0; nz<num_z; nz++) {
+            z = fluid->min_z + nz*spacing;
+        for(ny=0; ny<num_y; ny++) {
+            y = fluid->min_y + ny*spacing;
+            for(nx=0; nx<number_particles_x; nx++) {
+                x = fluid->min_x + (start_x + nx)*spacing;
+                fluid_particles->x[i] = x;
+                fluid_particles->y[i] = y;
+                fluid_particles->z[i] = z;            
+
+                // Set index array
+                fluid_particle_indices[i] = i;
+	        fluid_particles->id[i] = i;
+                i++;
+            }
         }
     }
 
@@ -341,10 +373,11 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
 {
     // Fluid area in initial configuration
     float area = (fluid_sim->water_volume_global->max_x - fluid_sim->water_volume_global->min_x) 
-                 * (fluid_sim->water_volume_global->max_y - fluid_sim->water_volume_global->min_y);
+                 * (fluid_sim->water_volume_global->max_y - fluid_sim->water_volume_global->min_y)
+                 * (fluid_sim->water_volume_global->max_z - fluid_sim->water_volume_global->min_z);
 
     // Initial spacing between particles
-    float spacing_particle = pow(area/fluid_sim->params->number_fluid_particles_global,1.0/2.0);
+    float spacing_particle = pow(area/fluid_sim->params->number_fluid_particles_global,1.0/3.0);
 
     // Divide problem set amongst nodes
     partition_geometry(fluid_sim, start_x, number_particles_x, spacing_particle);
@@ -368,10 +401,11 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
     int rank;
     MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
     if(rank == 0) {
-        float world_dims[2];
+        float world_dims[3];
         world_dims[0] = fluid_sim->boundary_global->max_x;
         world_dims[1] = fluid_sim->boundary_global->max_y;
-        MPI_Send(world_dims, 2, MPI_FLOAT, 0, 8, MPI_COMM_WORLD);
+        world_dims[2] = fluid_sim->boundary_global->max_z;
+        MPI_Send(world_dims, 3, MPI_FLOAT, 0, 8, MPI_COMM_WORLD);
         MPI_Send(&fluid_sim->params->number_fluid_particles_global, 1, MPI_INT, 0, 9, MPI_COMM_WORLD);
     }
 }
@@ -380,7 +414,7 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
 // These numbers are set judiciously for TitanTitan as the number of particles is always small
 void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float spacing)
 {
-    int num_x, num_y, max_y;
+    int num_x, num_y, num_z;
 
     // Unpack fluid_sim
     AABB_t* boundary_global = fluid_sim->boundary_global;
@@ -392,7 +426,7 @@ void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float 
     // Set fluid local
     num_x = number_particles_x;
     num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
-    max_y = floor((boundary_global->max_y - boundary_global->min_y ) / spacing);
+    num_z = floor((fluid_global->max_z - fluid_global->min_z ) / spacing);
 
     // Maximum edge(halo) particles
     edges->max_edge_particles = params->number_fluid_particles_global;
@@ -403,7 +437,7 @@ void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float 
     out_of_bounds->max_oob_particles = params->number_fluid_particles_global;
 
     // Initial fluid particles
-    int num_initial = num_x * num_y;
+    int num_initial = num_x * num_y * num_z;
     printf("initial number of particles %d\n", num_initial);
 
     out_of_bounds->number_vacancies = 0;
@@ -466,10 +500,12 @@ void partition_geometry(fluid_sim_t *fluid_sim, float *x_start, int *num_particl
 
     // Update requested number of particles with actual value used
     int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
+    int num_z = floor((fluid_global->max_z - fluid_global->min_z ) / spacing);
     int total_x = 0;
     for(i=0; i<nprocs; i++)
         total_x += particle_length_x[i];
-    params->number_fluid_particles_global = total_x * num_y;
+
+    params->number_fluid_particles_global = total_x * num_y * num_z;
 
     free(particle_length_x);
 }

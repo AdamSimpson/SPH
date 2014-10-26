@@ -55,10 +55,10 @@ void create_MPI_types()
     int i; 
 
     // Create param type
-    for(i=0; i<15; i++) types[i] = MPI_FLOAT;
-    types[15] = MPI_CHAR;
+    for(i=0; i<16; i++) types[i] = MPI_FLOAT;
     types[16] = MPI_CHAR;
-    for (i=0; i<17; i++) blocklens[i] = 1;
+    types[17] = MPI_CHAR;
+    for (i=0; i<18; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( tunable_parameters_t, rest_density );
     disps[1] = offsetof( tunable_parameters_t, smoothing_radius );
@@ -73,13 +73,14 @@ void create_MPI_types()
     disps[10] = offsetof( tunable_parameters_t, node_end_x );
     disps[11] = offsetof( tunable_parameters_t, mover_center_x );
     disps[12] = offsetof( tunable_parameters_t, mover_center_y );
-    disps[13] = offsetof( tunable_parameters_t, mover_width );
-    disps[14] = offsetof( tunable_parameters_t, mover_height );
-    disps[15] = offsetof( tunable_parameters_t, kill_sim );
-    disps[16] = offsetof( tunable_parameters_t, active );
+    disps[13] = offsetof( tunable_parameters_t, mover_center_z );
+    disps[14] = offsetof( tunable_parameters_t, mover_width );
+    disps[15] = offsetof( tunable_parameters_t, mover_height );
+    disps[16] = offsetof( tunable_parameters_t, kill_sim );
+    disps[17] = offsetof( tunable_parameters_t, active );
 
     // Commit type
-    MPI_Type_create_struct( 17, blocklens, disps, types, &TunableParamtype );
+    MPI_Type_create_struct( 18, blocklens, disps, types, &TunableParamtype );
     MPI_Type_commit( &TunableParamtype );
 }
 
@@ -179,11 +180,11 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
     int nprocs;
     MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
 
-    int num_moving_left = 2*edges->number_edge_particles_left;
-    int num_moving_right = 2*edges->number_edge_particles_right;
+    int num_moving_left = 3*edges->number_edge_particles_left;
+    int num_moving_right = 3*edges->number_edge_particles_right;
 
-    int num_from_left = 2*params->number_halo_particles_left;
-    int num_from_right = 2*params->number_halo_particles_right;
+    int num_from_left = 3*params->number_halo_particles_left;
+    int num_from_right = 3*params->number_halo_particles_right;
 
     // Allocate send/recv buffers
     // Could combine left/right into single malloc...
@@ -194,15 +195,17 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
     float *recv_positions_right = malloc(sizeof(float)*num_from_right);
 
     // Pack local edge positions
-    for(i=0; i<num_moving_left; i+=2) {
-        p_index = edges->edge_indices_left[i/2];
+    for(i=0; i<num_moving_left; i+=3) {
+        p_index = edges->edge_indices_left[i/3];
         send_positions_left[i] = fluid_particles->x_star[p_index];
         send_positions_left[i+1] = fluid_particles->y_star[p_index];
+        send_positions_left[i+2] = fluid_particles->z_star[p_index];
     }
-    for(i=0; i<num_moving_right; i+=2) {
-        p_index = edges->edge_indices_right[i/2];
+    for(i=0; i<num_moving_right; i+=3) {
+        p_index = edges->edge_indices_right[i/3];
         send_positions_right[i] = fluid_particles->x_star[p_index];
         send_positions_right[i+1] = fluid_particles->y_star[p_index];
+        send_positions_right[i+2] = fluid_particles->z_star[p_index];
     }
 
     // Setup nodes to left and right of self
@@ -223,15 +226,17 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
                  MPI_COMM_COMPUTE, MPI_STATUS_IGNORE);
 
     // Unpack halo particle positions
-    for(i=0; i<num_from_left; i+=2) {
-        p_index = fluid_particle_indices[params->number_fluid_particles_local + i/2];;
+    for(i=0; i<num_from_left; i+=3) {
+        p_index = fluid_particle_indices[params->number_fluid_particles_local + i/3];;
         fluid_particles->x_star[p_index] = recv_positions_left[i];
         fluid_particles->y_star[p_index] = recv_positions_left[i+1];
+        fluid_particles->z_star[p_index] = recv_positions_left[i+2];
     }
-    for(i=0; i<num_from_right; i+=2) {
-        p_index = fluid_particle_indices[params->number_fluid_particles_local + num_from_left/2 + i/2];
+    for(i=0; i<num_from_right; i+=3) {
+        p_index = fluid_particle_indices[params->number_fluid_particles_local + num_from_left/3 + i/3];
         fluid_particles->x_star[p_index] = recv_positions_right[i];
         fluid_particles->y_star[p_index] = recv_positions_right[i+1];
+        fluid_particles->z_star[p_index] = recv_positions_right[i+2];
     }
 
     // Cleanup memory
@@ -247,33 +252,41 @@ void pack_halo_components(float *left_send, float *right_send, fluid_sim_t *flui
     fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
     edge_t *edges = fluid_sim->edges;
 
-    // Append halos, fluid particle struct has 10 float components
+    // Append halos, fluid particle struct has 14 float components
     int i, p_index;
     for (i=0; i<edges->number_edge_particles_left; i++) {
         p_index = edges->edge_indices_left[i];
-        left_send[i*10]     = fluid_particles->x_star[p_index];
-        left_send[i*10 + 1] = fluid_particles->y_star[p_index];
-        left_send[i*10 + 2] = fluid_particles->x[p_index];
-        left_send[i*10 + 3] = fluid_particles->y[p_index];
-        left_send[i*10 + 4] = fluid_particles->v_x[p_index];
-        left_send[i*10 + 5] = fluid_particles->v_y[p_index];
-        left_send[i*10 + 6] = fluid_particles->dp_x[p_index];
-        left_send[i*10 + 7] = fluid_particles->dp_y[p_index];
-        left_send[i*10 + 8] = fluid_particles->density[p_index];
-        left_send[i*10 + 9] = fluid_particles->lambda[p_index];
+        left_send[i*14]     = fluid_particles->x_star[p_index];
+        left_send[i*14 + 1] = fluid_particles->y_star[p_index];
+        left_send[i*14 + 2] = fluid_particles->z_star[p_index];
+        left_send[i*14 + 3] = fluid_particles->x[p_index];
+        left_send[i*14 + 4] = fluid_particles->y[p_index];
+        left_send[i*14 + 5] = fluid_particles->z[p_index];
+        left_send[i*14 + 6] = fluid_particles->v_x[p_index];
+        left_send[i*14 + 7] = fluid_particles->v_y[p_index];
+        left_send[i*14 + 8] = fluid_particles->v_z[p_index];
+        left_send[i*14 + 9] = fluid_particles->dp_x[p_index];
+        left_send[i*14 + 10] = fluid_particles->dp_y[p_index];
+        left_send[i*14 + 11] = fluid_particles->dp_z[p_index];
+        left_send[i*14 + 12] = fluid_particles->density[p_index];
+        left_send[i*14 + 13] = fluid_particles->lambda[p_index];
     }
     for (i=0; i<edges->number_edge_particles_right; i++) {
         p_index = edges->edge_indices_right[i];
-        right_send[i*10]     = fluid_particles->x_star[p_index];
-        right_send[i*10 + 1] = fluid_particles->y_star[p_index];
-        right_send[i*10 + 2] = fluid_particles->x[p_index];
-        right_send[i*10 + 3] = fluid_particles->y[p_index];
-        right_send[i*10 + 4] = fluid_particles->v_x[p_index];
-        right_send[i*10 + 5] = fluid_particles->v_y[p_index];
-        right_send[i*10 + 6] = fluid_particles->dp_x[p_index];
-        right_send[i*10 + 7] = fluid_particles->dp_y[p_index];
-        right_send[i*10 + 8] = fluid_particles->density[p_index];
-        right_send[i*10 + 9] = fluid_particles->lambda[p_index];
+        right_send[i*14]     = fluid_particles->x_star[p_index];
+        right_send[i*14 + 1] = fluid_particles->y_star[p_index];
+        right_send[i*14 + 2] = fluid_particles->z_star[p_index];
+        right_send[i*14 + 3] = fluid_particles->x[p_index];
+        right_send[i*14 + 4] = fluid_particles->y[p_index];
+        right_send[i*14 + 5] = fluid_particles->z[p_index];
+        right_send[i*14 + 6] = fluid_particles->v_x[p_index];
+        right_send[i*14 + 7] = fluid_particles->v_y[p_index];
+        right_send[i*14 + 8] = fluid_particles->v_z[p_index];
+        right_send[i*14 + 9] = fluid_particles->dp_x[p_index];
+        right_send[i*14 + 10] = fluid_particles->dp_y[p_index];
+        right_send[i*14 + 11] = fluid_particles->dp_z[p_index];
+        right_send[i*14 + 12] = fluid_particles->density[p_index];
+        right_send[i*14 + 13] = fluid_particles->lambda[p_index];
     }
 }
 
@@ -292,16 +305,20 @@ void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, f
     for(i=0; i<params->number_halo_particles_left; i++)
     {
         p_index = params->max_fluid_particle_index + 1 + i; // "Global" index
-        fluid_particles->x_star[p_index]  = packed_recv_left[i*10];
-        fluid_particles->y_star[p_index]  = packed_recv_left[i*10 + 1];
-        fluid_particles->x[p_index]       = packed_recv_left[i*10 + 2];
-        fluid_particles->y[p_index]       = packed_recv_left[i*10 + 3];
-        fluid_particles->v_x[p_index]     = packed_recv_left[i*10 + 4];
-        fluid_particles->v_y[p_index]     = packed_recv_left[i*10 + 5];
-        fluid_particles->dp_x[p_index]    = packed_recv_left[i*10 + 6];
-        fluid_particles->dp_y[p_index]    = packed_recv_left[i*10 + 7];
-        fluid_particles->density[p_index] = packed_recv_left[i*10 + 8];
-        fluid_particles->lambda[p_index]  = packed_recv_left[i*10 + 9];
+        packed_recv_left[i*14]     = fluid_particles->x_star[p_index];
+        packed_recv_left[i*14 + 1] = fluid_particles->y_star[p_index];
+        packed_recv_left[i*14 + 2] = fluid_particles->z_star[p_index];
+        packed_recv_left[i*14 + 3] = fluid_particles->x[p_index];
+        packed_recv_left[i*14 + 4] = fluid_particles->y[p_index];
+        packed_recv_left[i*14 + 5] = fluid_particles->z[p_index];
+        packed_recv_left[i*14 + 6] = fluid_particles->v_x[p_index];
+        packed_recv_left[i*14 + 7] = fluid_particles->v_y[p_index];
+        packed_recv_left[i*14 + 8] = fluid_particles->v_z[p_index];
+        packed_recv_left[i*14 + 9] = fluid_particles->dp_x[p_index];
+        packed_recv_left[i*14 + 10] = fluid_particles->dp_y[p_index];
+        packed_recv_left[i*14 + 11] = fluid_particles->dp_z[p_index];
+        packed_recv_left[i*14 + 12] = fluid_particles->density[p_index];
+        packed_recv_left[i*14 + 13] = fluid_particles->lambda[p_index];
         fluid_particles->id[p_index]      = params->number_fluid_particles_local + i;
         fluid_particle_indices[params->number_fluid_particles_local+i] = p_index;
     }
@@ -310,16 +327,20 @@ void unpack_halo_components(float *packed_recv_left, float *packed_recv_right, f
     for(i=0; i<params->number_halo_particles_right; i++)
     {
         p_index = params->max_fluid_particle_index + 1 + params->number_halo_particles_left + i; // "Global" index
-        fluid_particles->x_star[p_index]  = packed_recv_right[i*10];
-        fluid_particles->y_star[p_index]  = packed_recv_right[i*10 + 1];
-        fluid_particles->x[p_index]       = packed_recv_right[i*10 + 2];
-        fluid_particles->y[p_index]       = packed_recv_right[i*10 + 3];
-        fluid_particles->v_x[p_index]     = packed_recv_right[i*10 + 4];
-        fluid_particles->v_y[p_index]     = packed_recv_right[i*10 + 5];
-        fluid_particles->dp_x[p_index]    = packed_recv_right[i*10 + 6];
-        fluid_particles->dp_y[p_index]    = packed_recv_right[i*10 + 7];
-        fluid_particles->density[p_index] = packed_recv_right[i*10 + 8];
-        fluid_particles->lambda[p_index]  = packed_recv_right[i*10 + 9];
+        packed_recv_right[i*14]     = fluid_particles->x_star[p_index];
+        packed_recv_right[i*14 + 1] = fluid_particles->y_star[p_index];
+        packed_recv_right[i*14 + 2] = fluid_particles->z_star[p_index];
+        packed_recv_right[i*14 + 3] = fluid_particles->x[p_index];
+        packed_recv_right[i*14 + 4] = fluid_particles->y[p_index];
+        packed_recv_right[i*14 + 5] = fluid_particles->z[p_index];
+        packed_recv_right[i*14 + 6] = fluid_particles->v_x[p_index];
+        packed_recv_right[i*14 + 7] = fluid_particles->v_y[p_index];
+        packed_recv_right[i*14 + 8] = fluid_particles->v_z[p_index];
+        packed_recv_right[i*14 + 9] = fluid_particles->dp_x[p_index];
+        packed_recv_right[i*14 + 10] = fluid_particles->dp_y[p_index];
+        packed_recv_right[i*14 + 11] = fluid_particles->dp_z[p_index];
+        packed_recv_right[i*14 + 12] = fluid_particles->density[p_index];
+        packed_recv_right[i*14 + 13] = fluid_particles->lambda[p_index];
         fluid_particles->id[p_index]      = params->number_fluid_particles_local + params->number_halo_particles_left + i;
         fluid_particle_indices[params->number_fluid_particles_local + params->number_halo_particles_left + i] = p_index;
    }
@@ -377,7 +398,7 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     debug_print("rank %d, halo: will recv %d from left, %d from right\n", rank, num_from_left, num_from_right);
 
     // Allocate memory for packed arrays
-    int num_components = 10;
+    int num_components = 14;
     float *packed_send_left = (float*)malloc(num_components * num_moving_left * sizeof(float));
     float *packed_recv_left = (float*)malloc(num_components * num_from_left * sizeof(float));
     float *packed_send_right = (float*)malloc(num_components * num_moving_right * sizeof(float));
@@ -427,21 +448,24 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
     oob_t *oob = fluid_sim->out_of_bounds;
     param_t *params = fluid_sim->params;
 
-    // Append halos, fluid particle struct has 10 float components
+    // Append halos, fluid particle struct has 14 float components
     int i, p_index;
     for (i=0; i<oob->number_oob_particles_left; i++) {
         p_index = fluid_particle_indices[oob->oob_index_indices_left[i]];
-        left_send[i*10]     = fluid_particles->x_star[p_index];
-        left_send[i*10 + 1] = fluid_particles->y_star[p_index];
-        left_send[i*10 + 2] = fluid_particles->x[p_index];
-        left_send[i*10 + 3] = fluid_particles->y[p_index];
-        left_send[i*10 + 4] = fluid_particles->v_x[p_index];
-        left_send[i*10 + 5] = fluid_particles->v_y[p_index];
-        left_send[i*10 + 6] = fluid_particles->dp_x[p_index];
-        left_send[i*10 + 7] = fluid_particles->dp_y[p_index];
-        left_send[i*10 + 8] = fluid_particles->density[p_index];
-        left_send[i*10 + 9] = fluid_particles->lambda[p_index];
-
+        left_send[i*14]     = fluid_particles->x_star[p_index];
+        left_send[i*14 + 1] = fluid_particles->y_star[p_index];
+        left_send[i*14 + 2] = fluid_particles->z_star[p_index];
+        left_send[i*14 + 3] = fluid_particles->x[p_index];
+        left_send[i*14 + 4] = fluid_particles->y[p_index];
+        left_send[i*14 + 5] = fluid_particles->z[p_index];
+        left_send[i*14 + 6] = fluid_particles->v_x[p_index];
+        left_send[i*14 + 7] = fluid_particles->v_y[p_index];
+        left_send[i*14 + 8] = fluid_particles->v_z[p_index];
+        left_send[i*14 + 9] = fluid_particles->dp_x[p_index];
+        left_send[i*14 + 10] = fluid_particles->dp_y[p_index];
+        left_send[i*14 + 11] = fluid_particles->dp_z[p_index];
+        left_send[i*14 + 12] = fluid_particles->density[p_index];
+        left_send[i*14 + 13] = fluid_particles->lambda[p_index];
         // Invalidate index entry as particle is now gone
         fluid_particle_indices[oob->oob_index_indices_left[i]] = ((uint)-1);
 
@@ -452,17 +476,20 @@ void pack_oob_components(float *left_send, float *right_send, fluid_sim_t *fluid
     }
     for (i=0; i<oob->number_oob_particles_right; i++) {
         p_index = fluid_particle_indices[oob->oob_index_indices_right[i]];
-        right_send[i*10]     = fluid_particles->x_star[p_index];
-        right_send[i*10 + 1] = fluid_particles->y_star[p_index];
-        right_send[i*10 + 2] = fluid_particles->x[p_index];
-        right_send[i*10 + 3] = fluid_particles->y[p_index];
-        right_send[i*10 + 4] = fluid_particles->v_x[p_index];
-        right_send[i*10 + 5] = fluid_particles->v_y[p_index];
-        right_send[i*10 + 6] = fluid_particles->dp_x[p_index];
-        right_send[i*10 + 7] = fluid_particles->dp_y[p_index];
-        right_send[i*10 + 8] = fluid_particles->density[p_index];
-        right_send[i*10 + 9] = fluid_particles->lambda[p_index];
-
+        right_send[i*14]     = fluid_particles->x_star[p_index];
+        right_send[i*14 + 1] = fluid_particles->y_star[p_index];
+        right_send[i*14 + 2] = fluid_particles->z_star[p_index];
+        right_send[i*14 + 3] = fluid_particles->x[p_index];
+        right_send[i*14 + 4] = fluid_particles->y[p_index];
+        right_send[i*14 + 5] = fluid_particles->z[p_index];
+        right_send[i*14 + 6] = fluid_particles->v_x[p_index];
+        right_send[i*14 + 7] = fluid_particles->v_y[p_index];
+        right_send[i*14 + 8] = fluid_particles->v_z[p_index];
+        right_send[i*14 + 9] = fluid_particles->dp_x[p_index];
+        right_send[i*14 + 10] = fluid_particles->dp_y[p_index];
+        right_send[i*14 + 11] = fluid_particles->dp_z[p_index];
+        right_send[i*14 + 12] = fluid_particles->density[p_index];
+        right_send[i*14 + 13] = fluid_particles->lambda[p_index];
         // Invalidate index entry as particle is now gone
         fluid_particle_indices[oob->oob_index_indices_right[i]] = ((uint)-1);
 
@@ -522,16 +549,20 @@ void unpack_oob_components(float *packed_recv, int num_recv, fluid_sim_t *fluid_
         // Incriment number of local fluid particles
         params->number_fluid_particles_local++;
 
-        fluid_particles->x_star[p_index]  = packed_recv[i*10];
-        fluid_particles->y_star[p_index]  = packed_recv[i*10 + 1];
-        fluid_particles->x[p_index]       = packed_recv[i*10 + 2];
-        fluid_particles->y[p_index]       = packed_recv[i*10 + 3];
-        fluid_particles->v_x[p_index]     = packed_recv[i*10 + 4];
-        fluid_particles->v_y[p_index]     = packed_recv[i*10 + 5];
-        fluid_particles->dp_x[p_index]    = packed_recv[i*10 + 6];
-        fluid_particles->dp_y[p_index]    = packed_recv[i*10 + 7];
-        fluid_particles->density[p_index] = packed_recv[i*10 + 8];
-        fluid_particles->lambda[p_index]  = packed_recv[i*10 + 9];
+        fluid_particles->x_star[p_index]  = packed_recv[i*14];
+        fluid_particles->y_star[p_index]  = packed_recv[i*14 + 1];
+        fluid_particles->z_star[p_index]  = packed_recv[i*14 + 2];
+        fluid_particles->x[p_index]       = packed_recv[i*14 + 3];
+        fluid_particles->y[p_index]       = packed_recv[i*14 + 4];
+        fluid_particles->z[p_index]       = packed_recv[i*14 + 5];
+        fluid_particles->v_x[p_index]     = packed_recv[i*14 + 6];
+        fluid_particles->v_y[p_index]     = packed_recv[i*14 + 7];
+        fluid_particles->v_z[p_index]     = packed_recv[i*14 + 8];
+        fluid_particles->dp_x[p_index]    = packed_recv[i*14 + 9];
+        fluid_particles->dp_y[p_index]    = packed_recv[i*14 + 10];
+        fluid_particles->dp_z[p_index]    = packed_recv[i*14 + 11];
+        fluid_particles->density[p_index] = packed_recv[i*14 + 12];
+        fluid_particles->lambda[p_index]  = packed_recv[i*14 + 13];
     }
 }
 
@@ -569,7 +600,7 @@ void transfer_OOB_particles(fluid_sim_t *fluid_sim)
     MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_COMPUTE,MPI_STATUS_IGNORE);
 
     // Allocate memory for packed arrays
-    int num_components = 10;
+    int num_components = 14;
     float *packed_send_left = (float*)malloc(num_components * num_moving_left * sizeof(float));
     float *packed_send_right = (float*)malloc(num_components * num_moving_right * sizeof(float));
     float *packed_recv = (float*)malloc(num_components * (num_from_right+num_from_left) * sizeof(float));

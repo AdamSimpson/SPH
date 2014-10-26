@@ -42,6 +42,7 @@ typedef enum {
 typedef struct render_t {
     float sim_width;
     float sim_height;
+    float sim_depth;
     float screen_width;
     float screen_height;
     parameters selected_parameter;

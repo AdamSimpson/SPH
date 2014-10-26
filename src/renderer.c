@@ -117,10 +117,11 @@ void start_renderer()
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
  
     // Recv simulation world dimensions from global rank 1
-    float sim_dims[2];
-    MPI_Recv(sim_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    float sim_dims[3];
+    MPI_Recv(sim_dims, 3, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     render_state.sim_width = sim_dims[0];
-    render_state.sim_height = sim_dims[1];
+    render_state.sim_depth = sim_dims[1];
+    render_state.sim_height = sim_dims[2];
     // Receive number of global particles
     int max_particles;
     MPI_Recv(&max_particles, 1, MPI_INT, 1, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -143,7 +144,7 @@ void start_renderer()
         render_state.master_params[i] = node_params[i];
 
     // Allocate particle receive array
-    int num_coords = 2;
+    int num_coords = 3;
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
@@ -151,7 +152,7 @@ void start_renderer()
     float *points = malloc(point_size*max_particles);
 
     // Allocate mover point array(position + color)
-    float mover_center[2];
+    float mover_center[3];
     float mover_color[3];
 
     // Allocate space for node edges
@@ -243,7 +244,7 @@ void start_renderer()
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
-            // Retrieve all particle coordinates (x,y)
+            // Retrieve all particle coordinates (x,y,z)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
@@ -276,6 +277,7 @@ void start_renderer()
         sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
         mover_center[0] = gl_x;
         mover_center[1] = gl_y;
+        mover_center[2] = 0.0;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
@@ -307,28 +309,28 @@ void start_renderer()
         // Render liquid or particles
         if(render_state.liquid) {
             // Create points array (x,y)
-            for(j=0; j<coords_recvd; j+=2) {
+            for(j=0; j<coords_recvd; j+=3) {
                 points[j] = particle_coords[j]/(float)SHRT_MAX;
                 points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
             }
-            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/2, &liquid_GLstate);
+            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/3, &liquid_GLstate);
         }
         else {
             // Create points array (x,y,r,g,b)
             i = 0;
             current_rank = particle_coordinate_ranks[i];
             // j == coordinate pair
-            for(j=0, num_parts=1; j<coords_recvd/2; j++, num_parts++) {
+            for(j=0, num_parts=1; j<coords_recvd/3; j++, num_parts++) {
                  // Check if we are processing a new rank's particles
-                 if ( num_parts > particle_coordinate_counts[current_rank]/2){
+                 if ( num_parts > particle_coordinate_counts[current_rank]/3){
                     current_rank =  particle_coordinate_ranks[++i];
                     num_parts = 1;
                     // Find next rank with particles if current_rank has 0 particles
                     while(!particle_coordinate_counts[current_rank])
                         current_rank = particle_coordinate_ranks[++i];
                 }
-                points[j*5]   = particle_coords[j*2]/(float)SHRT_MAX;
-                points[j*5+1] = particle_coords[j*2+1]/(float)SHRT_MAX;
+                points[j*5]   = particle_coords[j*3]/(float)SHRT_MAX;
+                points[j*5+1] = particle_coords[j*3+1]/(float)SHRT_MAX;
                 points[j*5+2] = colors_by_rank[3*current_rank];
                 points[j*5+3] = colors_by_rank[3*current_rank+1];
                 points[j*5+4] = colors_by_rank[3*current_rank+2];
