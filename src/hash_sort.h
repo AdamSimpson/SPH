@@ -50,7 +50,7 @@ struct NEIGHBOR_GRID_T {
     neighbor_t *neighbors; // Particle neighbor buckets
 };
 
-uint hash_val(float x, float y, neighbor_grid_t *grid, param_t *params);
+uint hash_val(float x, float y, float z, neighbor_grid_t *grid, param_t *params);
 void hash_particles(fluid_sim_t *fluid_sim);
 void sort_hash(fluid_sim_t *fluid_sim);
 void find_cell_bounds(fluid_sim_t *fluid_sim);

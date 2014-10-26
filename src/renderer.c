@@ -148,7 +148,7 @@ void start_renderer()
     short *particle_coords = malloc(num_coords * max_particles*sizeof(short));
 
     // Allocate points array(position + color)
-    int point_size = 5 * sizeof(float);
+    int point_size = 6 * sizeof(float);
     float *points = malloc(point_size*max_particles);
 
     // Allocate mover point array(position + color)
@@ -330,13 +330,13 @@ void start_renderer()
                         current_rank = particle_coordinate_ranks[++i];
                 }
                 points[j*5]   = particle_coords[j*3]/(float)SHRT_MAX;
-                points[j*5+1] = particle_coords[j*3+1]/(float)SHRT_MAX;
+                points[j*5+1] = particle_coords[j*3+2]/(float)SHRT_MAX;
                 points[j*5+2] = colors_by_rank[3*current_rank];
                 points[j*5+3] = colors_by_rank[3*current_rank+1];
                 points[j*5+4] = colors_by_rank[3*current_rank+2];
             }
 
-            render_particles(points, particle_diameter_pixels, coords_recvd/2, &particle_GLstate);
+            render_particles(points, particle_diameter_pixels, coords_recvd/3, &particle_GLstate);
         }
 
         // Render over particles to hide penetration
