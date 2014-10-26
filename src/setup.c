@@ -282,9 +282,9 @@ void init_params(fluid_sim_t *fluid_sim)
     params->tunable_params.k_spring = 10.0f;
     params->tunable_params.sigma = 5.0f;
     params->tunable_params.beta = 0.5f;
-    params->tunable_params.rest_density = 10.0;
-    params->tunable_params.mover_width = 10.0f;
-    params->tunable_params.mover_height = 10.0f;
+    params->tunable_params.rest_density = 0.1;
+    params->tunable_params.mover_width = 20.0f;
+    params->tunable_params.mover_height = 20.0f;
     params->steps_per_frame = 4;  // Number of steps to compute before updating render node
     //params->tunable_params.time_step /= (float)steps_per_frame;
 
@@ -297,7 +297,7 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->boundary_global->max_x = 100.0f;
     fluid_sim->boundary_global->min_z = 0.0f;
     fluid_sim->boundary_global->min_y = 0.0f;
-    fluid_sim->boundary_global->max_y = 100.0f;
+    fluid_sim->boundary_global->max_y = 20.0f;
 
     // Receive aspect ratio to scale world y max
     short pixel_dims[2];
@@ -309,7 +309,7 @@ void init_params(fluid_sim_t *fluid_sim)
     // water volume
     fluid_sim->water_volume_global->min_x = 10.0f;
     fluid_sim->water_volume_global->max_x = fluid_sim->boundary_global->max_x-10.0f;
-    fluid_sim->water_volume_global->min_y = 10.0f;
+    fluid_sim->water_volume_global->min_y = 5.0f;
     fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-10.0f;
     fluid_sim->water_volume_global->min_z = 10.0f;
     fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-10.0f;

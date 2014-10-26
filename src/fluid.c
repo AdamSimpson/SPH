@@ -521,7 +521,7 @@ void update_dp(fluid_sim_t *fluid_sim)
 
     uint p_index, q_index;
     neighbor_t *n;
-    float x_diff, y_diff, dp, r_mag;
+    float x_diff, y_diff, z_diff, dp, r_mag;
 
     int i,j;
     for(i=0; i<params->number_fluid_particles_local; i++)
@@ -531,6 +531,7 @@ void update_dp(fluid_sim_t *fluid_sim)
 
         float dp_x = 0.0f;
         float dp_y = 0.0f;
+        float dp_z = 0.0f;
         float s_corr;
         float k = 0.1f;
         float dq = 0.3f*params->tunable_params.smoothing_radius;
@@ -541,14 +542,18 @@ void update_dp(fluid_sim_t *fluid_sim)
             q_index = n->fluid_neighbors[j];
             x_diff = fluid_particles->x_star[p_index] - fluid_particles->x_star[q_index];
             y_diff = fluid_particles->y_star[p_index] - fluid_particles->y_star[q_index];
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff);
+            z_diff = fluid_particles->z_star[p_index] - fluid_particles->z_star[q_index];
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
             s_corr = -k*(powf(W(r_mag, params->tunable_params.smoothing_radius)/Wdq, 4.0f));
             dp = (fluid_particles->lambda[p_index] + fluid_particles->lambda[q_index] + s_corr)*del_W(r_mag, params->tunable_params.smoothing_radius);
             dp_x += dp*x_diff;
             dp_y += dp*y_diff;
+            dp_z += dp*z_diff;
         }
         fluid_particles->dp_x[p_index] = dp_x/params->tunable_params.rest_density;
         fluid_particles->dp_y[p_index] = dp_y/params->tunable_params.rest_density;
+        fluid_particles->dp_z[p_index] = dp_z/params->tunable_params.rest_density;
     }   
 }
 

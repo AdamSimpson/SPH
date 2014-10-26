@@ -311,7 +311,7 @@ void start_renderer()
             // Create points array (x,y)
             for(j=0; j<coords_recvd; j+=3) {
                 points[j] = particle_coords[j]/(float)SHRT_MAX;
-                points[j+1] = particle_coords[j+1]/(float)SHRT_MAX;
+                points[j+1] = particle_coords[j+2]/(float)SHRT_MAX;
             }
             render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/3, &liquid_GLstate);
         }
