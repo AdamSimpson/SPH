@@ -1,5 +1,37 @@
 /*
 The MIT License (MIT)
+ckground image loaded: 600 x 800 pixels
+Screen resolution 1920, 1080
+ul (-0.312500,0.666667), ur (0.312500, 0.666667), ll (-0.312500, -0.666667), lr (0.312500, -0.666667)
+24:shader:
+
+25:shader:
+
+26:program:
+
+Rank 0 start_x: 0.000000, end_x :35.562706
+initial number of particles 442
+Rank 1 start_x: 35.562706, end_x :63.255638
+Rank 2 start_x: 63.255634, end_x :100.000000
+initial number of particles 408
+max 100.000000, min 0.000000
+grid x: 24 grid y: 5 grid z: 14
+bytes allocated: 239480
+rank 2 max fluid x: 88.818344
+Rank: 2, fluid_particles: 408, smoothing radius: 4.260451 
+max 100.000000, min 0.000000
+grid x: 24 grid y: 5 grid z: 14
+bytes allocated: 239480
+initial number of particles 442
+rank 0 max fluid x: 35.562706
+Rank: 0, fluid_particles: 442, smoothing radius: 4.260451 
+max 100.000000, min 0.000000
+grid x: 24 grid y: 5 grid z: 14
+bytes allocated: 239480
+rank 1 max fluid x: 63.255634
+Rank: 1, fluid_particles: 442, smoothing radius: 4.260451 
+close
+adambsimpsons-Mac-mini:SPH atj$ 
 
 Copyright (c) 2014 Adam Simpson
 
@@ -274,7 +306,7 @@ void start_renderer()
         draw_background(&background_state);
 
         // update mover
-        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
+        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_z, &gl_x, &gl_y);
         mover_center[0] = gl_x;
         mover_center[1] = gl_y;
         mover_center[2] = 0.0;
@@ -309,9 +341,9 @@ void start_renderer()
         // Render liquid or particles
         if(render_state.liquid) {
             // Create points array (x,y)
-            for(j=0; j<coords_recvd; j+=3) {
-                points[j] = particle_coords[j]/(float)SHRT_MAX;
-                points[j+1] = particle_coords[j+2]/(float)SHRT_MAX;
+            for(j=0; j<coords_recvd/3; j++) {
+                points[(j*2)] = particle_coords[j*3]/(float)SHRT_MAX;
+                points[(j*2)+1] = particle_coords[(j*3)+2]/(float)SHRT_MAX;
             }
             render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/3, &liquid_GLstate);
         }

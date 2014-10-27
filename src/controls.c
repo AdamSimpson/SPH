@@ -232,7 +232,8 @@ void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y)
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].mover_center_x = sim_x;
-        render_state->master_params[i].mover_center_y = sim_y;
+        render_state->master_params[i].mover_center_z = sim_y;
+        render_state->master_params[i].mover_center_y = 5.0f;
     }  
 }
 
