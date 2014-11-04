@@ -25,10 +25,7 @@ THE SOFTWARE.
 #ifndef fluid_communication_h
 #define fluid_communication_h
 
-typedef struct EDGE_T edge_t;
-typedef struct OOB_T oob_t;
-
-#include "fluid.h"
+#include "structs.h"
 #include "mpi.h"
 
 // MPI globals
@@ -40,26 +37,6 @@ MPI_Comm MPI_COMM_COMPUTE;
 MPI_Group group_world;
 MPI_Group group_compute;
 MPI_Group group_render;
-
-// Particles that are within 2*h distance of node edge
-struct EDGE_T {
-    int max_edge_particles;
-    uint *edge_indices_left;
-    uint *edge_indices_right;
-    int number_edge_particles_left;
-    int number_edge_particles_right;
-};
-
-// Particles that have left the node
-struct OOB_T {
-    int max_oob_particles;
-    uint *oob_index_indices_left; // Indicies in particle index array for particles traveling left
-    uint *oob_index_indices_right;
-    int number_oob_particles_left; // Number of OOB sending left
-    int number_oob_particles_right;
-    uint *vacant_indices; // Indicies in global particle array that are vacant
-    int number_vacancies;
-};
 
 void create_MPI_types();
 void create_communicators();

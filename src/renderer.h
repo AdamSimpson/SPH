@@ -28,33 +28,7 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "stdbool.h"
 
-// enum of displayed parameter values
-typedef enum {
-    MIN = 0,
-    GRAVITY = MIN,
-    VISCOSITY,
-    DENSITY,
-    PRESSURE,
-    ELASTICITY,
-    MAX = ELASTICITY
- } parameters;
-
-typedef struct render_t {
-    float sim_width;
-    float sim_height;
-    float sim_depth;
-    float screen_width;
-    float screen_height;
-    parameters selected_parameter;
-    tunable_parameters_t *node_params; // Holds all nodes paramters including start/end lengths
-    tunable_parameters_t *master_params; // Holds parameters shared by all nodes
-    int num_compute_procs;
-    int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
-    bool show_dividers;
-    bool pause;
-    double last_activity_time; // Used to determine if simulation is being used or not
-    bool liquid;
-} render_t;
+#include "structs.h"
 
 void start_renderer();
 void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y);

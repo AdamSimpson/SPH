@@ -28,15 +28,7 @@ THE SOFTWARE.
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "renderer.h"
-#include "controls.h"
-
-typedef struct gl_t {
-    int screen_width;
-    int screen_height;
-
-    GLFWwindow* window;
-} gl_t ;
+#include "structs.h"
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);

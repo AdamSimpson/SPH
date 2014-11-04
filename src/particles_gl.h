@@ -36,6 +36,8 @@ typedef struct particles_t {
     GLint color_location;
     GLint diameter_pixels_location;
     GLint radius_world_location;
+    GLint view_matrix_location;
+    GLint proj_matrix_location;
 
     // Screen dimensions
     int screen_width;
@@ -45,10 +47,17 @@ typedef struct particles_t {
     GLuint vbo;
 } particles_t;
 
+// This gets compiled by both c and c++ compilers
+#ifdef __cplusplus
+extern "C" {
+#endif
 void init_particles(particles_t *state, int screen_width, int screen_height);
 void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state);
 void create_particle_shaders(particles_t *state);
 void draw_particles(particles_t *state, float diameter_pixels, int num_points);
 void create_particle_buffers(particles_t *state);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

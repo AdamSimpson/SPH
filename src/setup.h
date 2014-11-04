@@ -25,19 +25,7 @@ THE SOFTWARE.
 #ifndef fluid_setup_h
 #define fluid_setup_h
 
-typedef struct AABB_T AABB_t;
-
-#include "fluid.h"
-#include "communication.h"
-
-struct AABB_T {
-    float min_x;
-    float max_x;
-    float min_y;
-    float max_y;
-    float min_z;
-    float max_z;
-}; //Axis aligned bounding box
+#include "structs.h"
 
 float min(float a, float b);
 float max(float a, float b);

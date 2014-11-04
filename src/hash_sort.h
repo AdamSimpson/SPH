@@ -25,30 +25,7 @@ THE SOFTWARE.
 #ifndef fluid_hash_h
 #define fluid_hash_h
 
-
-typedef struct NEIGHBOR_T neighbor_t;
-typedef struct NEIGHBOR_GRID_T neighbor_grid_t;
-
-#include "fluid.h"
-
-// Bucket to hold each particles nearest neighbors
-struct NEIGHBOR_T{
-    uint *fluid_neighbors; // Index in global particle array of neighbor
-    int number_fluid_neighbors;
-};
-
-struct NEIGHBOR_GRID_T {
-    float spacing;  // Spacing between buckets
-    uint size_x; // Number of buckets in x
-    uint size_y; // Number of buckets in y
-    uint size_z;
-    uint *start_indices; // Start index for hash values
-    uint *end_indices;   // End index for hash values
-    uint *hash_values; // Array of hash values
-    uint *particle_ids; // Array of particle id's
-    uint max_neighbors; // Maximum neighbors allowed for each particle
-    neighbor_t *neighbors; // Particle neighbor buckets
-};
+#include "structs.h"
 
 uint hash_val(float x, float y, float z, neighbor_grid_t *grid, param_t *params);
 void hash_particles(fluid_sim_t *fluid_sim);

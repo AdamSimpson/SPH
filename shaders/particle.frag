@@ -1,6 +1,6 @@
 #version 150 core
 in vec3 sphere_color;
-in vec2 circle_center;
+in vec3 sphere_center;
 
 out vec4 out_color;
 
@@ -25,7 +25,7 @@ void main() {
     vec3 normal = normalize( vec3(local_frag_coord, sqrt(1.0 - rad_squared)));
 
     // GL world coordinates
-    vec3 frag_position = (normal * radius_world) + vec3(circle_center, 0.0);
+    vec3 frag_position = (normal * radius_world) + sphere_center;
 
     // Vector from frag to light
     vec3 frag_to_light = normalize(light_position - frag_position);

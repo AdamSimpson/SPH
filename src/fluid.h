@@ -25,13 +25,6 @@ THE SOFTWARE.
 #ifndef fluid_fluid_h
 #define fluid_fluid_h
 
-typedef struct FLUID_PARTICLES_T fluid_particles_t;
-typedef struct PARAM_T param_t;
-typedef struct TUNABLE_PARAMETERS_T tunable_parameters_t;
-typedef struct FLUID_SIM_T fluid_sim_t;
-
-typedef unsigned int uint;
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
@@ -45,79 +38,6 @@ typedef unsigned int uint;
 #define debug_print(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
-
-////////////////////////////////////////////////
-// Structures
-////////////////////////////////////////////////
-
-// Standard fluid particle paramaters
-struct FLUID_PARTICLES_T {
-    float *x_star;
-    float *y_star;
-    float *z_star;
-    float *x;
-    float *y;
-    float *z;
-    float *v_x;
-    float *v_y;
-    float *v_z;
-    float *dp_x;
-    float *dp_y;
-    float *dp_z;
-    float *density;
-    float *lambda;
-    uint *id; // Id is 'local' index within the fluid particle pointer array
-};
-
-// These parameters are tunable by the render node
-struct TUNABLE_PARAMETERS_T {
-    float rest_density;
-    float smoothing_radius;
-    float g;
-    float k;
-    float k_near;
-    float k_spring;
-    float sigma;
-    float beta;
-    float time_step;
-    float node_start_x;
-    float node_end_x;
-    float mover_center_x;
-    float mover_center_y;
-    float mover_center_z;
-    float mover_width;
-    float mover_height;
-    char mover_type;
-    char kill_sim;
-    char active;
-};
-
-// Full parameters struct for simulation
-struct PARAM_T {
-    tunable_parameters_t tunable_params;
-    int number_fluid_particles_global;
-    int number_fluid_particles_local; // Number of non vacant particles not including halo
-    int max_fluid_particle_index;     // Max index used in actual particle array
-    int number_halo_particles;        // Starting at max_fluid_particle_index
-    int max_fluid_particles_local;    // Maximum number of fluid particles
-    int number_halo_particles_left;   // Number of halo particles from left neighbor
-    int number_halo_particles_right;  // Number of halo particles from right neighbor
-    int steps_per_frame;              // Number of simulation steps before updating render node
-    float particle_mass; // "mass" of particle so that density is particle count independent
-}; // Simulation paramaters
-
-// Struct containing all simulation information
-struct FLUID_SIM_T {
-    param_t *params;
-    AABB_t *water_volume_global;
-    AABB_t *boundary_global;
-    edge_t *edges;
-    oob_t *out_of_bounds;
-    neighbor_grid_t *neighbor_grid;      // Neighbor grid setup
-    fluid_particles_t *fluid_particles;  // Pointer to fluid_particles SoA
-    uint *fluid_particle_indices;        // Index of local fluid particles, used to traverse non vacant particles
-    short *fluid_particle_coords;        // (x,y) coordinate array, transfer pixel coords
-};
 
 ////////////////////////////////////////////////
 // Function prototypes

@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 
 #include "hash_sort.h"
+#include "math.h"
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 

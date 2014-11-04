@@ -115,11 +115,11 @@ void update_halo_lambdas(fluid_sim_t *fluid_sim)
 
     // Allocate send/recv buffers
     // Could combine left/right into single malloc...
-    float *send_lambdas_left = malloc(sizeof(float)*num_moving_left);
-    float *send_lambdas_right = malloc(sizeof(float)*num_moving_right);
+    float *send_lambdas_left = (float*)malloc(sizeof(float)*num_moving_left);
+    float *send_lambdas_right = (float*)malloc(sizeof(float)*num_moving_right);
 
-    float *recv_lambdas_left = malloc(sizeof(float)*num_from_left);
-    float *recv_lambdas_right = malloc(sizeof(float)*num_from_right);
+    float *recv_lambdas_left = (float*)malloc(sizeof(float)*num_from_left);
+    float *recv_lambdas_right = (float*)malloc(sizeof(float)*num_from_right);
 
     // Pack local halo lambdas
     for(i=0; i<num_moving_left; i++) {
@@ -188,11 +188,11 @@ void update_halo_positions(fluid_sim_t *fluid_sim)
 
     // Allocate send/recv buffers
     // Could combine left/right into single malloc...
-    float *send_positions_left = malloc(sizeof(float)*num_moving_left);
-    float *send_positions_right = malloc(sizeof(float)*num_moving_right);
+    float *send_positions_left = (float*)malloc(sizeof(float)*num_moving_left);
+    float *send_positions_right = (float*)malloc(sizeof(float)*num_moving_right);
 
-    float *recv_positions_left = malloc(sizeof(float)*num_from_left);
-    float *recv_positions_right = malloc(sizeof(float)*num_from_right);
+    float *recv_positions_left = (float*)malloc(sizeof(float)*num_from_left);
+    float *recv_positions_right = (float*)malloc(sizeof(float)*num_from_right);
 
     // Pack local edge positions
     for(i=0; i<num_moving_left; i+=3) {

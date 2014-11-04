@@ -134,20 +134,20 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     // Allocate (x,y,z) coordinate array, transfer pixel coords
     bytes = 3 * fluid_sim->params->max_fluid_particles_local * sizeof(short);
     total_bytes+=bytes;
-    fluid_sim->fluid_particle_coords = malloc(bytes);
+    fluid_sim->fluid_particle_coords = (short*)malloc(bytes);
     if(fluid_sim->fluid_particle_coords == NULL)
         printf("Could not allocate fluid_particle coords\n");
 
     // Allocate index array used to traverse non vacant particles
     bytes = fluid_sim->params->max_fluid_particles_local * sizeof(uint);
     total_bytes+=bytes;
-    fluid_sim->fluid_particle_indices = malloc(bytes);
+    fluid_sim->fluid_particle_indices = (uint*)malloc(bytes);
     if(fluid_sim->fluid_particle_indices == NULL)
         printf("Could not allocate fluid_particle_indices\n");
 
     // Allocate neighbor array
-    fluid_sim->neighbor_grid->neighbors = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(neighbor_t));
-    uint *fluid_neighbors = calloc(fluid_sim->params->max_fluid_particles_local * fluid_sim->neighbor_grid->max_neighbors, sizeof(uint));
+    fluid_sim->neighbor_grid->neighbors = (neighbor_t*)calloc(fluid_sim->params->max_fluid_particles_local, sizeof(neighbor_t));
+    uint *fluid_neighbors = (uint*)calloc(fluid_sim->params->max_fluid_particles_local * fluid_sim->neighbor_grid->max_neighbors, sizeof(uint));
     // Set pointer in each bucket
     for(i=0; i< fluid_sim->params->max_fluid_particles_local; i++ )
         fluid_sim->neighbor_grid->neighbors[i].fluid_neighbors = &(fluid_neighbors[i*fluid_sim->neighbor_grid->max_neighbors]);
@@ -169,15 +169,15 @@ void alloc_sim(fluid_sim_t *fluid_sim)
     printf("grid x: %d grid y: %d grid z: %d\n", fluid_sim->neighbor_grid->size_x, fluid_sim->neighbor_grid->size_y,  fluid_sim->neighbor_grid->size_z);
 
     // Start index for hash values
-    fluid_sim->neighbor_grid->start_indices = calloc(length_hash, sizeof(uint));
+    fluid_sim->neighbor_grid->start_indices = (uint*)calloc(length_hash, sizeof(uint));
 
     // End index for hash values
-    fluid_sim->neighbor_grid->end_indices = calloc(length_hash, sizeof(uint));
+    fluid_sim->neighbor_grid->end_indices = (uint*)calloc(length_hash, sizeof(uint));
     // Array of hash values
-    fluid_sim->neighbor_grid->hash_values = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
+    fluid_sim->neighbor_grid->hash_values = (uint*)calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
 
     // Array of particle id's
-    fluid_sim->neighbor_grid->particle_ids = calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
+    fluid_sim->neighbor_grid->particle_ids = (uint*)calloc(fluid_sim->params->max_fluid_particles_local, sizeof(uint));
 
     total_bytes+= (length_hash + fluid_sim->params->max_fluid_particles_local) * sizeof(uint);
     if(fluid_sim->neighbor_grid->start_indices  == NULL || fluid_sim->neighbor_grid->end_indices == NULL)
@@ -186,12 +186,12 @@ void alloc_sim(fluid_sim_t *fluid_sim)
         printf("Could not allocate hash_values/particle_ids\n");
 
     // Allocate edge index arrays
-    fluid_sim->edges->edge_indices_left = malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
-    fluid_sim->edges->edge_indices_right = malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
+    fluid_sim->edges->edge_indices_left = (uint*)malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
+    fluid_sim->edges->edge_indices_right = (uint*)malloc(fluid_sim->edges->max_edge_particles * sizeof(uint));
     // Allocate out of bound index arrays
-    fluid_sim->out_of_bounds->oob_index_indices_left = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
-    fluid_sim->out_of_bounds->oob_index_indices_right = malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
-    fluid_sim->out_of_bounds->vacant_indices = malloc(2*fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
+    fluid_sim->out_of_bounds->oob_index_indices_left = (uint*)malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
+    fluid_sim->out_of_bounds->oob_index_indices_right = (uint*)malloc(fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
+    fluid_sim->out_of_bounds->vacant_indices = (uint*)malloc(2*fluid_sim->out_of_bounds->max_oob_particles * sizeof(uint));
 
     printf("bytes allocated: %lu\n", total_bytes);
 }
@@ -466,7 +466,7 @@ void partition_geometry(fluid_sim_t *fluid_sim, float *x_start, int *num_particl
     int fluid_particles_x = floor((fluid_global->max_x - fluid_global->min_x ) / spacing) + 1;
     
     // number of particles x direction
-    int *particle_length_x = malloc(nprocs*sizeof(int));
+    int *particle_length_x = (int*)malloc(nprocs*sizeof(int));
     
     // Number of particles in x direction assuming equal spacing
     int equal_spacing = floor(fluid_particles_x/nprocs);
