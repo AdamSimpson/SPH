@@ -1,37 +1,5 @@
 /*
 The MIT License (MIT)
-ckground image loaded: 600 x 800 pixels
-Screen resolution 1920, 1080
-ul (-0.312500,0.666667), ur (0.312500, 0.666667), ll (-0.312500, -0.666667), lr (0.312500, -0.666667)
-24:shader:
-
-25:shader:
-
-26:program:
-
-Rank 0 start_x: 0.000000, end_x :35.562706
-initial number of particles 442
-Rank 1 start_x: 35.562706, end_x :63.255638
-Rank 2 start_x: 63.255634, end_x :100.000000
-initial number of particles 408
-max 100.000000, min 0.000000
-grid x: 24 grid y: 5 grid z: 14
-bytes allocated: 239480
-rank 2 max fluid x: 88.818344
-Rank: 2, fluid_particles: 408, smoothing radius: 4.260451 
-max 100.000000, min 0.000000
-grid x: 24 grid y: 5 grid z: 14
-bytes allocated: 239480
-initial number of particles 442
-rank 0 max fluid x: 35.562706
-Rank: 0, fluid_particles: 442, smoothing radius: 4.260451 
-max 100.000000, min 0.000000
-grid x: 24 grid y: 5 grid z: 14
-bytes allocated: 239480
-rank 1 max fluid x: 63.255634
-Rank: 1, fluid_particles: 442, smoothing radius: 4.260451 
-close
-adambsimpsons-Mac-mini:SPH atj$ 
 
 Copyright (c) 2014 Adam Simpson
 
