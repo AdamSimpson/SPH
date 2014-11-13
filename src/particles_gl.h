@@ -34,8 +34,7 @@ typedef struct particles_t {
     // Locations
     GLint position_location;
     GLint color_location;
-    GLint diameter_pixels_location;
-    GLint radius_world_location;
+    GLint sphere_radius_location;
     GLint view_matrix_location;
     GLint proj_matrix_location;
 

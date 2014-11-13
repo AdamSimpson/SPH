@@ -96,10 +96,15 @@ void create_particle_shaders(particles_t *state)
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     compile_shader(fragmentShader, "shaders/particle.frag");
 
+    // Compile geometry shader
+    GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+    compile_shader(geometryShader, "shaders/particle.geom");
+
     // Create shader program
     state->program = glCreateProgram();
     glAttachShader(state->program, vertexShader);
     glAttachShader(state->program, fragmentShader); 
+    glAttachShader(state->program, geometryShader);
 
     // Link and use program
     glLinkProgram(state->program);
@@ -110,16 +115,14 @@ void create_particle_shaders(particles_t *state)
     // Get tex_coord location
     state->color_location = glGetAttribLocation(state->program, "color");
     // Get radius location
-    state->radius_world_location = glGetUniformLocation(state->program, "radius_world");
-    // Get pixel diameter location
-    state->diameter_pixels_location = glGetUniformLocation(state->program, "diameter_pixels");
+    state->sphere_radius_location = glGetUniformLocation(state->program, "sphereRadius");
     // Get world to camera view matrix location
     state->view_matrix_location = glGetUniformLocation(state->program, "view");
     // Get camera to clip  projection matrix location
     state->proj_matrix_location = glGetUniformLocation(state->program, "proj");
 
     // Enable point size to be specified in the shader
-    glEnable(GL_PROGRAM_POINT_SIZE);
+//    glEnable(GL_PROGRAM_POINT_SIZE);
 
 //   GLfloat fSizes[2];
 //   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
@@ -132,14 +135,11 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     glUseProgram(state->program);
 
     // Set radius uniform
-    glUniform1f(state->radius_world_location, (GLfloat)diameter_pixels/state->screen_width);
-
-    // Set pixel diameter uniform
-    glUniform1f(state->diameter_pixels_location, (GLfloat)diameter_pixels);
+    glUniform1f(state->sphere_radius_location, (GLfloat)diameter_pixels/state->screen_width/2.0f);
 
     // Set view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 8.0f, -3.0f), // Eye position
+        glm::vec3(0.0f, 1.2f, 2.2f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 0.0f, 1.0f)  // Up
     );
@@ -147,7 +147,7 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 
     // Set projection matrix
     float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(45.0f, ratio, -1.0f, 10.0f);
+    glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 
     // Set buffer
