@@ -39,15 +39,24 @@ typedef struct mover_t
     GLint sphere_tex_coord_location;
     GLint sphere_color_location;
     GLint sphere_radius_location;
+    GLint view_matrix_location;
+    GLint proj_matrix_location;
 
     // buffers
     GLuint vbo;
 } mover_t;
 
+// This gets compiled by both c and c++ compilers
+#ifdef __cplusplus
+extern "C" {
+#endif
 void init_mover(mover_t *state);
 void render_mover(float *center, float *gl_dims, float *color, mover_t *state);
 void create_sphere_mover_program(mover_t *state);
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color);
 void create_mover_buffers(mover_t *state);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

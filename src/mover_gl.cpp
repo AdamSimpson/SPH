@@ -27,9 +27,20 @@ THE SOFTWARE.
 #include <sys/stat.h>
 #include <stdlib.h>
 #include "mover_gl.h"
-#include "ogl_utils.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "ogl_utils.h"
 #include "glfw_utils.h"
+#ifdef __cplusplus
+}
+#endif
+
+#define GLM_FORCE_RADIANS
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 void init_mover(mover_t *state)
 {
@@ -128,6 +139,11 @@ void create_sphere_mover_program(mover_t *state)
     state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "radius");
     // Get center location
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
+    // Get world to camera view matrix location
+    state->view_matrix_location = glGetUniformLocation(state->sphere_program, "view");
+    // Get camera to clip  projection matrix location
+    state->proj_matrix_location = glGetUniformLocation(state->sphere_program, "proj");
+
 }
 
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
@@ -144,6 +160,19 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
 
     // set center uniform
     glUniform2fv(state->sphere_center_location, 1, center);
+
+    // Set view matrix
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(0.0f, 1.2f, 2.2f), // Eye position
+        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
+        glm::vec3(0.0f, 0.0f, 1.0f)  // Up
+    );
+    glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
+
+    // Set projection matrix
+    float ratio = 1.7;//(float)state->screen_width/(float)state->screen_height;
+    glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
+    glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 
     // Bind buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

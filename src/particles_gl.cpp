@@ -139,14 +139,14 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 
     // Set view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 2.0f), // Eye position
+        glm::vec3(0.0f, 8.0f, -3.0f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 0.0f, 1.0f)  // Up
     );
     glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
 
     // Set projection matrix
-    float ratio = state->screen_width/state->screen_height;
+    float ratio = (float)state->screen_width/(float)state->screen_height;
     glm::mat4 proj = glm::perspective(45.0f, ratio, -1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 

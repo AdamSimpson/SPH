@@ -14,6 +14,6 @@ void main() {
    gl_PointSize = diameter_pixels;
 
    sphere_color = color;
-   sphere_center = position;
+   sphere_center = gl_Position.xyz;
 }
 
