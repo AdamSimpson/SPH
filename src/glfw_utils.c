@@ -182,7 +182,7 @@ void init_ogl(gl_t *state, render_t *render_state)
     glewInit();
 
     // Enable depth testing
-//    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);

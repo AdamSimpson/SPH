@@ -197,9 +197,9 @@ void start_simulation()
                 fluid_sim.fluid_particle_coords[i*3] = (2.0f*fluid_sim.fluid_particles->x[p_index]
                                                        /fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
                 fluid_sim.fluid_particle_coords[(i*3)+1] = (2.0f*fluid_sim.fluid_particles->y[p_index]
-                                                           /fluid_sim.boundary_global->max_y - 1.0f) * SHRT_MAX; // convert to short using full range
+                                                           /fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
                 fluid_sim.fluid_particle_coords[(i*3)+2] = (2.0f*fluid_sim.fluid_particles->z[p_index]
-                                                           /fluid_sim.boundary_global->max_z - 1.0f) * SHRT_MAX; // convert to short using full range
+                                                           /fluid_sim.boundary_global->max_x - 1.0f) * SHRT_MAX; // convert to short using full range
             }
             // Async send fluid particle coordinates to render node
             MPI_Isend(fluid_sim.fluid_particle_coords, 3*fluid_sim.params->number_fluid_particles_local, MPI_SHORT, 0, 17, MPI_COMM_WORLD, &coords_req);
@@ -408,7 +408,7 @@ void apply_gravity(fluid_sim_t *fluid_sim)
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
         p_index = fluid_particle_indices[i];
-        fluid_particles->v_z[p_index] += g*dt;
+        fluid_particles->v_y[p_index] += g*dt;
      }
 }
 

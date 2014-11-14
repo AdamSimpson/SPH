@@ -272,10 +272,10 @@ void start_renderer()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw background image
-        draw_background(&background_state);
+//        draw_background(&background_state);
 
         // update mover
-        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_z, &gl_x, &gl_y);
+        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
         mover_center[0] = gl_x;
         mover_center[1] = gl_y;
         mover_center[2] = 0.0;

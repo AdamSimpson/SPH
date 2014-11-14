@@ -164,13 +164,14 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     // Set view matrix
     glm::mat4 view = glm::lookAt(
         glm::vec3(0.0f, 1.2f, 2.2f), // Eye position
-        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
-        glm::vec3(0.0f, 0.0f, 1.0f)  // Up
+        glm::vec3(0.0f, -0.5f, 0.0f), // Looking at
+        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
+
     glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
 
     // Set projection matrix
-    float ratio = 1.7;//(float)state->screen_width/(float)state->screen_height;
+    float ratio = 1.0;//(float)state->screen_width/(float)state->screen_height;
     glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 

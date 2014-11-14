@@ -39,5 +39,5 @@ void main() {
     // Smooth step the edge to make "smooth"
     float alpha = smoothstep(-1.0, -0.98, -rad_squared);
 
-    out_color = vec4(sphere_color, alpha);
+    out_color = vec4(1.0,0.0,0.0,1.0);
 }

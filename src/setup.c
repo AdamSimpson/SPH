@@ -295,24 +295,25 @@ void init_params(fluid_sim_t *fluid_sim)
     // This simulation assumes in various spots min is 0.0
     fluid_sim->boundary_global->min_x = 0.0f;
     fluid_sim->boundary_global->max_x = 100.0f;
-    fluid_sim->boundary_global->min_z = 0.0f;
     fluid_sim->boundary_global->min_y = 0.0f;
     fluid_sim->boundary_global->max_y = 20.0f;
+    fluid_sim->boundary_global->min_z = 0.0f;
+    fluid_sim->boundary_global->max_z = 20.0f;
 
     // Receive aspect ratio to scale world y max
     short pixel_dims[2];
     float aspect_ratio;
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
     aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
-    fluid_sim->boundary_global->max_z = fluid_sim->boundary_global->max_x / aspect_ratio;
+//    fluid_sim->boundary_global->max_z = fluid_sim->boundary_global->max_x / aspect_ratio;
 
     // water volume
     fluid_sim->water_volume_global->min_x = 10.0f;
     fluid_sim->water_volume_global->max_x = fluid_sim->boundary_global->max_x-10.0f;
     fluid_sim->water_volume_global->min_y = 5.0f;
-    fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-10.0f;
-    fluid_sim->water_volume_global->min_z = 10.0f;
-    fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-10.0f;
+    fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-5.0f;
+    fluid_sim->water_volume_global->min_z = 5.0f;
+    fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-5.0f;
 
     // Zero out number of halo particles
     params->number_halo_particles = 0;
