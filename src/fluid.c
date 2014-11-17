@@ -190,6 +190,8 @@ void start_simulation()
 
         // Pack fluid particle coordinates
         // This sends results as short to speed up transfer a bit
+        // We need a range of -1 to 1 so we assume max_x is largest value
+        // and so we normalize x to -1 to 1 and the rest are scaled by the same value
         if(sub_step == fluid_sim.params->steps_per_frame-1)
         {
             for(i=0; i<fluid_sim.params->number_fluid_particles_local; i++) {

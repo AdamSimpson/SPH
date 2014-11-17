@@ -31,8 +31,8 @@ THE SOFTWARE.
 #include "structs.h"
 
 void start_renderer();
-void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y);
-void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float *gl_y);
+void opengl_to_sim(render_t *render_state, float x, float y, float z, float *sim_x, float *sim_y, float *sim_z);
+void sim_to_opengl(render_t *render_state, float x, float y, float z, float *gl_x, float *gl_y, float *gl_z);
 void update_node_params(render_t *render_state);
 void checkPartitions(render_t *render_state, int *particle_counts, int total_particles);
 void hsv_to_rgb(float* hsv, float *rgb);

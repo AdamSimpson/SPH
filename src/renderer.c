@@ -274,10 +274,12 @@ void start_renderer()
 //        draw_background(&background_state);
 
         // update mover
-        mover_center[0] = render_state.master_params[0].mover_center_x/100.0f;
-        mover_center[1] = render_state.master_params[0].mover_center_y/100.0f;
-        mover_center[2] = render_state.master_params[0].mover_center_z/100.0f;
-        float mover_radius = render_state.master_params[0].mover_width/100.0f;
+        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x,
+                                     render_state.master_params[0].mover_center_y,
+                                     render_state.master_params[0].mover_center_z,
+                                     &mover_center[0], &mover_center[1], &mover_center[2]);
+
+        float mover_radius = render_state.master_params[0].mover_width/render_state.sim_width * 0.5f;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
@@ -291,8 +293,8 @@ void start_renderer()
             {
                 float start_gl_x, end_gl_x;
                 float null_y;
-                sim_to_opengl(&render_state, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
-                sim_to_opengl(&render_state, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
+//                sim_to_opengl(&render_state, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
+//                sim_to_opengl(&render_state, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
                 node_edges[2*i] = start_gl_x;
                 node_edges[2*i+1] = end_gl_x;
             }
@@ -364,23 +366,23 @@ void start_renderer()
 
 // Translate between OpenGL coordinates with origin at screen center
 // to simulation coordinates
-void opengl_to_sim(render_t *render_state, float x, float y, float *sim_x, float *sim_y)
+void opengl_to_sim(render_t *render_state, float x, float y, float z, float *sim_x, float *sim_y, float *sim_z)
 {
-    float half_width = render_state->sim_width*0.5f;
-    float half_height = render_state->sim_height*0.5f;
+    float half_scale = render_state->sim_width*0.5f;
 
-    *sim_x = x*half_width + half_width;
-    *sim_y = y*half_height + half_height;
+    *sim_x = x*half_scale + half_scale;
+    *sim_y = y*half_scale + half_scale;
+    *sim_z = z*half_scale + half_scale;
 }
 
 // Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
-void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float *gl_y)
+void sim_to_opengl(render_t *render_state, float x, float y, float z, float *gl_x, float *gl_y, float *gl_z)
 {
-    float half_width = render_state->sim_width*0.5f;
-    float half_height = render_state->sim_height*0.5f;
+    float half_scale = render_state->sim_width*0.5f;
 
-    *gl_x = x/half_width - 1.0f;
-    *gl_y = y/half_height - 1.0f;
+    *gl_x = x/half_scale - 1.0f;
+    *gl_y = y/half_scale - 1.0f;
+    *gl_z = z/half_scale - 1.0f;
 }
 
 void update_node_params(render_t *render_state)
@@ -462,8 +464,11 @@ bool input_is_active(render_t *render_state)
 // Renderer will move mover if annactive
 void update_inactive_state(render_t *render_state)
 {
-    float gl_x, gl_y;
-    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x, render_state->master_params[0].mover_center_y, &gl_x, &gl_y);
+    float gl_x, gl_y, gl_z;
+    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x,
+                                render_state->master_params[0].mover_center_y,
+                                render_state->master_params[0].mover_center_z, 
+                                &gl_x, &gl_y, &gl_z);
 
     // Reset to water params
     set_fluid_x(render_state);
@@ -498,7 +503,7 @@ void update_inactive_state(render_t *render_state)
     // Move in sin pattern
     gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
 
-    set_mover_gl_center(render_state, gl_x, gl_y);
+    set_mover_gl_center(render_state, gl_x, gl_y, 0.0f);
 }
 
 // Convert hsv to rgb

@@ -224,16 +224,16 @@ void decrease_elasticity(render_t *render_state)
 }
 
 // Set center of mover, input is openGL coordinates
-void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y)
+void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y, float ogl_z)
 {
-    float sim_x, sim_y;
-    opengl_to_sim(render_state, ogl_x, ogl_y, &sim_x, &sim_y);
+    float sim_x, sim_y, sim_z;
+    opengl_to_sim(render_state, ogl_x, ogl_y, ogl_z, &sim_x, &sim_y, &sim_z);
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].mover_center_x = sim_x;
         render_state->master_params[i].mover_center_y = sim_y;
-        render_state->master_params[i].mover_center_z = 0.0f;
+        render_state->master_params[i].mover_center_z = sim_z;
     }  
 }
 
