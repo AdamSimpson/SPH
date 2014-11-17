@@ -68,7 +68,7 @@ void start_renderer()
 
     // Initialize mover OpenGL state
     mover_t mover_GLstate;
-    init_mover(&mover_GLstate);
+    init_mover(&mover_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize font OpenGL state
     font_t font_state;
@@ -185,7 +185,6 @@ void start_renderer()
 
     int num_coords_rank;
     int current_rank, num_parts;
-    float mover_gl_dims[2];
 
     int frames_per_fps = 30;
     int frames_per_check = 1;
@@ -275,17 +274,13 @@ void start_renderer()
 //        draw_background(&background_state);
 
         // update mover
-        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x, render_state.master_params[0].mover_center_y, &gl_x, &gl_y);
-        mover_center[0] = gl_x;
-        mover_center[1] = gl_y;
-        mover_center[2] = 0.0;
+        mover_center[0] = render_state.master_params[0].mover_center_x/100.0f;
+        mover_center[1] = render_state.master_params[0].mover_center_y/100.0f;
+        mover_center[2] = render_state.master_params[0].mover_center_z/100.0f;
+        float mover_radius = render_state.master_params[0].mover_width/100.0f;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
-        // Mover bounding rectangle half width/height lengths in ogl system
-        // Subtract off particle diamter so no particle/mover penetration
-        mover_gl_dims[0] = render_state.master_params[0].mover_width/(render_state.sim_width*0.5f) - particle_diameter_pixels/(gl_state.screen_width*0.5f) ;
-        mover_gl_dims[1] = render_state.master_params[0].mover_height/(render_state.sim_height*0.5f) - particle_diameter_pixels/(gl_state.screen_height*0.5f);
 
         render_all_text(&font_state, &render_state, fps);
 
@@ -342,7 +337,7 @@ void start_renderer()
         }
 
         // Render over particles to hide penetration
-        render_mover(mover_center, mover_gl_dims, mover_color, &mover_GLstate);
+        render_mover(mover_center, mover_radius, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
         swap_ogl(&gl_state);

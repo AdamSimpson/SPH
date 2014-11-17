@@ -189,7 +189,7 @@ void start_simulation()
         update_positions(&fluid_sim);
 
         // Pack fluid particle coordinates
-        // This sends results as short in pixel coordinates
+        // This sends results as short to speed up transfer a bit
         if(sub_step == fluid_sim.params->steps_per_frame-1)
         {
             for(i=0; i<fluid_sim.params->number_fluid_particles_local; i++) {

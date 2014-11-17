@@ -42,71 +42,19 @@ extern "C" {
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-void init_mover(mover_t *state)
+void init_mover(mover_t *state, int screen_width, int screen_height)
 {
-    // Create circle buffers
-    create_mover_buffers(state);
+    state->screen_width = screen_width;
+    state->screen_height = screen_height;
 
     // Create shader programs
     create_sphere_mover_program(state);
 }
 
 // Update coordinates of point mover and then render
-void render_mover(float *center, float *gl_dims, float *color, mover_t *state)
+void render_mover(float *center, float radius, float *color, mover_t *state)
 {
-     // Set buffer
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-
-    float center_x = center[0];
-    float center_y = center[1];
-
-    float half_width = gl_dims[0]*0.5;
-    float half_height = gl_dims[1]*0.5;
-    // Triangle strip Verticies for rectangle that contains circle
-    float verts[4*4];
-
-    // Verticies = gl_x, gl_y, tex_x, tex_y
-
-    // Bottom left
-    verts[0] = center_x - half_width; 
-    verts[1] = center_y - half_height;
-    verts[2] = -1.0;
-    verts[3] = -1.0;
-    // Top left
-    verts[4] = center_x - half_width;
-    verts[5] = center_y + half_height;
-    verts[6] = -1.0;
-    verts[7] = 1.0;
-    // Bottom right
-    verts[8] = center_x + half_width;
-    verts[9] = center_y - half_height;
-    verts[10] = 1.0;
-    verts[11] = -1.0;
-    // Top right
-    verts[12] = center_x + half_width;
-    verts[13] = center_y + half_height;
-    verts[14] = 1.0;
-    verts[15] = 1.0;
-
-    // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), verts, GL_STREAM_DRAW);
-
-    // Unbind buffer
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    float radius = half_width;
     draw_circle_mover(state, center, radius, color);
-}
-
-void create_mover_buffers(mover_t *state)
-{
-    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Generate vertex buffer
-    glGenBuffers(1, &state->vbo);
 }
 
 // Compile sphere program
@@ -120,23 +68,24 @@ void create_sphere_mover_program(mover_t *state)
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     compile_shader(fragmentShader, "shaders/mover_circle.frag");
 
+    // Compile geometry shader
+    GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+    compile_shader(geometryShader, "shaders/mover_circle.geom");
+
     // Create shader program
     state->sphere_program = glCreateProgram();
     glAttachShader(state->sphere_program, vertexShader);
     glAttachShader(state->sphere_program, fragmentShader); 
+    glAttachShader(state->sphere_program, geometryShader);
 
     // Link and use program
     glLinkProgram(state->sphere_program);
     show_program_log(state->sphere_program);
 
-    // Get position location
-    state->sphere_position_location = glGetAttribLocation(state->sphere_program, "position");
-    state->sphere_tex_coord_location = glGetAttribLocation(state->sphere_program, "tex_coord");
-
     // Get color location
     state->sphere_color_location = glGetUniformLocation(state->sphere_program, "color");
     // Get radius location
-    state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "radius");
+    state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "sphereRadius");
     // Get center location
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
     // Get world to camera view matrix location
@@ -159,37 +108,27 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     glUniform3fv(state->sphere_color_location, 1, color);
 
     // set center uniform
-    glUniform2fv(state->sphere_center_location, 1, center);
+    glUniform3fv(state->sphere_center_location, 1, center);
 
     // Set view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 1.2f, 2.2f), // Eye position
-        glm::vec3(0.0f, -0.5f, 0.0f), // Looking at
+        glm::vec3(0.0f, 1.2f, 1.2f), // Eye position
+        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
 
     glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
 
     // Set projection matrix
-    float ratio = 1.0;//(float)state->screen_width/(float)state->screen_height;
+    float ratio = (float)state->screen_width/(float)state->screen_height;
     glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 
-    // Bind buffer
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-
-    // Setup verticies
-    glVertexAttribPointer(state->sphere_position_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), 0);
-    glVertexAttribPointer(state->sphere_tex_coord_location, 2, GL_FLOAT, GL_FALSE, 4*sizeof(GL_FLOAT), (void*)(2*sizeof(GLfloat)));
-    glEnableVertexAttribArray(state->sphere_position_location);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    // Unbind buffer
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawArrays(GL_POINTS, 0, 1);
 }
