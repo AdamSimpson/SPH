@@ -110,7 +110,7 @@ void main()
 
         Lgt.ambientIntensity= vec4(0.2, 0.2, 0.2, 1.0);
         Lgt.lightAttenuation = 1.0f / (25.0*25.0);
-        Lgt.light.cameraSpaceLightPos=vec4(50.0, 50.0, 0.1, 1.0);
+        Lgt.light.cameraSpaceLightPos=vec4(25.0, 25.0, 0.1, 1.0);
         Lgt.light.lightIntensity=vec4(0.6, 0.6, 0.6, 1.0);
 
 	vec3 cameraPos;

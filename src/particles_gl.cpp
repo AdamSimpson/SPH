@@ -139,7 +139,7 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 
     // Set view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 1.2f, 1.2f), // Eye position
+        glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );

@@ -112,7 +112,7 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
 
     // Set view matrix
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 1.2f, 1.2f), // Eye position
+        glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );

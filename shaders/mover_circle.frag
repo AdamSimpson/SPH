@@ -104,13 +104,13 @@ void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
 
 void main()
 {
-        Mtl.diffuseColor = vec4(sphereColor, 1);
-        Mtl.specularColor = vec4(0.8, 0.8, 0.8 ,0.8);
+        Mtl.diffuseColor = vec4(sphereColor, 0.8);
+        Mtl.specularColor = vec4(0.8, 0.8, 0.8 ,0.6);
         Mtl.specularShininess = 0.1;
 
         Lgt.ambientIntensity= vec4(0.2, 0.2, 0.2, 1.0);
         Lgt.lightAttenuation = 1.0f / (25.0*25.0);
-        Lgt.light.cameraSpaceLightPos=vec4(50.0, 50.0, 0.1, 1.0);
+        Lgt.light.cameraSpaceLightPos=vec4(25.0, 25.0, 0.1, 1.0);
         Lgt.light.lightIntensity=vec4(0.6, 0.6, 0.6, 1.0);
 
 	vec3 cameraPos;

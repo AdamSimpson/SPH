@@ -198,7 +198,7 @@ void start_renderer()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    float particle_diameter_pixels = gl_state.screen_width * 0.00825;
+    float particle_diameter_pixels = gl_state.screen_width * 0.0425;
     float liquid_particle_diameter_pixels = gl_state.screen_width * 0.015;
 
     MPI_Status status;
@@ -279,7 +279,7 @@ void start_renderer()
                                      render_state.master_params[0].mover_center_z,
                                      &mover_center[0], &mover_center[1], &mover_center[2]);
 
-        float mover_radius = render_state.master_params[0].mover_width/render_state.sim_width * 0.5f;
+        float mover_radius = render_state.master_params[0].mover_width/render_state.sim_width * 1.0f;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
