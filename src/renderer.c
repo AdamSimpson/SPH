@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "font_gl.h"
 #include "dividers_gl.h"
+#include "container_gl.h"
 #include "renderer.h"
 
 #ifdef BLINK1
@@ -77,6 +78,10 @@ void start_renderer()
     // Initialize background OpenGL state
     background_t background_state;
     init_background(&background_state, gl_state.screen_width, gl_state.screen_height);
+
+    // Init container OpenGL state
+    container_t container_state;
+    init_container(&container_state, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize node divider OpenGL state
     dividers_t dividers_state;
@@ -270,8 +275,8 @@ void start_renderer()
         glClearColor(0.15, 0.15, 0.15, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Draw background image
-//        draw_background(&background_state);
+        // Draw container image
+        draw_container(&container_state);
 
         // update mover
         sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x,
