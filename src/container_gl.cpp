@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include "fluid.h"
 #include "renderer.h"
@@ -81,35 +82,22 @@ void create_container_buffers(container_t *state)
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
 
-    // Generate element buffer
-    glGenBuffers(1, &state->ebo);
 }
 
 void create_container_vertices(container_t *state)
 {
     float vertices[] = {
-         // Full screen vertices
-        0.0, 0.0, -1.0,
-        0.0, 0.0, 1.0,
-        1.0, 0.0, -1.0,
-        1.0, 0.0, 1.0
+       // Full screen vertices
+      -1.0, -1.0, -1.0,
+      -1.0, -1.0, -0.6,
+       1.0, -1.0, -1.0,
+       1.0, -1.0, -0.6
     };
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 3*4*3*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-
-    // Elements
-    GLubyte elements[] = {
-        1, 0, 2,
-        3, 1, 2
-    };
-
-    // Set buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
-    // Fill buffer
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*3*sizeof(GLubyte), elements, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 }
 
 void init_container(container_t *state, int screen_width, int screen_height)
@@ -128,7 +116,7 @@ void init_container(container_t *state, int screen_width, int screen_height)
     create_container_vertices(state);
 }
 
-void draw_container(container_t *state)
+void render_container(container_t *state)
 {
     // Setup program
     glUseProgram(state->program);
@@ -136,15 +124,14 @@ void draw_container(container_t *state)
     // Setup buffers
     size_t vert_size = 3*sizeof(GL_FLOAT);
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->position_location, 2, GL_FLOAT, GL_FALSE, vert_size, 0);
+    glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
     glEnableVertexAttribArray(state->position_location);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->ebo);
 
     // set color uniform
     float color[] = {1.0, 1.0, 1.0, 1.0};
     glUniform4fv(state->color_location, 1, color);
 
-   // Set view matrix
+    // Set view matrix
     glm::mat4 view = glm::lookAt(
         glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
@@ -162,6 +149,11 @@ void draw_container(container_t *state)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+
     // Draw container
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    // Unbind buffer
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

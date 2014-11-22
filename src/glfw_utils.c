@@ -163,6 +163,10 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
+    // Hit at multisample
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    printf("Enabling multisample! \n");
+
     // Try to get full screen
     // Retina screen is a pain...
     GLFWvidmode *mode = (GLFWvidmode*)glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -183,6 +187,9 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
+
+    // Enable multisampling
+    glEnable( GL_MULTISAMPLE );
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);

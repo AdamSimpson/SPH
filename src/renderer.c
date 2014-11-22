@@ -276,7 +276,7 @@ void start_renderer()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw container image
-        draw_container(&container_state);
+        render_container(&container_state);
 
         // update mover
         sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x,
@@ -288,6 +288,8 @@ void start_renderer()
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
+
+        printf("%f, %f, %f\n", mover_center[0], mover_center[1], mover_center[2]);
 
         render_all_text(&font_state, &render_state, fps);
 

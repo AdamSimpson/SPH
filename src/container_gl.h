@@ -39,9 +39,6 @@ typedef struct container_t {
     // Vertex buffer
     GLuint vbo;
 
-    // Element buffer
-    GLuint ebo;
-
     GLint view_matrix_location;
     GLint proj_matrix_location;
 
@@ -62,7 +59,7 @@ void init_container(container_t *state, int screen_width, int screen_height);
 void create_container_program(container_t *state);
 void create_container_buffers(container_t *state);
 void create_container_vertices(container_t *state);
-void draw_container(container_t *state);
+void render_container(container_t *state);
 #ifdef __cplusplus
 }
 #endif
