@@ -279,9 +279,7 @@ void init_params(fluid_sim_t *fluid_sim)
     params->tunable_params.g = 10.0f;
     params->tunable_params.time_step = 1.0f/60.0f;
     params->tunable_params.k = 0.2f;
-    params->tunable_params.k_spring = 10.0f;
-    params->tunable_params.sigma = 5.0f;
-    params->tunable_params.beta = 0.5f;
+    params->tunable_params.c = 0.1;
     params->tunable_params.rest_density = 0.1;
     params->tunable_params.mover_width = 25.0f;
     params->tunable_params.mover_height = 25.0f;
@@ -289,7 +287,7 @@ void init_params(fluid_sim_t *fluid_sim)
     //params->tunable_params.time_step /= (float)steps_per_frame;
 
     // The number of particles used may differ slightly
-    params->number_fluid_particles_global = 800;
+    params->number_fluid_particles_global = 5000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -298,7 +296,7 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->boundary_global->min_y = 0.0f;
     fluid_sim->boundary_global->max_y = 20.0f;
     fluid_sim->boundary_global->min_z = 0.0f;
-    fluid_sim->boundary_global->max_z = 20.0f;
+    fluid_sim->boundary_global->max_z = 30.0f;
 
     // Receive aspect ratio to scale world y max
     short pixel_dims[2];
@@ -378,13 +376,13 @@ void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_pa
 
 void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_particles_x)
 {
-    // Fluid area in initial configuration
-    float area = (fluid_sim->water_volume_global->max_x - fluid_sim->water_volume_global->min_x) 
+    // Fluid volume in initial configuration
+    float volume = (fluid_sim->water_volume_global->max_x - fluid_sim->water_volume_global->min_x) 
                  * (fluid_sim->water_volume_global->max_y - fluid_sim->water_volume_global->min_y)
                  * (fluid_sim->water_volume_global->max_z - fluid_sim->water_volume_global->min_z);
 
     // Initial spacing between particles
-    float spacing_particle = pow(area/fluid_sim->params->number_fluid_particles_global,1.0/3.0);
+    float spacing_particle = pow(volume/fluid_sim->params->number_fluid_particles_global,1.0/3.0);
 
     // Divide problem set amongst nodes
     partition_geometry(fluid_sim, start_x, number_particles_x, spacing_particle);
@@ -399,9 +397,12 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
 
     // Smoothing radius, h
     fluid_sim->params->tunable_params.smoothing_radius = 2.0f*spacing_particle;
+    // Set dq, used in S_corr
+    fluid_sim->params->tunable_params.dq = 0.3*fluid_sim->params->tunable_params.smoothing_radius;
+
 
     // Particle mass is used to make density particle number inconsistant
-    fluid_sim->params->particle_mass = (area*fluid_sim->params->tunable_params.rest_density)/(float)fluid_sim->params->number_fluid_particles_global;
+    fluid_sim->params->particle_mass = (volume*fluid_sim->params->tunable_params.rest_density)/(float)fluid_sim->params->number_fluid_particles_global;
 
     // Send initial world dimensions and max particle count to render node
     int rank;

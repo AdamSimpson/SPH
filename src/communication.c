@@ -55,32 +55,30 @@ void create_MPI_types()
     int i; 
 
     // Create param type
-    for(i=0; i<16; i++) types[i] = MPI_FLOAT;
-    types[16] = MPI_CHAR;
-    types[17] = MPI_CHAR;
-    for (i=0; i<18; i++) blocklens[i] = 1;
+    for(i=0; i<14; i++) types[i] = MPI_FLOAT;
+    types[14] = MPI_CHAR;
+    types[15] = MPI_CHAR;
+    for (i=0; i<16; i++) blocklens[i] = 1;
     // Get displacement of each struct member
     disps[0] = offsetof( tunable_parameters_t, rest_density );
     disps[1] = offsetof( tunable_parameters_t, smoothing_radius );
     disps[2] = offsetof( tunable_parameters_t, g );
     disps[3] = offsetof( tunable_parameters_t, k );
-    disps[4] = offsetof( tunable_parameters_t, k_near );
-    disps[5] = offsetof( tunable_parameters_t, k_spring );
-    disps[6] = offsetof( tunable_parameters_t, sigma );
-    disps[7] = offsetof( tunable_parameters_t, beta );
-    disps[8] = offsetof( tunable_parameters_t, time_step );
-    disps[9] = offsetof( tunable_parameters_t, node_start_x );
-    disps[10] = offsetof( tunable_parameters_t, node_end_x );
-    disps[11] = offsetof( tunable_parameters_t, mover_center_x );
-    disps[12] = offsetof( tunable_parameters_t, mover_center_y );
-    disps[13] = offsetof( tunable_parameters_t, mover_center_z );
-    disps[14] = offsetof( tunable_parameters_t, mover_width );
-    disps[15] = offsetof( tunable_parameters_t, mover_height );
-    disps[16] = offsetof( tunable_parameters_t, kill_sim );
-    disps[17] = offsetof( tunable_parameters_t, active );
+    disps[4] = offsetof( tunable_parameters_t, dq );
+    disps[5] = offsetof( tunable_parameters_t, c );
+    disps[6] = offsetof( tunable_parameters_t, time_step );
+    disps[7] = offsetof( tunable_parameters_t, node_start_x );
+    disps[8] = offsetof( tunable_parameters_t, node_end_x );
+    disps[9] = offsetof( tunable_parameters_t, mover_center_x );
+    disps[10] = offsetof( tunable_parameters_t, mover_center_y );
+    disps[11] = offsetof( tunable_parameters_t, mover_center_z );
+    disps[12] = offsetof( tunable_parameters_t, mover_width );
+    disps[13] = offsetof( tunable_parameters_t, mover_height );
+    disps[14] = offsetof( tunable_parameters_t, kill_sim );
+    disps[15] = offsetof( tunable_parameters_t, active );
 
     // Commit type
-    MPI_Type_create_struct( 18, blocklens, disps, types, &TunableParamtype );
+    MPI_Type_create_struct( 16, blocklens, disps, types, &TunableParamtype );
     MPI_Type_commit( &TunableParamtype );
 }
 

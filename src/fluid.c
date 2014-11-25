@@ -316,7 +316,7 @@ void XSPH_viscosity(fluid_sim_t *fluid_sim)
     int i,j;
     uint p_index, q_index;
     neighbor_t *n;
-    float c = 0.1f;
+    float c = params->tunable_params.c;
 
     float x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff, r_mag, w;
 
@@ -366,7 +366,7 @@ void compute_densities(fluid_sim_t *fluid_sim)
     uint p_index, q_index;
     neighbor_t *n;
     float h = params->tunable_params.smoothing_radius;
-    float mass = params->particle_mass;
+    float mass = 1.0f;// Should just remove mass
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
@@ -507,7 +507,7 @@ void calculate_lambda(fluid_sim_t *fluid_sim)
             sum_C += (grad_x*grad_x + grad_y*grad_y + grad_z*grad_z);
         }
 
-        sum_C *= (1.0f/params->tunable_params.rest_density*params->tunable_params.rest_density);  
+        sum_C *= (1.0f/(params->tunable_params.rest_density*params->tunable_params.rest_density));  
 
         float epsilon = 1.0f;
         fluid_particles->lambda[p_index] = -Ci/(sum_C + epsilon);
@@ -535,8 +535,8 @@ void update_dp(fluid_sim_t *fluid_sim)
         float dp_y = 0.0f;
         float dp_z = 0.0f;
         float s_corr;
-        float k = 0.1f;
-        float dq = 0.3f*params->tunable_params.smoothing_radius;
+        float k = params->tunable_params.k;
+        float dq = params->tunable_params.dq;
         float Wdq = W(dq, params->tunable_params.smoothing_radius);
 
         for(j=0; j<n->number_fluid_neighbors; j++)

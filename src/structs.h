@@ -86,11 +86,12 @@ typedef struct NEIGHBOR_GRID_T {
 typedef enum {
     MIN = 0,
     GRAVITY = MIN,
-    VISCOSITY,
+    SMOOTH,
     DENSITY,
-    PRESSURE,
-    ELASTICITY,
-    MAX = ELASTICITY
+    K,
+    DQ,
+    VISCOSITY,
+    MAX = VISCOSITY
 } parameters;
 
 // These parameters are tunable by the render node
@@ -99,10 +100,8 @@ typedef struct TUNABLE_PARAMETERS_T {
     float smoothing_radius;
     float g;
     float k;
-    float k_near;
-    float k_spring;
-    float sigma;
-    float beta;
+    float dq;
+    float c;
     float time_step;
     float node_start_x;
     float node_end_x;

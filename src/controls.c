@@ -49,17 +49,20 @@ void increase_parameter(render_t *render_state)
         case GRAVITY:
             increase_gravity(render_state);
             break;
-        case VISCOSITY:
-            increase_viscosity(render_state);
+        case SMOOTH:
+            increase_smoothing_radius(render_state);
             break;
         case DENSITY:
             increase_density(render_state);
             break;
-        case PRESSURE:
-            increase_pressure(render_state);
+        case K:
+            increase_k(render_state);
             break;
-         case ELASTICITY:
-            increase_elasticity(render_state);
+        case DQ:
+            increase_dq(render_state);
+            break;
+         case VISCOSITY:
+            increase_viscosity(render_state);
             break;
     }
 }
@@ -70,17 +73,20 @@ void decrease_parameter(render_t *render_state)
         case GRAVITY:
             decrease_gravity(render_state);
             break;
-        case VISCOSITY:
-            decrease_viscosity(render_state);
+        case SMOOTH:
+            decrease_smoothing_radius(render_state);
             break;
         case DENSITY:
             decrease_density(render_state);
             break;
-        case PRESSURE:
-            decrease_pressure(render_state);
+        case K:
+            decrease_k(render_state);
             break;
-        case ELASTICITY:
-            decrease_elasticity(render_state);
+        case DQ:
+            decrease_dq(render_state);
+            break;
+        case VISCOSITY:
+            decrease_viscosity(render_state);
             break;
     }
 }
@@ -112,115 +118,156 @@ void decrease_gravity(render_t *render_state)
 // Increase density parameter
 void increase_density(render_t *render_state)
 {
-    static const float max_dens = 150.0f;
+    static const float max_dens = 5.0f;
     if(render_state->master_params[0].rest_density >= max_dens)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].rest_density += 5.0f;
+        render_state->master_params[i].rest_density += 0.01f;
 }
 
 // Decreate gravity parameter
 void decrease_density(render_t *render_state)
 {
-    static const float min_dens = 0.0f;
+    static const float min_dens = -5.0f;
     if(render_state->master_params[0].rest_density <= min_dens)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].rest_density -= 5.0f;
+        render_state->master_params[i].rest_density -= 0.01f;
 }
+
+// Decreate smoothing_radius parameter
+// Deal with multiples of the particle spacing
+void decrease_smoothing_radius(render_t *render_state)
+{
+    printf("smoothing radius parameter change needs changed!\n");
+    float spacing = 1.0;
+    float min_radius = -5.0f*spacing;
+    float radius = render_state->master_params[0].smoothing_radius;
+
+    if(radius <= min_radius)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].smoothing_radius -= (0.1f*spacing);
+    }
+}
+
+// Increase smoothing_radius parameter
+// Deal with multiples of the particle spacing
+void increase_smoothing_radius(render_t *render_state)
+{
+    printf("smoothing radius parameter change needs changed!\n");
+    float spacing = 1.0;
+    float max_radius = 5.0f*spacing;
+    float radius = render_state->master_params[0].smoothing_radius;
+
+    if(radius >= max_radius)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].smoothing_radius += (0.1f*spacing);
+    }
+}
+
+// Decreate dq parameter
+// Deal with multiples of the smoothing radius
+void decrease_dq(render_t *render_state)
+{
+    float smoothing_radius = render_state->master_params[0].smoothing_radius;
+    float min_dq = 0.0f;
+    float dq = render_state->master_params[0].dq;
+
+    if(dq <= min_dq)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].dq -= (0.05f*smoothing_radius);
+    }
+}
+
+// Increase dq parameter
+// Deal with multiples of the smoothing radius
+void increase_dq(render_t *render_state)
+{
+    float smoothing_radius = render_state->master_params[0].smoothing_radius;
+    float max_dq = 1.0f*smoothing_radius;
+    float dq = render_state->master_params[0].dq;
+
+    if(dq >= max_dq)
+        return;
+
+    int i;
+    for(i=0; i<render_state->num_compute_procs; i++) {
+        render_state->master_params[i].dq += (0.05f*smoothing_radius);
+    }
+}
+
 
 // Increase viscosity parameter
 void increase_viscosity(render_t *render_state)
 {
     static const float max_viscosity = 100.0f;
-    float viscosity = render_state->master_params[0].sigma;
+    float viscosity = render_state->master_params[0].c;
 
     if(viscosity > max_viscosity)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].sigma += 5.0f;
-        render_state->master_params[i].beta += 0.5f;
+        render_state->master_params[i].c += 0.05f;
     }
 }
 
 // Decreate viscosity parameter
 void decrease_viscosity(render_t *render_state)
 {
-    static const float min_viscosity = 0.0f;
-    float viscosity = render_state->master_params[0].sigma;
+    static const float min_viscosity = -100.0f;
+    float viscosity = render_state->master_params[0].c;
 
     if(viscosity <= min_viscosity)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].sigma -= 5.0f;
-        render_state->master_params[i].beta -= 0.5f;
+        render_state->master_params[i].c -= 0.05f;
     }
 }
 
-// Increase pressure parameter
-void increase_pressure(render_t *render_state)
+// Increase k parameter
+void increase_k(render_t *render_state)
 {
-    static const float max_pressure = 1.0f;
-    float pressure = render_state->master_params[0].k;
-    float pressure_near = render_state->master_params[0].k_near;
+    static const float max_k = 5.0f;
+    float k = render_state->master_params[0].k;
 
-    if(pressure > max_pressure)
+    if(k >= max_k)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].k += 0.1f;
-        render_state->master_params[i].k_near += 0.5f;
+        render_state->master_params[i].k += 0.05f;
     }
 }
 
-// Decreate pressure parameter
-void decrease_pressure(render_t *render_state)
+// Decreate k parameter
+void decrease_k(render_t *render_state)
 {
-    static const float min_pressure = 0.0f;
-    float pressure = render_state->master_params[0].k;
-    float pressure_near = render_state->master_params[0].k_near;
+    static const float min_k = -5.0f;
+    float k = render_state->master_params[0].k;
 
-    if(pressure <= min_pressure)
+    if(k <= min_k)
         return;
 
     int i;
     for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].k -= 0.1f;
-        render_state->master_params[i].k_near -= 0.5f;
+        render_state->master_params[i].k -= 0.05f;
     }
-}
-
-// Increase elasticity parameter
-void increase_elasticity(render_t *render_state)
-{
-    static const float max_elast = 200.0f;
-    if(render_state->master_params[0].k_spring > max_elast)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].k_spring += 5.0f;
-}
-
-// Decreate elasticity parameter
-void decrease_elasticity(render_t *render_state)
-{
-    static const float min_elast = -50.0f;
-    if(render_state->master_params[0].k_spring < min_elast)
-        return;
-
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->master_params[i].k_spring -= 5.0f;
 }
 
 // Set center of mover, input is openGL coordinates
@@ -322,10 +369,6 @@ void set_fluid_x(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].g = 6.0f;
         render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].k_near = 6.0f;
-        render_state->master_params[i].k_spring = 10.0f;
-        render_state->master_params[i].sigma = 5.0f;
-        render_state->master_params[i].beta = 0.5f;
         render_state->master_params[i].rest_density = 30.0f;  
     }
 }
@@ -337,10 +380,6 @@ void set_fluid_y(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].g = 6.0f;
         render_state->master_params[i].k = 0.1f;
-        render_state->master_params[i].k_near = 3.0f;
-        render_state->master_params[i].k_spring = -30.0f;
-        render_state->master_params[i].sigma = 100.0f;
-        render_state->master_params[i].beta = 10.0f;
         render_state->master_params[i].rest_density = 30.0f;
     }
 }
@@ -352,10 +391,6 @@ void set_fluid_a(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].g = 0.0f;
         render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].k_near = 6.0f;
-        render_state->master_params[i].k_spring = 10.0f;
-        render_state->master_params[i].sigma = 20.0f;
-        render_state->master_params[i].beta = 2.0f;
         render_state->master_params[i].rest_density = 55.0f;
     }
 }
@@ -367,10 +402,6 @@ void set_fluid_b(render_t *render_state)
     for(i=0; i<render_state->num_compute_procs; i++) {
         render_state->master_params[i].g = 6.0f;
         render_state->master_params[i].k = 0.0f;
-        render_state->master_params[i].k_near = 0.0f;
-        render_state->master_params[i].k_spring = 115.0f;
-        render_state->master_params[i].sigma = 20.0f;
-        render_state->master_params[i].beta = 2.0f;
         render_state->master_params[i].rest_density = 0.0f;
     }
 }

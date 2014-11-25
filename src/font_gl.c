@@ -280,13 +280,14 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 	float sy = 2.0f / state->screen_height;
 
 	parameters selected_param = render_state->selected_parameter;
-	float gravity, viscosity, density, pressure, elasticity;
+	float gravity, viscosity, density, k, dq, smooth;
 
 	gravity = render_state->master_params[0].g;
-	viscosity = render_state->master_params[0].sigma;
+	viscosity = render_state->master_params[0].c;
 	density = render_state->master_params[0].rest_density;
-	pressure = render_state->master_params[0].k;
-	elasticity = render_state->master_params[0].k_spring;
+	k = render_state->master_params[0].k;
+	dq = render_state->master_params[0].dq;
+        smooth = render_state->master_params[0].smoothing_radius;
 
 	float unselected_color[3] = {1.0f ,1.0f, 1.0f};
 	float selected_color[3]   = {0.1f, 0.80f, 0.43f};  
@@ -305,39 +306,48 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
-
-	// Viscocity
-	sprintf( buffer, "Viscosity: %.1f", viscosity);
-	if(selected_param == VISCOSITY)
-		color = selected_color;
-	else
-		color = unselected_color;
 	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
 
-	// Density
-	sprintf( buffer, "Density: %.1f", density);
-	if(selected_param == DENSITY)
-		color = selected_color;
-	else
-		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+        // Smoothing
+        sprintf( buffer, "smooth: %.2f", smooth);
+        if(selected_param == SMOOTH)
+                color = selected_color;
+        else
+                color = unselected_color;
+        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
 
-	// Pressure
-	sprintf( buffer, "Pressure: %.1f", pressure);
-	if(selected_param == PRESSURE)
+	// Density
+	sprintf( buffer, "Density: %.2f", density);
+	if(selected_param == DENSITY)
 		color = selected_color;
 	else
 		color = unselected_color;
 	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
 
-	// Elasticity
-	sprintf( buffer, "Elasticity: %.1f", elasticity);
-	if(selected_param == ELASTICITY)
+	// K
+	sprintf( buffer, "K: %.2f", k);
+	if(selected_param == K)
 		color = selected_color;
 	else
 		color = unselected_color;
 	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+
+	// DQ
+	sprintf( buffer, "dq: %.2f", dq);
+	if(selected_param == DQ)
+		color = selected_color;
+	else
+		color = unselected_color;
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 300.0f * sy, sx, sy);
+
+       // Viscocity
+        sprintf( buffer, "Viscosity: %.2f", viscosity);
+        if(selected_param == VISCOSITY)
+                color = selected_color;
+        else
+                color = unselected_color;
+        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 350.0f * sy, sx, sy);
+
 
 	// Orphan buffer
 	glBufferData(GL_ARRAY_BUFFER, n*sizeof(text_vert_t), NULL, GL_STREAM_DRAW);
