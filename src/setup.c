@@ -279,7 +279,7 @@ void init_params(fluid_sim_t *fluid_sim)
     params->tunable_params.g = 10.0f;
     params->tunable_params.time_step = 1.0f/60.0f;
     params->tunable_params.k = 0.2f;
-    params->tunable_params.c = 0.1;
+    params->tunable_params.c = 0.01;
     params->tunable_params.rest_density = 0.1;
     params->tunable_params.mover_width = 25.0f;
     params->tunable_params.mover_height = 25.0f;
@@ -294,7 +294,7 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->boundary_global->min_x = 0.0f;
     fluid_sim->boundary_global->max_x = 100.0f;
     fluid_sim->boundary_global->min_y = 0.0f;
-    fluid_sim->boundary_global->max_y = 20.0f;
+    fluid_sim->boundary_global->max_y = 40.0f;
     fluid_sim->boundary_global->min_z = 0.0f;
     fluid_sim->boundary_global->max_z = 30.0f;
 
@@ -308,8 +308,8 @@ void init_params(fluid_sim_t *fluid_sim)
     // water volume
     fluid_sim->water_volume_global->min_x = 10.0f;
     fluid_sim->water_volume_global->max_x = fluid_sim->boundary_global->max_x-10.0f;
-    fluid_sim->water_volume_global->min_y = 5.0f;
-    fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-5.0f;
+    fluid_sim->water_volume_global->min_y = 15.0f;
+    fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-15.0f;
     fluid_sim->water_volume_global->min_z = 5.0f;
     fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-5.0f;
 
