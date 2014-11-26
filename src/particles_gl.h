@@ -35,8 +35,7 @@ typedef struct particles_t {
     GLint position_location;
     GLint color_location;
     GLint sphere_radius_location;
-    GLint view_matrix_location;
-    GLint proj_matrix_location;
+    GLint global_matrix_index;
 
     // Screen dimensions
     int screen_width;
@@ -45,6 +44,9 @@ typedef struct particles_t {
     // Vertex objects
     GLuint vbo;
     GLuint vao;
+    
+    // Uniform objects
+    GLuint ubo;
 } particles_t;
 
 // This gets compiled by both c and c++ compilers

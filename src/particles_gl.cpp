@@ -43,6 +43,8 @@ extern "C" {
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
+static const int g_iGlobalMatricesBindingIndex = 0;
+
 extern "C" void init_particles(particles_t *state, int screen_width, int screen_height)
 {
     state->screen_width = screen_width;
@@ -116,10 +118,8 @@ void create_particle_shaders(particles_t *state)
     state->color_location = glGetAttribLocation(state->program, "color");
     // Get radius location
     state->sphere_radius_location = glGetUniformLocation(state->program, "sphereRadius");
-    // Get world to camera view matrix location
-    state->view_matrix_location = glGetUniformLocation(state->program, "view");
-    // Get camera to clip  projection matrix location
-    state->proj_matrix_location = glGetUniformLocation(state->program, "proj");
+    // Get global matrix index
+    state->global_matrix_index = glGetUniformBlockIndex(state->program, "GlobalMatrices");
 
     // Setup VAO
     glBindVertexArray(state->vao);
@@ -142,18 +142,26 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Set radius uniform
     glUniform1f(state->sphere_radius_location, (GLfloat)diameter_pixels/state->screen_width/2.0f);
 
-    // Set view matrix
+
+    // Set global matrices
+    glGenBuffers(1,&state->ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, state->ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
+    // view matric
     glm::mat4 view = glm::lookAt(
         glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
         glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
-    glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
-
     // Set projection matrix
     float ratio = (float)state->screen_width/(float)state->screen_height;
     glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
-    glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
+
+    // Set uniform binding
+    glUniformBlockBinding(state->program, state->global_matrix_index, g_iGlobalMatricesBindingIndex);
+    glBindBufferRange(GL_UNIFORM_BUFFER, state->global_matrix_index, state->ubo, 0, sizeof(glm::mat4) * 2);
 
     // Enable VAO
     glBindVertexArray(state->vao);

@@ -1,5 +1,11 @@
 #version 330
 
+layout(std140) uniform GlobalMatrices
+{
+    mat4 worldToCameraMatrix;
+    mat4 cameraToClip;
+};
+
 in FragData
 {
     flat vec3 cameraSpherePos;
@@ -40,7 +46,6 @@ float CalcAttenuation(in vec3 cameraSpacePosition,
 	return (1 / ( 1.0 + Lgt.lightAttenuation * lightDistanceSqr));
 }
 
-uniform mat4 proj;
 uniform float sphereRadius;
 
 vec4 ComputeLighting(in PerLight lightData, in vec3 cameraSpacePosition,
@@ -119,7 +124,7 @@ void main()
 	Impostor(cameraPos, cameraNormal);
 	
 	//Set the depth based on the new cameraPos.
-	vec4 clipPos = proj * vec4(cameraPos, 1.0);
+	vec4 clipPos = cameraToClip * vec4(cameraPos, 1.0);
 	float ndcDepth = clipPos.z / clipPos.w;
 	gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
 	

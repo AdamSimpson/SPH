@@ -2,7 +2,11 @@
 in vec3 position;
 in vec3 color;
 
-uniform mat4 view;
+layout(std140) uniform GlobalMatrices
+{
+    mat4 worldToCameraMatrix;
+    mat4 cameraToClip;
+};
 
 out VertexData
 {
@@ -11,7 +15,7 @@ out VertexData
 } outData;
 
 void main() {
-   outData.cameraSpherePos = (view*vec4(position, 1.0)).xyz;
+   outData.cameraSpherePos = (worldToCameraMatrix*vec4(position, 1.0)).xyz;
    outData.sphereColor = color;
 }
 
