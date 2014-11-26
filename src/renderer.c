@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "fluid.h"
 #include "font_gl.h"
 #include "container_gl.h"
+#include "world_gl.h"
 #include "renderer.h"
 
 #ifdef BLINK1
@@ -55,6 +56,10 @@ void start_renderer()
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
+
+    // Initialize "world" OpenGL state
+    world_t world_GLstate;
+    init_world(&world_GLstate, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
