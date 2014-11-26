@@ -26,16 +26,13 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include "particles_gl.h"
-#include "liquid_gl.h"
-#include "mover_gl.h"
-#include "background_gl.h"
 #include "mpi.h"
 #include "setup.h"
+#include "mover_gl.h"
 #include "communication.h"
 #include "controls.h"
 #include "fluid.h"
 #include "font_gl.h"
-#include "dividers_gl.h"
 #include "container_gl.h"
 #include "renderer.h"
 
@@ -63,10 +60,6 @@ void start_renderer()
     particles_t particle_GLstate;
     init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
 
-    // Initialize liquid OpenGL state
-    liquid_t liquid_GLstate;
-    init_liquid(&liquid_GLstate, gl_state.screen_width, gl_state.screen_height);
-
     // Initialize mover OpenGL state
     mover_t mover_GLstate;
     init_mover(&mover_GLstate, gl_state.screen_width, gl_state.screen_height);
@@ -75,17 +68,9 @@ void start_renderer()
     font_t font_state;
     init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
 
-    // Initialize background OpenGL state
-    background_t background_state;
-    init_background(&background_state, gl_state.screen_width, gl_state.screen_height);
-
     // Init container OpenGL state
     container_t container_state;
     init_container(&container_state, gl_state.screen_width, gl_state.screen_height);
-
-    // Initialize node divider OpenGL state
-    dividers_t dividers_state;
-    init_dividers(&dividers_state, gl_state.screen_width, gl_state.screen_height);
 
     // Initialize RGB Light if present
     #if defined BLINK1
@@ -293,57 +278,31 @@ void start_renderer()
 
         render_all_text(&font_state, &render_state, fps);
 
-        if(render_state.show_dividers)
-        {
-            // Convert node start/end parameters into GL coordinates and render
-            for(i=0; i<render_state.num_compute_procs_active; i++)
-            {
-                float start_gl_x, end_gl_x;
-                float null_y;
-//                sim_to_opengl(&render_state, node_params[i].node_start_x, 0.0, &start_gl_x, &null_y);
-//                sim_to_opengl(&render_state, node_params[i].node_end_x, 0.0, &end_gl_x, &null_y);
-                node_edges[2*i] = start_gl_x;
-                node_edges[2*i+1] = end_gl_x;
-            }
-            render_dividers(&dividers_state, node_edges, colors_by_rank, render_state.num_compute_procs_active);
-        }
-
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
 
-        // Render liquid or particles
-        if(render_state.liquid) {
-            // Create points array (x,y)
-            for(j=0; j<coords_recvd/3; j++) {
-                points[(j*2)] = particle_coords[j*3]/(float)SHRT_MAX;
-                points[(j*2)+1] = particle_coords[(j*3)+2]/(float)SHRT_MAX;
+        // Create points array (x,y,r,g,b)
+        i = 0;
+        current_rank = particle_coordinate_ranks[i];
+        // j == coordinate pair
+        for(j=0, num_parts=1; j<coords_recvd/3; j++, num_parts++) {
+             // Check if we are processing a new rank's particles
+             if ( num_parts > particle_coordinate_counts[current_rank]/3){
+                current_rank =  particle_coordinate_ranks[++i];
+                num_parts = 1;
+                // Find next rank with particles if current_rank has 0 particles
+                while(!particle_coordinate_counts[current_rank])
+                    current_rank = particle_coordinate_ranks[++i];
             }
-            render_liquid(points, liquid_particle_diameter_pixels, coords_recvd/3, &liquid_GLstate);
+            points[j*6]   = particle_coords[j*3]/(float)SHRT_MAX;
+            points[j*6+1] = particle_coords[j*3+1]/(float)SHRT_MAX;
+            points[j*6+2] = particle_coords[j*3+2]/(float)SHRT_MAX;
+            points[j*6+3] = colors_by_rank[3*current_rank];
+            points[j*6+4] = colors_by_rank[3*current_rank+1];
+            points[j*6+5] = colors_by_rank[3*current_rank+2];
         }
-        else {
-            // Create points array (x,y,r,g,b)
-            i = 0;
-            current_rank = particle_coordinate_ranks[i];
-            // j == coordinate pair
-            for(j=0, num_parts=1; j<coords_recvd/3; j++, num_parts++) {
-                 // Check if we are processing a new rank's particles
-                 if ( num_parts > particle_coordinate_counts[current_rank]/3){
-                    current_rank =  particle_coordinate_ranks[++i];
-                    num_parts = 1;
-                    // Find next rank with particles if current_rank has 0 particles
-                    while(!particle_coordinate_counts[current_rank])
-                        current_rank = particle_coordinate_ranks[++i];
-                }
-                points[j*6]   = particle_coords[j*3]/(float)SHRT_MAX;
-                points[j*6+1] = particle_coords[j*3+1]/(float)SHRT_MAX;
-                points[j*6+2] = particle_coords[j*3+2]/(float)SHRT_MAX;
-                points[j*6+3] = colors_by_rank[3*current_rank];
-                points[j*6+4] = colors_by_rank[3*current_rank+1];
-                points[j*6+5] = colors_by_rank[3*current_rank+2];
-            }
 
-            render_particles(points, particle_diameter_pixels, coords_recvd/3, &particle_GLstate);
-        }
+        render_particles(points, particle_diameter_pixels, coords_recvd/3, &particle_GLstate);
 
         // Render over particles to hide penetration
         render_mover(mover_center, mover_radius, mover_color, &mover_GLstate);

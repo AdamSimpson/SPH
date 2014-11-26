@@ -73,8 +73,9 @@ typedef struct font_t
     // Uniforms
     GLuint tex_uniform;
 
-    // VBO
+    // Vertex objects
     GLuint vbo;
+    GLuint vao;
 
     int screen_width;
     int screen_height;

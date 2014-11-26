@@ -54,6 +54,8 @@ void create_font_program(font_t *state)
     glLinkProgram(state->program);
     show_program_log(state->program);
 
+    glUseProgram(state->program);
+
     // Get coord attribute location
     state->coord_location = glGetAttribLocation(state->program, "coord");
     // Get color attribute location
@@ -61,18 +63,22 @@ void create_font_program(font_t *state)
     // Get tex uniform location
     state->tex_location = glGetUniformLocation(state->program, "tex");
 
-    // Enable blend
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Setup VAO
+    glBindVertexArray(state->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(state->coord_location);
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(4*sizeof(GLfloat)));
+    glEnableVertexAttribArray(state->color_location);
 
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 void create_font_buffers(font_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(1, &state->vao);
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -170,49 +176,6 @@ void create_font_atlas(font_t *state)
     }
 } 
 
-// Render single string
-// Assumes arrays and program already steup
-void render_text(font_t *state, char *text, float x, float y, float sx, float sy)
-{
-	text_vert_t verts[6*strlen(text)];
-
-	int n = 0;
-
-	char_info_t *c = state->char_info;
-
-	char *p;
-	for(p = text; *p; p++) {
-		float x2 = x + c[*p].bl * sx;
-		float y2 = -y - c[*p].bt * sy;
-		float w = c[*p].bw * sx;
-		float h = c[*p].bh * sy;
-
-		// Advance cursor to start of next char
-		x += c[*p].ax * sx;
-		y += c[*p].ay * sy;
-
-		// Skip 0 pixel glyphs
-		if(!w || !h)
-			continue;
-
-		verts[n++] = (text_vert_t){x2, -y2, c[*p].tx, c[*p].ty, 1, 1, 1};
-		verts[n++] = (text_vert_t){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, 1, 1, 1};
-		verts[n++] = (text_vert_t){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
-		verts[n++] = (text_vert_t){x2+w, -y2, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty, 1, 1, 1};
-		verts[n++] = (text_vert_t){x2, -y2-h, c[*p].tx, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
-		verts[n++] = (text_vert_t){x2 + w, -y2-h, c[*p].tx + c[*p].bw/state->atlas_width, c[*p].ty + c[*p].bh/state->atlas_height, 1, 1, 1};
-	}
-
-	// Orphan buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), NULL, GL_STREAM_DRAW);
-
-	// Buffer vertices
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STREAM_DRAW);
-
-	// Draw text
-	glDrawArrays(GL_TRIANGLES, 0, n);
-}
-
 // Add text coordinates to be rendered later
 // This allows multiple strings to be rendered with a single buffer and draw
 int add_text_coords(font_t *state, char *text, text_vert_t* verts, float *color, float x, float y, float sx, float sy)
@@ -256,10 +219,10 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 {
 	// Setup environment
 	glUseProgram(state->program);
-	glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-	glVertexAttribPointer(state->coord_location, 4, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), 0);
-	glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 7*sizeof(GLfloat), (void*)(4*sizeof(GLfloat)));
-	glEnableVertexAttribArray(state->coord_location);
+
+        // Bind VAO
+        glBindVertexArray(state->vao);
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, state->tex_uniform);
 	glUniform1i(state->tex_location, 0);
@@ -306,7 +269,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 50.0f * sy, sx, sy);
 
         // Smoothing
         sprintf( buffer, "smooth: %.2f", smooth);
@@ -314,7 +277,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
                 color = selected_color;
         else
                 color = unselected_color;
-        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
+        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 100.0f * sy, sx, sy);
 
 	// Density
 	sprintf( buffer, "Density: %.2f", density);
@@ -322,7 +285,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 150.0f * sy, sx, sy);
 
 	// K
 	sprintf( buffer, "K: %.2f", k);
@@ -330,7 +293,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 200.0f * sy, sx, sy);
 
 	// DQ
 	sprintf( buffer, "dq: %.2f", dq);
@@ -338,7 +301,7 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 		color = selected_color;
 	else
 		color = unselected_color;
-	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 300.0f * sy, sx, sy);
+	n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 250.0f * sy, sx, sy);
 
        // Viscocity
         sprintf( buffer, "Viscosity: %.2f", viscosity);
@@ -346,10 +309,10 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
                 color = selected_color;
         else
                 color = unselected_color;
-        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 350.0f * sy, sx, sy);
-
+        n += add_text_coords(state, buffer, verts + n, color, -1.0f + 8.0f * sx, 1.0f - 300.0f * sy, sx, sy);
 
 	// Orphan buffer
+        glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
 	glBufferData(GL_ARRAY_BUFFER, n*sizeof(text_vert_t), NULL, GL_STREAM_DRAW);
 
 	// Buffer vertices
@@ -357,6 +320,9 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 
 	// Draw text
 	glDrawArrays(GL_TRIANGLES, 0, n);
+
+        glBindVertexArray(0);
+        glUseProgram(0);
 }
 
 // Setup freetype font
@@ -381,8 +347,8 @@ void init_font(font_t *state, int screen_width, int screen_height)
 	FT_Set_Pixel_Sizes(state->face, 0, 24);
 
 	// Setup OpenGL
+        create_font_buffers(state);
 	create_font_program(state);
-	create_font_buffers(state);
 	create_font_atlas(state);
 }
 

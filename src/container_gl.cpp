@@ -62,6 +62,9 @@ void create_container_program(container_t *state)
     glLinkProgram(state->program);
     show_program_log(state->program);
 
+    // Enable program
+    glUseProgram(state->program);
+
     // Get position attribute location
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get color uniform location
@@ -70,18 +73,25 @@ void create_container_program(container_t *state)
     state->view_matrix_location = glGetUniformLocation(state->program, "view");
     // Get camera to clip  projection matrix location
     state->proj_matrix_location = glGetUniformLocation(state->program, "proj");
+
+    // Setup buffers
+    glBindVertexArray(state->vao);    
+    size_t vert_size = 3*sizeof(GL_FLOAT);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
+    glEnableVertexAttribArray(state->position_location);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
 }
 
 void create_container_buffers(container_t *state)
 {
     // VAO is required for OpenGL 3+ when using VBO I believe
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glGenVertexArrays(1, &state->vao);
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
-
 }
 
 void create_container_vertices(container_t *state)
@@ -149,11 +159,10 @@ void render_container(container_t *state)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-
     // Draw container
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 }

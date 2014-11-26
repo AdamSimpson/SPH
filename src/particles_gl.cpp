@@ -77,10 +77,8 @@ extern "C" void render_particles(float *points, float diameter_pixels, int num_p
 
 void create_particle_buffers(particles_t *state)
 {
-    // VAO is REQUIRED for OpenGL 3+ when using VBO I believe
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    // VAO
+    glGenVertexArrays(1, &state->vao);
 
     // Generate vertex buffer
     glGenBuffers(1, &state->vbo);
@@ -110,6 +108,8 @@ void create_particle_shaders(particles_t *state)
     glLinkProgram(state->program);
     show_program_log(state->program);
 
+    glUseProgram(state->program);
+
     // Get position location
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get tex_coord location
@@ -121,12 +121,17 @@ void create_particle_shaders(particles_t *state)
     // Get camera to clip  projection matrix location
     state->proj_matrix_location = glGetUniformLocation(state->program, "proj");
 
-    // Enable point size to be specified in the shader
-//    glEnable(GL_PROGRAM_POINT_SIZE);
+    // Setup VAO
+    glBindVertexArray(state->vao);
 
-//   GLfloat fSizes[2];
-//   glGetFloatv(GL_POINT_SIZE_RANGE,fSizes);
-//   printf("min: %f, max: %f\n", fSizes[0], fSizes[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
+    glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GL_FLOAT), 0);
+    glEnableVertexAttribArray(state->position_location);
+    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GL_FLOAT),(void*)(3*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->color_location);
+    
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 void draw_particles(particles_t *state, float diameter_pixels, int num_points)
@@ -150,13 +155,8 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 
-    // Set buffer
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-
-    glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GL_FLOAT), 0);
-    glEnableVertexAttribArray(state->position_location);
-    glVertexAttribPointer(state->color_location, 3, GL_FLOAT, GL_FALSE, 6*sizeof(GL_FLOAT),(void*)(3*sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(state->color_location);
+    // Enable VAO
+    glBindVertexArray(state->vao);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
@@ -164,4 +164,8 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
 
     // Draw
     glDrawArrays(GL_POINTS, 0, num_points);
+
+    // Unbind VAO and program
+    glBindVertexArray(0);
+    glUseProgram(0);
 }

@@ -47,9 +47,19 @@ void init_mover(mover_t *state, int screen_width, int screen_height)
     state->screen_width = screen_width;
     state->screen_height = screen_height;
 
+    // Create VAO
+    create_mover_buffers(state);
+
     // Create shader programs
     create_sphere_mover_program(state);
 }
+
+void create_mover_buffers(mover_t *state)
+{
+    // VAO
+    glGenVertexArrays(1, &state->vao);
+}
+
 
 // Update coordinates of point mover and then render
 void render_mover(float *center, float radius, float *color, mover_t *state)
@@ -97,9 +107,9 @@ void create_sphere_mover_program(mover_t *state)
 
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
 {
-
     // Bind sphere shader program
     glUseProgram(state->sphere_program);
+
 
     // set radius uniform
     glUniform1f(state->sphere_radius_location, radius);
@@ -124,10 +134,12 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
     glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
 
-
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Enable VAO
+    glBindVertexArray(state->vao);
 
     // Draw
     glDrawArrays(GL_POINTS, 0, 1);

@@ -42,8 +42,9 @@ typedef struct particles_t {
     int screen_width;
     int screen_height;
 
-    // buffers
+    // Vertex objects
     GLuint vbo;
+    GLuint vao;
 } particles_t;
 
 // This gets compiled by both c and c++ compilers
