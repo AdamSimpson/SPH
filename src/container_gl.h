@@ -36,12 +36,11 @@ typedef struct container_t {
     // Uniforms
     GLuint color_location;
 
+    GLint global_matrix_index;
+
     // Vertex objects
     GLuint vbo;
     GLuint vao;
-
-    GLint view_matrix_location;
-    GLint proj_matrix_location;
 
     // Pixel dimensions
     int screen_width;
@@ -50,6 +49,9 @@ typedef struct container_t {
     float width;
     float height;
     float depth;
+
+    // Uniform objects
+    GLuint ubo;
 } container_t;
 
 // This gets compiled by both c and c++ compilers

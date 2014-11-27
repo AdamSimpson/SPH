@@ -34,6 +34,7 @@ extern "C" {
 #endif
 #include "ogl_utils.h"
 #include "glfw_utils.h"
+#include "world_gl.h"
 #ifdef __cplusplus
 }
 #endif
@@ -69,10 +70,8 @@ void create_container_program(container_t *state)
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get color uniform location
     state->color_location = glGetUniformLocation(state->program, "color");
-    // Get world to camera view matrix location
-    state->view_matrix_location = glGetUniformLocation(state->program, "view");
-    // Get camera to clip  projection matrix location
-    state->proj_matrix_location = glGetUniformLocation(state->program, "proj");
+    // Get global matrix index
+    state->global_matrix_index = glGetUniformBlockIndex(state->program, "GlobalMatrices");
 
     // Setup buffers
     glBindVertexArray(state->vao);    
@@ -141,19 +140,8 @@ void render_container(container_t *state)
     float color[] = {1.0, 1.0, 1.0, 1.0};
     glUniform4fv(state->color_location, 1, color);
 
-    // Set view matrix
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
-        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
-        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
-    );
-
-    glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
-
-    // Set projection matrix
-    float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
-    glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
+    // Set uniform binding
+    glUniformBlockBinding(state->program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
 
     // Disable Blend
     glEnable(GL_BLEND);
