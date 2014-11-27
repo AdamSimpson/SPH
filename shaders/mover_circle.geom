@@ -3,7 +3,12 @@
 layout(points) in;
 layout(triangle_strip, max_vertices=4) out;
 
-uniform mat4 proj;
+layout(std140) uniform GlobalMatrices
+{
+    mat4 worldToCameraMatrix;
+    mat4 cameraToClip;
+};
+
 uniform float sphereRadius;
 
 in VertexData
@@ -30,7 +35,7 @@ void main()
         sphereColor = vert[0].sphereColor;
         cameraCornerPos = vec4(vert[0].cameraSpherePos, 1.0);
         cameraCornerPos.xy += vec2(-sphereRadius, -sphereRadius) * g_boxCorrection;
-        gl_Position = proj * cameraCornerPos;
+        gl_Position = cameraToClip * cameraCornerPos;
         gl_PrimitiveID = gl_PrimitiveIDIn;
         EmitVertex();
 
@@ -40,7 +45,7 @@ void main()
         sphereColor = vert[0].sphereColor;
         cameraCornerPos = vec4(vert[0].cameraSpherePos, 1.0);
         cameraCornerPos.xy += vec2(-sphereRadius, sphereRadius) * g_boxCorrection;
-        gl_Position = proj * cameraCornerPos;
+        gl_Position = cameraToClip * cameraCornerPos;
         gl_PrimitiveID = gl_PrimitiveIDIn;
         EmitVertex();
 
@@ -50,7 +55,7 @@ void main()
         sphereColor = vert[0].sphereColor;
         cameraCornerPos = vec4(vert[0].cameraSpherePos, 1.0);
         cameraCornerPos.xy += vec2(sphereRadius, -sphereRadius) * g_boxCorrection;
-        gl_Position = proj * cameraCornerPos;
+        gl_Position = cameraToClip * cameraCornerPos;
         gl_PrimitiveID = gl_PrimitiveIDIn;
         EmitVertex();
 
@@ -60,7 +65,7 @@ void main()
         sphereColor = vert[0].sphereColor;
         cameraCornerPos = vec4(vert[0].cameraSpherePos, 1.0);
         cameraCornerPos.xy += vec2(sphereRadius, sphereRadius) * g_boxCorrection;
-        gl_Position = proj * cameraCornerPos;
+        gl_Position = cameraToClip * cameraCornerPos;
         gl_PrimitiveID = gl_PrimitiveIDIn;
         EmitVertex();
 }

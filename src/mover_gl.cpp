@@ -33,6 +33,7 @@ extern "C" {
 #endif
 #include "ogl_utils.h"
 #include "glfw_utils.h"
+#include "world_gl.h"
 #ifdef __cplusplus
 }
 #endif
@@ -98,11 +99,8 @@ void create_sphere_mover_program(mover_t *state)
     state->sphere_radius_location = glGetUniformLocation(state->sphere_program, "sphereRadius");
     // Get center location
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
-    // Get world to camera view matrix location
-    state->view_matrix_location = glGetUniformLocation(state->sphere_program, "view");
-    // Get camera to clip  projection matrix location
-    state->proj_matrix_location = glGetUniformLocation(state->sphere_program, "proj");
-
+    // Get global matrix index
+    state->global_matrix_index = glGetUniformBlockIndex(state->sphere_program, "GlobalMatrices");
 }
 
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
@@ -120,19 +118,8 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     // set center uniform
     glUniform3fv(state->sphere_center_location, 1, center);
 
-    // Set view matrix
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
-        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
-        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
-    );
-
-    glUniformMatrix4fv(state->view_matrix_location, 1, GL_FALSE, glm::value_ptr(view));
-
-    // Set projection matrix
-    float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
-    glUniformMatrix4fv(state->proj_matrix_location, 1, GL_FALSE, glm::value_ptr(proj));
+    // Set uniform binding
+    glUniformBlockBinding(state->sphere_program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);

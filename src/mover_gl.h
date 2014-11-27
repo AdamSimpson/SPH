@@ -39,14 +39,16 @@ typedef struct mover_t
     GLint sphere_tex_coord_location;
     GLint sphere_color_location;
     GLint sphere_radius_location;
-    GLint view_matrix_location;
-    GLint proj_matrix_location;
+    GLint global_matrix_index;
 
     // Screen dimensions
     int screen_width;
     int screen_height;
 
     GLuint vao;
+
+    // Uniform objects
+    GLuint ubo;
 } mover_t;
 
 // This gets compiled by both c and c++ compilers
