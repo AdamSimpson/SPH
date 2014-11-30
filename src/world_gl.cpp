@@ -53,13 +53,13 @@ void init_world(world_t *state, int screen_width, int screen_height)
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
     // view matric
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.0f, 0.2f, 0.2f), // Eye position
-        glm::vec3(0.0f, 0.0f, 0.0f), // Looking at
+        glm::vec3(0.25f, 0.1f, 2.0f), // Eye position
+        glm::vec3(0.0f, -0.5f, -0.7f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
     // Set projection matrix
     float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(45.0f, ratio, 1.0f, 10.0f);
+    glm::mat4 proj = glm::perspective(45.0f, ratio, 0.7f, 10.0f);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
 

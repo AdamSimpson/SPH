@@ -68,6 +68,8 @@ void create_container_program(container_t *state)
 
     // Get position attribute location
     state->position_location = glGetAttribLocation(state->program, "position");
+    // Get normal attribute location
+    state->normal_location = glGetAttribLocation(state->program, "normal");
     // Get color uniform location
     state->color_location = glGetUniformLocation(state->program, "color");
     // Get global matrix index
@@ -75,10 +77,12 @@ void create_container_program(container_t *state)
 
     // Setup buffers
     glBindVertexArray(state->vao);    
-    size_t vert_size = 3*sizeof(GL_FLOAT);
+    size_t vert_size = 6*sizeof(GL_FLOAT);
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
     glEnableVertexAttribArray(state->position_location);
+    glVertexAttribPointer(state->normal_location, 3, GL_FLOAT, GL_FALSE, vert_size, (void*)(3*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->normal_location);
     glBindVertexArray(0);
 
     glUseProgram(0);
@@ -86,7 +90,7 @@ void create_container_program(container_t *state)
 
 void create_container_buffers(container_t *state)
 {
-    // VAO is required for OpenGL 3+ when using VBO I believe
+    // Generate VAO
     glGenVertexArrays(1, &state->vao);
 
     // Generate vertex buffer
@@ -95,18 +99,48 @@ void create_container_buffers(container_t *state)
 
 void create_container_vertices(container_t *state)
 {
+    // vert x, y, z, normal x, y, z
     float vertices[] = {
-       // Full screen vertices
-      -1.0, -1.0, -1.0,
-      -1.0, -1.0, -0.6,
-       1.0, -1.0, -1.0,
-       1.0, -1.0, -0.6
+        // Floor
+       -1.0, -1.0,  0.3, 0.0, 1.0, 0.0,
+       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
+        1.0, -1.0,  0.3, 0.0, 1.0, 0.0,
+
+       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
+        1.0, -1.0,  0.3, 0.0, 1.0, 0.0,
+        1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
+        //right wall
+        1.0, -1.0,  0.3, -1.0, 0.0, 0.0,
+        1.0, -1.0, -1.0, -1.0, 0.0, 0.0,
+        1.0, 0.3,  0.3,  -1.0, 0.0, 0.0,
+
+        1.0, -1.0, -1.0, -1.0, 0.0, 0.0,
+        1.0, 0.3,  0.3,  -1.0, 0.0, 0.0,
+        1.0, 0.3, -1.0,  -1.0, 0.0, 0.0,
+        // Back
+       -1.0, 0.3,  -1.0, 0.0, 0.0, 1.0,
+        1.0, 0.3,  -1.0, 0.0, 0.0, 1.0,
+        1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
+
+        1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
+       -1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
+       -1.0,  0.3, -1.0, 0.0, 0.0, 1.0,
+        // Left wall
+       -1.0, -1.0,  0.3, 1.0, 0.0, 0.0,
+       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0,
+       -1.0, 0.3,  0.3,  1.0, 0.0, 0.0,
+
+       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0,
+       -1.0, 0.3,  0.3,  1.0, 0.0, 0.0,
+       -1.0, 0.3, -1.0,  1.0, 0.0, 0.0,
     };
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 6*24*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+
+    
 }
 
 void init_container(container_t *state, int screen_width, int screen_height)
@@ -115,11 +149,11 @@ void init_container(container_t *state, int screen_width, int screen_height)
     state->screen_width = screen_width;
     state->screen_height = screen_height;
 
+    // Generate buffers 
+    create_container_buffers(state);
+
     // Create program
     create_container_program(state);
-
-    // Generate buffers 
-    create_container_buffers(state);  
 
     // Set verticies
     create_container_vertices(state);
@@ -130,12 +164,6 @@ void render_container(container_t *state)
     // Setup program
     glUseProgram(state->program);
 
-    // Setup buffers
-    size_t vert_size = 3*sizeof(GL_FLOAT);
-    glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
-    glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
-    glEnableVertexAttribArray(state->position_location);
-
     // set color uniform
     float color[] = {1.0, 1.0, 1.0, 1.0};
     glUniform4fv(state->color_location, 1, color);
@@ -143,12 +171,15 @@ void render_container(container_t *state)
     // Set uniform binding
     glUniformBlockBinding(state->program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
 
+    // Bind VAO
+    glBindVertexArray(state->vao);   
+
     // Disable Blend
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw container
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 24);
 
     // Unbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);

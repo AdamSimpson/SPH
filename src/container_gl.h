@@ -32,6 +32,7 @@ typedef struct container_t {
 
     // Program locations
     GLint position_location;
+    GLint normal_location;
 
     // Uniforms
     GLuint color_location;
