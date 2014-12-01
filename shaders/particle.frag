@@ -113,10 +113,12 @@ void main()
         Mtl.specularColor = vec4(0.8, 0.8, 0.8 ,0.8);
         Mtl.specularShininess = 0.1;
 
-        Lgt.ambientIntensity= vec4(0.2, 0.2, 0.2, 1.0);
-        Lgt.lightAttenuation = 1.0f / (25.0*25.0);
-        Lgt.light.cameraSpaceLightPos=vec4(25.0, 25.0, 0.1, 1.0);
-        Lgt.light.lightIntensity=vec4(0.6, 0.6, 0.6, 1.0);
+        Lgt.lightAttenuation = 1.0f; /// (25.0*25.0);
+
+    Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
+    Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
+    Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
+
 
 	vec3 cameraPos;
 	vec3 cameraNormal;
@@ -132,6 +134,6 @@ void main()
 		accumLighting += ComputeLighting(Lgt.light,
 			cameraPos, cameraNormal, Mtl);
 	
-	outputColor = sqrt(accumLighting); //2.0 gamma correction
+	outputColor = accumLighting;
 }
 

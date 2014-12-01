@@ -130,4 +130,6 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
 
     // Draw
     glDrawArrays(GL_POINTS, 0, 1);
+  
+    glDisable(GL_BLEND);
 }

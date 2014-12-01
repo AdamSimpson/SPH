@@ -174,10 +174,6 @@ void render_container(container_t *state)
     // Bind VAO
     glBindVertexArray(state->vao);   
 
-    // Disable Blend
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     // Draw container
     glDrawArrays(GL_TRIANGLES, 0, 24);
 

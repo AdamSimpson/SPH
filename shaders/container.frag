@@ -26,17 +26,29 @@ struct Light
         PerLight light;
 } Lgt;
 
-void main() {
-    Lgt.ambientIntensity= vec4(0.2, 0.2, 0.2, 1.0);
-    Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.4, 0.0, -0.8, 1.0);
-    Lgt.light.lightIntensity=vec4(0.6, 0.6, 0.6, 1.0);
+float CalcAttenuation(in vec3 cameraSpacePosition,
+                      in vec3 cameraSpaceLightPos,
+                      out vec3 lightDirection)
+{
+        vec3 lightDifference =  cameraSpaceLightPos - cameraSpacePosition;
+        float lightDistanceSqr = dot(lightDifference, lightDifference);
+        lightDirection = lightDifference * inversesqrt(lightDistanceSqr);
 
+        return (1 / ( 1.0 + 1.3 * lightDistanceSqr));
+}
+
+void main() {
+    Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
+    Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
+    Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
+
+    vec3 surfaceToLight = vec3(0.0);
     vec3 lightPos = Lgt.light.cameraSpaceLightPos.xyz;
     vec3 fragPos =  cameraSpaceFragPos.xyz;
-    vec3 surfaceToLight = normalize(lightPos - fragPos);    
+    float attenIntensity = CalcAttenuation(fragPos, lightPos, surfaceToLight);
 
     float cosAngleIncidence = dot(normalize(cameraSpaceNormal.xyz), surfaceToLight);
     cosAngleIncidence = clamp(cosAngleIncidence, 0, 1);
 
-    OutColor = (color * Lgt.light.lightIntensity * cosAngleIncidence) + (color * Lgt.ambientIntensity);
+    OutColor = (color * Lgt.light.lightIntensity * attenIntensity * cosAngleIncidence) + (color * Lgt.ambientIntensity);
 }

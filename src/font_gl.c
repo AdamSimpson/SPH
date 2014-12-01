@@ -231,6 +231,9 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        // Disable depth testing so font is always on top
+        glDisable(GL_DEPTH_TEST);
+
 	// Buffer to hold individual string
 	char buffer[100];
 
@@ -320,6 +323,11 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 
 	// Draw text
 	glDrawArrays(GL_TRIANGLES, 0, n);
+
+        glDisable(GL_BLEND);
+
+        // Enable depth testing
+        glEnable(GL_DEPTH_TEST);
 
         glBindVertexArray(0);
         glUseProgram(0);

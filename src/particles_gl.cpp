@@ -147,10 +147,6 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     // Enable VAO
     glBindVertexArray(state->vao);
 
-    // Blend is required to show cleared color when the frag shader draws transparent pixels
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     // Draw
     glDrawArrays(GL_POINTS, 0, num_points);
 

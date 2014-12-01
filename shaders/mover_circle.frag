@@ -109,14 +109,16 @@ void Impostor(out vec3 cameraPos, out vec3 cameraNormal)
 
 void main()
 {
-        Mtl.diffuseColor = vec4(sphereColor, 0.8);
-        Mtl.specularColor = vec4(0.8, 0.8, 0.8 ,0.6);
+        Mtl.diffuseColor = vec4(sphereColor, 0.98);
+        Mtl.specularColor = vec4(0.8, 0.8, 0.8, 0.98);
         Mtl.specularShininess = 0.1;
 
-        Lgt.ambientIntensity= vec4(0.2, 0.2, 0.2, 1.0);
-        Lgt.lightAttenuation = 1.0f / (25.0*25.0);
-        Lgt.light.cameraSpaceLightPos=vec4(25.0, 25.0, 0.1, 1.0);
-        Lgt.light.lightIntensity=vec4(0.6, 0.6, 0.6, 1.0);
+        Lgt.lightAttenuation = 1.0f;/// (25.0*25.0);
+
+    Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
+    Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
+    Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
+
 
 	vec3 cameraPos;
 	vec3 cameraNormal;
@@ -129,9 +131,11 @@ void main()
 	gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
 	
 	vec4 accumLighting = Mtl.diffuseColor * Lgt.ambientIntensity;
-		accumLighting += ComputeLighting(Lgt.light,
+	accumLighting += ComputeLighting(Lgt.light,
 			cameraPos, cameraNormal, Mtl);
 	
-	outputColor = sqrt(accumLighting); //2.0 gamma correction
+	outputColor = accumLighting;
+        // Don't know whats going on with alpha here...
+        outputColor.a = 0.98;
 }
 

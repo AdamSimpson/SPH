@@ -53,7 +53,7 @@ void init_world(world_t *state, int screen_width, int screen_height)
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
     // view matric
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.25f, 0.1f, 2.0f), // Eye position
+        glm::vec3(0.4f, 0.1f, 0.8f), // Eye position
         glm::vec3(0.0f, -0.5f, -0.7f), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );

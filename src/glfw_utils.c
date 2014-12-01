@@ -167,6 +167,10 @@ void init_ogl(gl_t *state, render_t *render_state)
     glfwWindowHint(GLFW_SAMPLES, 4);
     printf("Enabling multisample! \n");
 
+    // Enable SRGB for gamma correction
+    printf("Enabling SRGB framebuffer! \n");
+    glfwWindowHint(GLFW_SRGB_CAPABLE, GL_TRUE);
+
     // Try to get full screen
     // Retina screen is a pain...
     GLFWvidmode *mode = (GLFWvidmode*)glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -190,6 +194,9 @@ void init_ogl(gl_t *state, render_t *render_state)
 
     // Enable multisampling
     glEnable( GL_MULTISAMPLE );
+
+    // Enable SRGB framebuffer
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     // Set key callback
     glfwSetKeyCallback(state->window, key_callback);
