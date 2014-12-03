@@ -41,11 +41,21 @@ extern "C" {
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/rotate_vector.hpp"
+#include "glm/gtx/norm.hpp"
 
 void init_world(world_t *state, int screen_width, int screen_height)
 {
     state->screen_width = screen_width;
     state->screen_height = screen_height;
+
+    state->eye_position[0] = 0.4f;
+    state->eye_position[1] = 0.1f;
+    state->eye_position[2] = 0.8f;
+
+    state->look_at[0] = 0.0f;
+    state->look_at[1] = -0.5;
+    state->look_at[2] = -0.7;
 
     // Set global matrices
     glGenBuffers(1, &g_GlobalMatricesUBO);
@@ -53,15 +63,79 @@ void init_world(world_t *state, int screen_width, int screen_height)
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
     // view matric
     glm::mat4 view = glm::lookAt(
-        glm::vec3(0.4f, 0.1f, 0.8f), // Eye position
-        glm::vec3(0.0f, -0.5f, -0.7f), // Looking at
+        glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]), // Eye position
+        glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
     // Set projection matrix
     float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(45.0f, ratio, 0.7f, 10.0f);
+    glm::mat4 proj = glm::perspective(70.0f, ratio, 0.7f, 10.0f);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
 
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalMatricesBindingIndex, g_GlobalMatricesUBO, 0, sizeof(glm::mat4) * 2);
+}
+
+void rotate_camera_y(world_t *state)
+{
+    // Degrees to rotate
+    float degrees = 0.01;
+
+    glm::vec3 eye_old = glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]);
+    glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
+
+    // We wish to rotate the vector from the look at point to the eye position
+    glm::vec3 look_to_eye_old = eye_old - look_at;
+
+    // Rotate vector
+    glm::vec3 look_to_eye_new = glm::rotateY(look_to_eye_old, degrees);
+
+    // Regain eye vector by adding in look_at position
+    glm::vec3 eye_new = look_to_eye_new + look_at;
+
+    state->eye_position[0] = eye_new[0];
+    state->eye_position[1] = eye_new[1];
+    state->eye_position[2] = eye_new[2];
+}
+
+void zoom_view(world_t *state, float dx)
+{
+    glm::vec3 eye_old = glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]);
+    glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
+    
+    // Get vector from look_at position to eye
+    glm::vec3 look_to_eye_old = eye_old - look_at;
+    
+    // Get normal along look_at to eye vector
+    float norm = glm::l1Norm(look_to_eye_old);
+    glm::vec3 look_to_eye_norm = look_to_eye_old/norm;
+    
+    // subtract dx along the vector
+    glm::vec3 look_to_eye_new = look_to_eye_old - look_to_eye_norm*dx;
+
+    // Regain eye vector by adding in look_at position
+    glm::vec3 eye_new = look_to_eye_new + look_at;
+
+    state->eye_position[0] = eye_new[0];
+    state->eye_position[1] = eye_new[1];
+    state->eye_position[2] = eye_new[2];
+}
+
+void update_view(world_t *state)
+{
+    // Bind UBO
+    glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
+    
+    // Update view matrix
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]), // Eye position
+        glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
+        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
+    );
+
+    // Buffer data
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+
+    // Unbind
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

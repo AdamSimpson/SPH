@@ -115,9 +115,9 @@ void main()
 
         Lgt.lightAttenuation = 1.0f;/// (25.0*25.0);
 
-    Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
-    Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
-    Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
+        Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
+        Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
+        Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
 
 
 	vec3 cameraPos;
@@ -135,7 +135,6 @@ void main()
 			cameraPos, cameraNormal, Mtl);
 	
 	outputColor = accumLighting;
-        // Don't know whats going on with alpha here...
         outputColor.a = 0.98;
 }
 

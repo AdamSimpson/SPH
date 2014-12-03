@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 #include "controls.h"
 #include "renderer.h"
+#include "world_gl.h"
 
 // Move selected parameter up
 void move_parameter_up(render_t *render_state)
@@ -360,52 +361,6 @@ void reset_mover_size(render_t *render_state) {
     }  
 }
 
-// Preset fluids based upon xbox controller buttons
-
-// Standard fluid
-void set_fluid_x(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].rest_density = 30.0f;  
-    }
-}
-
-// super goo
-void set_fluid_y(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.1f;
-        render_state->master_params[i].rest_density = 30.0f;
-    }
-}
-
-// zero g high surface tension
-void set_fluid_a(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 0.0f;
-        render_state->master_params[i].k = 0.2f;
-        render_state->master_params[i].rest_density = 55.0f;
-    }
-}
-
-// spring gas fluid...thing
-void set_fluid_b(render_t *render_state)
-{
-    int i;
-    for(i=0; i<render_state->num_compute_procs; i++) {
-        render_state->master_params[i].g = 6.0f;
-        render_state->master_params[i].k = 0.0f;
-        render_state->master_params[i].rest_density = 0.0f;
-    }
-}
-
 // Set last partition to be outside of simulation bounds
 // Effectively removing it from the simulation
 void remove_partition(render_t *render_state)
@@ -460,9 +415,14 @@ void add_partition(render_t *render_state)
     render_state->num_compute_procs_active += 1;
 }
 
-void toggle_dividers(render_t *state)
+void enable_view_controls(render_t *render_state)
 {
-    state->show_dividers = !state->show_dividers;
+    render_state->view_controls = true;
+}
+
+void disable_view_controls(render_t *render_state)
+{
+    render_state->view_controls = false;
 }
 
 void toggle_pause(render_t *state)
@@ -470,7 +430,18 @@ void toggle_pause(render_t *state)
     state->pause = !state->pause;
 }
 
-void toggle_liquid(render_t *state)
+void zoom_in_view(render_t *state)
 {
-    state->liquid = !state->liquid;
+    float dx = 0.3;
+    world_t *world_state = state->world;
+    zoom_view(world_state, dx);   
+    update_view(world_state);
+}
+
+void zoom_out_view(render_t *state)
+{
+    float dx = -0.3;
+    world_t *world_state = state->world;
+    zoom_view(world_state, dx);
+    update_view(world_state);
 }

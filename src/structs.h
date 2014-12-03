@@ -8,15 +8,41 @@
 
 typedef unsigned int uint;
 
-typedef struct gl_t {
+// Poor choices have been made
+#ifndef __cplusplus
+typedef struct gl_t gl_t;
+typedef struct world_t world_t;
+typedef struct fluid_particles_t fluid_particles_t;
+typedef struct edge_t edge_t; 
+typedef struct oob_t oob_t;
+typedef struct AABB_t AABB_t;
+typedef struct neighbor_t neighbor_t;
+typedef struct neighbor_grid_t neighbor_grid_t;
+typedef struct tunable_parameters_t tunable_parameters_t;
+typedef struct param_t param_t;
+typedef struct render_t render_t;
+typedef struct fluid_sim_t fluid_sim_t;
+#endif
+
+// gl_t must be lowercase!!! Something else is using GL_T (?)
+struct gl_t {
     int screen_width;
     int screen_height;
 
     GLFWwindow* window;
-} gl_t;
+};
+
+struct world_t {
+    // Screen dimensions
+    int screen_width;
+    int screen_height;
+
+    float eye_position[3];
+    float look_at[3];
+};
 
 // Standard fluid particle paramaters
-typedef struct FLUID_PARTICLES_T {
+struct fluid_particles_t {
     float *x_star;
     float *y_star;
     float *z_star;
@@ -32,19 +58,19 @@ typedef struct FLUID_PARTICLES_T {
     float *density;
     float *lambda;
     uint *id; // Id is 'local' index within the fluid particle pointer array
-} fluid_particles_t;
+};
 
 // Particles that are within 2*h distance of node edge
-typedef struct EDGE_T {
+struct edge_t {
     int max_edge_particles;
     uint *edge_indices_left;
     uint *edge_indices_right;
     int number_edge_particles_left;
     int number_edge_particles_right;
-} edge_t;
+};
 
 // Particles that have left the node
-typedef struct OOB_T {
+struct oob_t {
     int max_oob_particles;
     uint *oob_index_indices_left; // Indicies in particle index array for particles traveling left
     uint *oob_index_indices_right;
@@ -52,24 +78,24 @@ typedef struct OOB_T {
     int number_oob_particles_right;
     uint *vacant_indices; // Indicies in global particle array that are vacant
     int number_vacancies;
-} oob_t;
+};
 
-typedef struct AABB_T {
+struct AABB_t {
     float min_x;
     float max_x;
     float min_y;
     float max_y;
     float min_z;
     float max_z;
-} AABB_t; //Axis aligned bounding box
+}; //Axis aligned bounding box
 
 // Bucket to hold each particles nearest neighbors
-typedef struct NEIGHBOR_T{
+struct neighbor_t{
     uint *fluid_neighbors; // Index in global particle array of neighbor
     int number_fluid_neighbors;
-} neighbor_t;
+};
 
-typedef struct NEIGHBOR_GRID_T {
+struct neighbor_grid_t {
     float spacing;  // Spacing between buckets
     uint size_x; // Number of buckets in x
     uint size_y; // Number of buckets in y
@@ -80,7 +106,7 @@ typedef struct NEIGHBOR_GRID_T {
     uint *particle_ids; // Array of particle id's
     uint max_neighbors; // Maximum neighbors allowed for each particle
     neighbor_t *neighbors; // Particle neighbor buckets
-} neighbor_grid_t;
+};
 
 // enum of displayed parameter values
 typedef enum {
@@ -95,7 +121,7 @@ typedef enum {
 } parameters;
 
 // These parameters are tunable by the render node
-typedef struct TUNABLE_PARAMETERS_T {
+struct tunable_parameters_t {
     float rest_density;
     float smoothing_radius;
     float g;
@@ -113,10 +139,10 @@ typedef struct TUNABLE_PARAMETERS_T {
     char mover_type;
     char kill_sim;
     char active;
-} tunable_parameters_t;
+};
 
 // Full parameters struct for simulation
-typedef struct PARAM_T {
+struct param_t {
     tunable_parameters_t tunable_params;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles not including halo
@@ -127,9 +153,9 @@ typedef struct PARAM_T {
     int number_halo_particles_right;  // Number of halo particles from right neighbor
     int steps_per_frame;              // Number of simulation steps before updating render node
     float particle_mass; // "mass" of particle so that density is particle count independent
-} param_t; // Simulation paramaters
+}; // Simulation paramaters
 
-typedef struct render_t {
+struct render_t {
     float sim_width;
     float sim_height;
     float sim_depth;
@@ -140,14 +166,14 @@ typedef struct render_t {
     tunable_parameters_t *master_params; // Holds parameters shared by all nodes
     int num_compute_procs;
     int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
-    bool show_dividers;
+    bool view_controls; // When shift is held mouse controls view
     bool pause;
     double last_activity_time; // Used to determine if simulation is being used or not
-    bool liquid;
-} render_t;
+    world_t *world;
+};
 
 // Struct containing all simulation information
-typedef struct FLUID_SIM_T {
+struct fluid_sim_t {
     param_t *params;
     AABB_t *water_volume_global;
     AABB_t *boundary_global;
@@ -157,6 +183,6 @@ typedef struct FLUID_SIM_T {
     fluid_particles_t *fluid_particles;  // Pointer to fluid_particles SoA
     uint *fluid_particle_indices;        // Index of local fluid particles, used to traverse non vacant particles
     short *fluid_particle_coords;        // (x,y) coordinate array, transfer pixel coords
-} fluid_sim_t;
+};
 
 #endif

@@ -55,9 +55,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     // Get render_state from GLFW user pointer
     render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
 
-    if(action == GLFW_PRESS || action == GLFW_REPEAT)
+    if(action == GLFW_PRESS)
     {
-
         // Let renderer know of activity
         set_activity_time(render_state);
 
@@ -84,29 +83,33 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             case GLFW_KEY_RIGHT_BRACKET:
                 add_partition(render_state);
                 break;
-            case GLFW_KEY_X:
-                set_fluid_x(render_state);
-                break;
-            case GLFW_KEY_Y:
-                set_fluid_y(render_state);
-                break;
-            case GLFW_KEY_A:
-                set_fluid_a(render_state);
-                break;
-            case GLFW_KEY_B:
-                set_fluid_b(render_state);
-                break;
-            case GLFW_KEY_D:
-                toggle_dividers(render_state);
-                break;
             case GLFW_KEY_P:
                 toggle_pause(render_state);
                 break;
-            case GLFW_KEY_L:
-                toggle_liquid(render_state);
+            case GLFW_KEY_LEFT_SHIFT:
+                enable_view_controls(render_state);
                 break;
         }
     }
+    else if (action == GLFW_REPEAT)
+    {
+        switch(key)
+        {
+            case GLFW_KEY_LEFT_SHIFT:
+                enable_view_controls(render_state);
+	        break;
+        }
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        switch(key)
+        {
+            case GLFW_KEY_LEFT_SHIFT:
+                disable_view_controls(render_state);
+                break;
+        }
+    }
+
 }
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -117,12 +120,16 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     // Let renderer know of activity
     set_activity_time(render_state);
 
-    float new_x, new_y;
-    new_y = (render_state->screen_height - ypos); // Flip y = 0
-    new_y = new_y/(0.5*render_state->screen_height) - 1.0;
-    new_x = xpos/(0.5*render_state->screen_width) - 1.0;
+    if(render_state->view_controls) {
+    }
+    else {
+        float new_x, new_y;
+        new_y = (render_state->screen_height - ypos); // Flip y = 0
+        new_y = new_y/(0.5*render_state->screen_height) - 1.0;
+        new_x = xpos/(0.5*render_state->screen_width) - 1.0;
 
-    set_mover_gl_center(render_state, new_x, new_y, -0.8f);
+        set_mover_gl_center(render_state, new_x, new_y, -0.8f);
+    }
 }
 
 // scroll wheel callback
@@ -134,15 +141,23 @@ void wheel_callback(GLFWwindow* window, double x, double y)
     // Let renderer know of activity
     set_activity_time(render_state);    
 
-    // Call increase/decrease mover calls
-    if(y > 0.0)
+    if(render_state->view_controls) {
+        if(x > 0.0)
+            zoom_in_view(render_state);
+        else if(x < 0.0)
+            zoom_out_view(render_state);
+    }
+    else {
+        // Call increase/decrease mover calls
+        if(y > 0.0)
 	    increase_mover_height(render_state);
-    else if(y < 0.0)
+        else if(y < 0.0)
 	    decrease_mover_height(render_state);
-    if(x > 0.0)
-        increase_mover_width(render_state);
-    else if(x < 0.0)
-        decrease_mover_width(render_state);
+        if(x > 0.0)
+            increase_mover_width(render_state);
+        else if(x < 0.0)
+            decrease_mover_width(render_state);
+    }
 }
 
 // Description: Sets the display, OpenGL context and screen stuff

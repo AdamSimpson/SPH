@@ -50,9 +50,8 @@ void start_renderer()
     // Start OpenGL
     render_t render_state;
     init_ogl(&gl_state, &render_state);
-    render_state.show_dividers = false;
     render_state.pause = false;
-    render_state.liquid = true;
+    render_state.view_controls = false;
     set_activity_time(&render_state);
     render_state.screen_width = gl_state.screen_width;
     render_state.screen_height = gl_state.screen_height;
@@ -60,6 +59,9 @@ void start_renderer()
     // Initialize "world" OpenGL state
     world_t world_GLstate;
     init_world(&world_GLstate, gl_state.screen_width, gl_state.screen_height);
+
+    printf("Fix this world/render crap!\n");
+    render_state.world = &world_GLstate;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -315,6 +317,8 @@ void start_renderer()
         // Swap front/back buffers
         swap_ogl(&gl_state);
 
+        update_view(&world_GLstate);
+
         num_steps++;
     }
 
@@ -441,13 +445,6 @@ void update_inactive_state(render_t *render_state)
                                 render_state->master_params[0].mover_center_z, 
                                 &gl_x, &gl_y, &gl_z);
 
-    // Reset to water params
-    set_fluid_x(render_state);
-
-    // Turn off dividers
-    if(render_state->show_dividers)
-        toggle_dividers(render_state);
-
     // Reset mover radius
     reset_mover_size(render_state);
 
@@ -467,9 +464,6 @@ void update_inactive_state(render_t *render_state)
     // If outside boundary switch direction
     if (gl_x > 1.0f || gl_x < -1.0f)
         direction *= -1;
-
-    if (gl_x < -1.0f)
-        toggle_liquid(render_state);
 
     // Move in sin pattern
     gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;

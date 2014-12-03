@@ -47,16 +47,14 @@ void increase_mover_width(render_t *render_state);
 void decrease_mover_width(render_t *render_state);
 void increase_mover_height(render_t *render_state);
 void decrease_mover_height(render_t *render_state);
-void set_fluid_x(render_t *render_state);
-void set_fluid_y(render_t *render_state);
-void set_fluid_a(render_t *render_state);
-void set_fluid_b(render_t *render_state);
 void remove_partition(render_t *render_state);
 void add_partition(render_t *render_state);
-void toggle_dividers(render_t *state);
 void toggle_pause(render_t *state);
 void set_mover_gl_center(render_t *render_state, float ogl_x, float ogl_y, float ogl_z);
-void toggle_liquid(render_t *state);
 void reset_mover_size(render_t *render_state);
+void enable_view_controls(render_t *render_state);
+void disable_view_controls(render_t *render_state);
+void zoom_in_view(render_t *state);
+void zoom_out_view(render_t *state);
 
 #endif

@@ -26,23 +26,20 @@ THE SOFTWARE.
 #define WORLD_GL_H
 
 #include "glfw_utils.h"
+#include "structs.h"
 
 // Binding index for global uniform matrices
 static const int g_GlobalMatricesBindingIndex = 0;
 static GLuint g_GlobalMatricesUBO;
-
-typedef struct world_t
-{
-    // Screen dimensions
-    int screen_width;
-    int screen_height;
-} world_t;
 
 // This gets compiled by both c and c++ compilers
 #ifdef __cplusplus
 extern "C" {
 #endif
 void init_world(world_t *state,  int screen_width, int screen_height);
+void rotate_camera_y(world_t *state);
+void zoom_view(world_t *state, float dx);
+void update_view(world_t *state);
 #ifdef __cplusplus
 }
 #endif
