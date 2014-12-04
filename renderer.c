@@ -127,7 +127,7 @@ int start_renderer()
     pixel_dims[0] = (short)gl_state.screen_width;
     pixel_dims[1] = (short)gl_state.screen_height;
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
- 
+
     // Recv simulation world dimensions from global rank 1
     float sim_dims[2];
     MPI_Recv(sim_dims, 2, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -191,7 +191,28 @@ int start_renderer()
         HSV[2] = 0.8f;
         hsv_to_rgb(HSV, colors_by_rank+3*i);
     }
- 
+
+    #define ColorForRank(red,blue,green,rank) if (rank < render_state.num_compute_procs) { colors_by_rank[rank*3] = red / 255.0;
+    // red
+    // ColorForRank(255, 0, 0, 0);
+    // light blue
+    ColorForRank(0, 156, 255, 0);
+    // yellow
+    ColorForRank(204, 202, 20, 1);
+    // green
+    // ColorForRank(20, 204, 52, 2);
+    ColorForRank(20, 255, 52, 2);
+    // orange
+    ColorForRank(255, 134, 0, 3);
+    // dark blue / purple
+    ColorForRank(84, 20, 204, 4);
+    // magenta
+    ColorForRank(246, 0, 255, 5);
+    // cyan
+    ColorForRank(20, 204, 171, 6);
+    // orange/yellow
+    ColorForRank(255, 198, 0, 7);
+
     #if defined LIGHT || defined BLINK1
     MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     #endif
@@ -247,7 +268,7 @@ int start_renderer()
             // Send kill paramaters to compute nodes
             MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
             break;
-        }    
+        }
 
         // Check for user keyboard/mouse input
         if(render_state.pause) {
@@ -268,24 +289,24 @@ int start_renderer()
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
             // Retrieve all particle coordinates (x,y)
-  	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
-	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
-	    coords_recvd = 0;
-	    for(i=0; i<render_state.num_compute_procs; i++) {
-	        // Wait until message is ready from any proc
+            // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
+            // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
+            coords_recvd = 0;
+            for(i=0; i<render_state.num_compute_procs; i++) {
+                // Wait until message is ready from any proc
                 MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
-	        // Retrieve probed values
+                // Retrieve probed values
                 src = status.MPI_SOURCE;
                 particle_coordinate_ranks[i] = src-1;
-	        MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
-	        // Start async recv using probed values
-	        MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
+                MPI_Get_count(&status, MPI_SHORT, &particle_coordinate_counts[src-1]); // src-1 to account for render node
+                // Start async recv using probed values
+                MPI_Irecv(particle_coords + coords_recvd, particle_coordinate_counts[src-1], MPI_SHORT, src, 17, MPI_COMM_WORLD, &coord_reqs[src-1]);
                 // Update total number of floats recvd
                 coords_recvd += particle_coordinate_counts[src-1];
-	    }
+            }
 
         // Ensure a balanced partition
-        // We pass in number of coordinates instead of particle counts    
+        // We pass in number of coordinates instead of particle counts
         if(num_steps%frames_per_check == 0)
             check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
 
@@ -416,18 +437,18 @@ void sim_to_opengl(render_t *render_state, float x, float y, float *gl_x, float 
 void update_node_params(render_t *render_state)
 {
     int i;
-	// Update all node parameters with master paramter values
+        // Update all node parameters with master paramter values
     for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->node_params[i] = render_state->master_params[i]; 
+        render_state->node_params[i] = render_state->master_params[i];
 }
 
 // Checks for a balanced number of particles on each compute node
-// If unbalanced the partition between nodes will change 
+// If unbalanced the partition between nodes will change
 // Check from right to left
 void check_partition_left(render_t *render_state, int *particle_counts, int total_particles)
 {
     int rank, diff;
-    float h, dx, length, length_left, length_right;   
+    float h, dx, length, length_left, length_right;
 
     // Particles per proc if evenly divided
     int even_particles = total_particles/render_state->num_compute_procs_active;
@@ -545,7 +566,7 @@ void hsv_to_rgb(float* HSV, float *RGB)
 
     hh = hue*360.0f;
     if(hh >= 360.0f)
-	hh = 0.0f;
+        hh = 0.0f;
     hh /= 60.0f;
     i = (long)hh;
     ff = hh - i;
@@ -555,40 +576,40 @@ void hsv_to_rgb(float* HSV, float *RGB)
 
     switch(i) {
         case 0:
-	    r = value;
-	    g = t;
-	    b = p;
-	    break;
-	case 1:
-	    r = q;
-	    g = value;
-	    b = p;
-	    break;
-	case 2:
-	    r = p;
-	    g = value;
-	    b = t;
-	    break;
-	case 3:
-	    r = p;
-	    g = q;
-	    b = value;
-	    break;
+            r = value;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = value;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = value;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = value;
+            break;
         case 4:
-	    r = t;
-	    g = p;
-	    b = value;
-	    break;
-	case 5:
-	    r = value;
-	    g = p;
-	    b = q;
-	    break;
-	default:
-	    r = value;
-	    g = p;
-	    b = q;
-	    break;
+            r = t;
+            g = p;
+            b = value;
+            break;
+        case 5:
+            r = value;
+            g = p;
+            b = q;
+            break;
+        default:
+            r = value;
+            g = p;
+            b = q;
+            break;
     }
 
     RGB[0] = r;
