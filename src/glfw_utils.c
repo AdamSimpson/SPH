@@ -88,6 +88,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 break;
             case GLFW_KEY_LEFT_SHIFT:
                 enable_view_controls(render_state);
+                glfwSetCursorPos (window, render_state->gl_state->cursor_view_x, render_state->gl_state->cursor_view_y);
                 break;
         }
     }
@@ -97,6 +98,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         {
             case GLFW_KEY_LEFT_SHIFT:
                 enable_view_controls(render_state);
+                glfwSetCursorPos (window, render_state->gl_state->cursor_view_x, render_state->gl_state->cursor_view_y);
 	        break;
         }
     }
@@ -106,10 +108,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         {
             case GLFW_KEY_LEFT_SHIFT:
                 disable_view_controls(render_state);
+                glfwSetCursorPos (window, render_state->gl_state->cursor_x, render_state->gl_state->cursor_y);
                 break;
         }
     }
-
 }
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -121,8 +123,20 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     set_activity_time(render_state);
 
     if(render_state->view_controls) {
+        render_state->gl_state->cursor_view_x = xpos;
+        render_state->gl_state->cursor_view_y = ypos;
+
+        float new_x, new_y;
+        new_y = (render_state->screen_height - ypos); // Flip y = 0
+        new_y = new_y/(0.5*render_state->screen_height) - 1.0;
+        new_x = xpos/(0.5*render_state->screen_width) - 1.0;
+
+        set_view_angle(render_state, new_x, new_y);
     }
     else {
+        render_state->gl_state->cursor_x = xpos;
+        render_state->gl_state->cursor_y = ypos;
+
         float new_x, new_y;
         new_y = (render_state->screen_height - ypos); // Flip y = 0
         new_y = new_y/(0.5*render_state->screen_height) - 1.0;

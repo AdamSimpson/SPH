@@ -29,6 +29,14 @@ struct gl_t {
     int screen_width;
     int screen_height;
 
+    // GLFW mouse coordinates for "normal" cursor coordinates
+    float cursor_x;
+    float cursor_y;
+
+    // GLFW mouse coordinates for "view" mode cursor coordinates
+    float cursor_view_x;
+    float cursor_view_y;
+
     GLFWwindow* window;
 };
 
@@ -37,7 +45,13 @@ struct world_t {
     int screen_width;
     int screen_height;
 
+    float max_degrees_rotate;// Max degrees user allowed to rotate 
+
+    // zoom factor for perspective matrix
+    float zoom_factor;
+
     float eye_position[3];
+    float eye_position_default[3];
     float look_at[3];
 };
 
@@ -170,6 +184,7 @@ struct render_t {
     bool pause;
     double last_activity_time; // Used to determine if simulation is being used or not
     world_t *world;
+    gl_t *gl_state;
 };
 
 // Struct containing all simulation information

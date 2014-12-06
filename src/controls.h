@@ -56,5 +56,6 @@ void enable_view_controls(render_t *render_state);
 void disable_view_controls(render_t *render_state);
 void zoom_in_view(render_t *state);
 void zoom_out_view(render_t *state);
+void set_view_angle(render_t *state, float x_pos, float y_pos);
 
 #endif

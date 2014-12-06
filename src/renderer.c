@@ -62,6 +62,7 @@ void start_renderer()
 
     printf("Fix this world/render crap!\n");
     render_state.world = &world_GLstate;
+    render_state.gl_state = &gl_state;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;

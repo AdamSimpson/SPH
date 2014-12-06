@@ -37,8 +37,9 @@ static GLuint g_GlobalMatricesUBO;
 extern "C" {
 #endif
 void init_world(world_t *state,  int screen_width, int screen_height);
-void rotate_camera_y(world_t *state);
-void zoom_view(world_t *state, float dx);
+void rotate_camera_y(world_t *statem, float degrees);
+void zoom_view(world_t *state, float d_zoom_factor);
+void move_along_view(world_t *state, float dx);
 void update_view(world_t *state);
 #ifdef __cplusplus
 }

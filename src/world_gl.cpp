@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 
 #include <stdio.h>
+#include <iostream>
 #include <assert.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -49,6 +50,14 @@ void init_world(world_t *state, int screen_width, int screen_height)
     state->screen_width = screen_width;
     state->screen_height = screen_height;
 
+    state->max_degrees_rotate = 40.0f;
+
+    // eye position rotations are based upon
+    state->eye_position_default[0] = 0.4f;
+    state->eye_position_default[1] = 0.1f;
+    state->eye_position_default[2] = 0.8f;
+
+    // current eye position
     state->eye_position[0] = 0.4f;
     state->eye_position[1] = 0.1f;
     state->eye_position[2] = 0.8f;
@@ -57,38 +66,35 @@ void init_world(world_t *state, int screen_width, int screen_height)
     state->look_at[1] = -0.5;
     state->look_at[2] = -0.7;
 
+    state->zoom_factor = 1.0f;
+
     // Set global matrices
     glGenBuffers(1, &g_GlobalMatricesUBO);
+
+    // Create and Allocate buffer storage
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
-    // view matric
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]), // Eye position
-        glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
-        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
-    );
-    // Set projection matrix
-    float ratio = (float)state->screen_width/(float)state->screen_height;
-    glm::mat4 proj = glm::perspective(70.0f, ratio, 0.7f, 10.0f);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
 
+    // Update buffers
+    update_view(state);
+
+    // Attach to binding index
+    glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalMatricesBindingIndex, g_GlobalMatricesUBO, 0, sizeof(glm::mat4) * 2);
 }
 
-void rotate_camera_y(world_t *state)
+// Rotates the default eye position degrees around the y axis
+void rotate_camera_y(world_t *state, float degrees)
 {
-    // Degrees to rotate
-    float degrees = 0.01;
-
-    glm::vec3 eye_old = glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]);
+    glm::vec3 eye_default = glm::vec3(state->eye_position_default[0], state->eye_position_default[1], state->eye_position_default[2]);
     glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
 
     // We wish to rotate the vector from the look at point to the eye position
-    glm::vec3 look_to_eye_old = eye_old - look_at;
+    glm::vec3 look_to_eye_default = eye_default - look_at;
 
     // Rotate vector
-    glm::vec3 look_to_eye_new = glm::rotateY(look_to_eye_old, degrees);
+    float rads = degrees * M_PI / 180.0f;
+    glm::vec3 look_to_eye_new = glm::rotateY(look_to_eye_default, rads);
 
     // Regain eye vector by adding in look_at position
     glm::vec3 eye_new = look_to_eye_new + look_at;
@@ -98,7 +104,8 @@ void rotate_camera_y(world_t *state)
     state->eye_position[2] = eye_new[2];
 }
 
-void zoom_view(world_t *state, float dx)
+// Move along view vector
+void move_along_view(world_t *state, float dx)
 {
     glm::vec3 eye_old = glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]);
     glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
@@ -121,6 +128,13 @@ void zoom_view(world_t *state, float dx)
     state->eye_position[2] = eye_new[2];
 }
 
+// Zoom persective...Not a huge fan of this method
+// But it's easier to deal with
+void zoom_view(world_t *state, float d_zoom_factor)
+{
+    state->zoom_factor += d_zoom_factor;
+}
+
 void update_view(world_t *state)
 {
     // Bind UBO
@@ -132,9 +146,12 @@ void update_view(world_t *state)
         glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
         glm::vec3(0.0f, 1.0f, 0.0f)  // Up
     );
-
-    // Buffer data
+    // Set projection matrix
+    float ratio = (float)state->screen_width/(float)state->screen_height;
+    // 1.22 radians ~ 70 degrees
+    glm::mat4 proj = glm::perspective(state->zoom_factor*1.22f, ratio, 0.7f, 10.0f);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
 
     // Unbind
     glBindBuffer(GL_UNIFORM_BUFFER, 0);

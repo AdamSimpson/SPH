@@ -430,18 +430,32 @@ void toggle_pause(render_t *state)
     state->pause = !state->pause;
 }
 
+void set_view_angle(render_t *state, float x_pos, float y_pos)
+{
+    world_t *world_state = state->world;
+    float max_degrees = world_state->max_degrees_rotate;
+    
+    // x_pos,y_pos is [-1, 1]
+    // Angle is [-max_degrees, max_degrees]
+    // This is the angle relative to the intial orientation at the start of view mode
+    float angle = max_degrees*x_pos;
+
+    rotate_camera_y(world_state, angle);
+    update_view(world_state);
+}
+
 void zoom_in_view(render_t *state)
 {
-    float dx = 0.3;
+    float dzoom = 0.07;
     world_t *world_state = state->world;
-    zoom_view(world_state, dx);   
+    zoom_view(world_state, dzoom);   
     update_view(world_state);
 }
 
 void zoom_out_view(render_t *state)
 {
-    float dx = -0.3;
+    float dzoom = -0.07;
     world_t *world_state = state->world;
-    zoom_view(world_state, dx);
+    zoom_view(world_state, dzoom);
     update_view(world_state);
 }
