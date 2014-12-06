@@ -438,9 +438,11 @@ void set_view_angle(render_t *state, float x_pos, float y_pos)
     // x_pos,y_pos is [-1, 1]
     // Angle is [-max_degrees, max_degrees]
     // This is the angle relative to the intial orientation at the start of view mode
-    float angle = max_degrees*x_pos;
+    float angle_x = max_degrees*x_pos;
+    float angle_y = max_degrees*y_pos;
+    rotate_camera_xy(world_state, angle_x, angle_y);
 
-    rotate_camera_y(world_state, angle);
+    // Update view
     update_view(world_state);
 }
 

@@ -104,6 +104,49 @@ void rotate_camera_y(world_t *state, float degrees)
     state->eye_position[2] = eye_new[2];
 }
 
+// Rotates the default eye position degrees around the x axis
+void rotate_camera_x(world_t *state, float degrees)
+{
+    glm::vec3 eye_default = glm::vec3(state->eye_position_default[0], state->eye_position_default[1], state->eye_position_default[2]);
+    glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
+
+    // We wish to rotate the vector from the look at point to the eye position
+    glm::vec3 look_to_eye_default = eye_default - look_at;
+
+    // Rotate vector
+    float rads = degrees * M_PI / 180.0f;
+    glm::vec3 look_to_eye_new = glm::rotateX(look_to_eye_default, rads);
+
+    // Regain eye vector by adding in look_at position
+    glm::vec3 eye_new = look_to_eye_new + look_at;
+
+    state->eye_position[0] = eye_new[0];
+    state->eye_position[1] = eye_new[1];
+    state->eye_position[2] = eye_new[2];
+}
+
+void rotate_camera_xy(world_t *state, float degrees_x, float degrees_y)
+{
+    glm::vec3 eye_default = glm::vec3(state->eye_position_default[0], state->eye_position_default[1], state->eye_position_default[2]);
+    glm::vec3 look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
+
+    // We wish to rotate the vector from the look at point to the eye position
+    glm::vec3 look_to_eye_default = eye_default - look_at;
+
+    // Rotate vector
+    float rad_x = degrees_x * M_PI / 180.0f;
+    float rad_y = degrees_y * M_PI / 180.0f;
+    glm::vec3 look_to_eye_new = glm::rotateY(look_to_eye_default, rad_x);
+    look_to_eye_new = glm::rotateX(look_to_eye_new, rad_y);
+
+    // Regain eye vector by adding in look_at position
+    glm::vec3 eye_new = look_to_eye_new + look_at;
+
+    state->eye_position[0] = eye_new[0];
+    state->eye_position[1] = eye_new[1];
+    state->eye_position[2] = eye_new[2];
+}
+
 // Move along view vector
 void move_along_view(world_t *state, float dx)
 {

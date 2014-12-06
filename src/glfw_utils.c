@@ -92,16 +92,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 break;
         }
     }
-    else if (action == GLFW_REPEAT)
-    {
-        switch(key)
-        {
-            case GLFW_KEY_LEFT_SHIFT:
-                enable_view_controls(render_state);
-                glfwSetCursorPos (window, render_state->gl_state->cursor_view_x, render_state->gl_state->cursor_view_y);
-	        break;
-        }
-    }
     else if (action == GLFW_RELEASE)
     {
         switch(key)
@@ -127,9 +117,10 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         render_state->gl_state->cursor_view_y = ypos;
 
         float new_x, new_y;
-        new_y = (render_state->screen_height - ypos); // Flip y = 0
+        new_y = render_state->screen_height - ypos; // Flip y = 0
         new_y = new_y/(0.5*render_state->screen_height) - 1.0;
-        new_x = xpos/(0.5*render_state->screen_width) - 1.0;
+        new_x = render_state->screen_width - xpos; // Flip x = 0
+        new_x = new_x/(0.5*render_state->screen_width) - 1.0;
 
         set_view_angle(render_state, new_x, new_y);
     }
