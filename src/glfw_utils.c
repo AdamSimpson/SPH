@@ -106,7 +106,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    printf("xpos: %f, ypos: %f\n", xpos, ypos);
     // Get render_state from GLFW user pointer
     render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
 
@@ -148,7 +147,6 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         set_view_angle(render_state, new_x, new_y);
     }
     else if(!render_state->view_controls) {
-        printf("move: %f, %f\n", xpos, ypos);
         render_state->gl_state->cursor_x = xpos;
         render_state->gl_state->cursor_y = ypos;
 
