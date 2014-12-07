@@ -106,8 +106,31 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+    printf("xpos: %f, ypos: %f\n", xpos, ypos);
     // Get render_state from GLFW user pointer
     render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
+
+    // Make sure mouse stays in bounds
+    // GLFW_CURSOR_DISABLED works better on mac than GLFW_CURSOR_HIDDEN but doesn't trap cursor
+    // Sometimes jumping can happen when using SetCursorPos with HIDDEN mode
+    float pixel_width = render_state->gl_state->screen_width;
+    float pixel_height = render_state->gl_state->screen_height;
+    if(xpos < 0.0) {
+        xpos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(xpos) > render_state->gl_state->screen_width) {
+        xpos = (double)pixel_width;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    if(ypos < 0.0) {
+        ypos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(ypos) > render_state->gl_state->screen_height) {
+        ypos = (double)pixel_height;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
 
     // Let renderer know of activity
     set_activity_time(render_state);
@@ -125,6 +148,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         set_view_angle(render_state, new_x, new_y);
     }
     else if(!render_state->view_controls) {
+        printf("move: %f, %f\n", xpos, ypos);
         render_state->gl_state->cursor_x = xpos;
         render_state->gl_state->cursor_y = ypos;
 
@@ -232,7 +256,9 @@ void init_ogl(gl_t *state, render_t *render_state)
     glfwSetWindowUserPointer(state->window, render_state);
 
     // Disable regular cursor
-    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+//    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Disable vsync for true FPS testing
     // Default limit 60 fps
