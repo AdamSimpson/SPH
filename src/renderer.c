@@ -50,6 +50,12 @@ void start_renderer()
     // Start OpenGL
     render_t render_state;
     init_ogl(&gl_state, &render_state);
+
+    gl_state.cursor_x =  gl_state.screen_width/2.0f;
+    gl_state.cursor_y =  gl_state.screen_height/2.0f;
+    gl_state.cursor_view_x =  gl_state.screen_width/2.0f;
+    gl_state.cursor_view_y =  gl_state.screen_height/2.0f;
+
     render_state.pause = false;
     render_state.view_controls = false;
     set_activity_time(&render_state);

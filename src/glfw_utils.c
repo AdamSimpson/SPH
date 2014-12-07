@@ -87,8 +87,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 toggle_pause(render_state);
                 break;
             case GLFW_KEY_LEFT_SHIFT:
-                enable_view_controls(render_state);
                 glfwSetCursorPos (window, render_state->gl_state->cursor_view_x, render_state->gl_state->cursor_view_y);
+                enable_view_controls(render_state);
                 break;
         }
     }
@@ -97,8 +97,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         {
             case GLFW_KEY_LEFT_SHIFT:
-                disable_view_controls(render_state);
                 glfwSetCursorPos (window, render_state->gl_state->cursor_x, render_state->gl_state->cursor_y);
+                disable_view_controls(render_state);
                 break;
         }
     }
@@ -124,7 +124,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
         set_view_angle(render_state, new_x, new_y);
     }
-    else {
+    else if(!render_state->view_controls) {
         render_state->gl_state->cursor_x = xpos;
         render_state->gl_state->cursor_y = ypos;
 
