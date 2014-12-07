@@ -53,13 +53,13 @@ void init_world(world_t *state, int screen_width, int screen_height)
     state->max_degrees_rotate = 40.0f;
 
     // eye position rotations are based upon
-    state->eye_position_default[0] = 0.4f;
-    state->eye_position_default[1] = 0.1f;
+    state->eye_position_default[0] = 0.0f;
+    state->eye_position_default[1] = 0.0f;
     state->eye_position_default[2] = 0.8f;
 
     // current eye position
-    state->eye_position[0] = 0.4f;
-    state->eye_position[1] = 0.1f;
+    state->eye_position[0] = 0.0f;
+    state->eye_position[1] = 0.0f;
     state->eye_position[2] = 0.8f;
 
     state->look_at[0] = 0.0f;
