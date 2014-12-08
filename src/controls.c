@@ -446,6 +446,22 @@ void set_view_angle(render_t *state, float x_pos, float y_pos)
     update_view(world_state);
 }
 
+void move_in_view(render_t *state)
+{
+    float dx = 0.15;
+    world_t *world_state = state->world;
+    move_along_view(world_state, dx);
+    update_view(world_state);
+}
+
+void move_out_view(render_t *state)
+{
+    float dx = -0.15;
+    world_t *world_state = state->world;
+    move_along_view(world_state, dx);
+    update_view(world_state);
+}
+
 void zoom_in_view(render_t *state)
 {
     float dzoom = 0.07;

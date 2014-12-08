@@ -170,9 +170,9 @@ void wheel_callback(GLFWwindow* window, double x, double y)
 
     if(render_state->view_controls) {
         if(x > 0.0)
-            zoom_in_view(render_state);
+            move_in_view(render_state);
         else if(x < 0.0)
-            zoom_out_view(render_state);
+            move_out_view(render_state);
     }
     else {
         // Call increase/decrease mover calls
@@ -256,8 +256,6 @@ void init_ogl(gl_t *state, render_t *render_state)
     // Disable regular cursor
     glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-//    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     // Disable vsync for true FPS testing
     // Default limit 60 fps
 //    glfwSwapInterval(0);
@@ -270,8 +268,6 @@ void init_ogl(gl_t *state, render_t *render_state)
 void swap_ogl(gl_t *state)
 {
     glfwSwapBuffers(state->window);
-
-//    glfwPollEvents();
 }
 
 void exit_ogl(gl_t *state)

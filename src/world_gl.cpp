@@ -169,6 +169,27 @@ void move_along_view(world_t *state, float dx)
     state->eye_position[0] = eye_new[0];
     state->eye_position[1] = eye_new[1];
     state->eye_position[2] = eye_new[2];
+
+    // We have to update the default as well to account for move
+    eye_old = glm::vec3(state->eye_position_default[0], state->eye_position_default[1], state->eye_position_default[2]);
+    look_at = glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]);
+
+    // Get vector from look_at position to eye
+    look_to_eye_old = eye_old - look_at;
+
+    // Get normal along look_at to eye vector
+    norm = glm::l1Norm(look_to_eye_old);
+    look_to_eye_norm = look_to_eye_old/norm;
+
+    // subtract dx along the vector
+    look_to_eye_new = look_to_eye_old - look_to_eye_norm*dx;
+
+    // Regain eye vector by adding in look_at position
+    eye_new = look_to_eye_new + look_at;
+
+    state->eye_position_default[0] = eye_new[0];
+    state->eye_position_default[1] = eye_new[1];
+    state->eye_position_default[2] = eye_new[2];
 }
 
 // Zoom persective...Not a huge fan of this method

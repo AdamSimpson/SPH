@@ -287,7 +287,7 @@ void init_params(fluid_sim_t *fluid_sim)
     //params->tunable_params.time_step /= (float)steps_per_frame;
 
     // The number of particles used may differ slightly
-    params->number_fluid_particles_global = 5000;
+    params->number_fluid_particles_global = 2000;
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
