@@ -4,6 +4,7 @@ uniform vec4 color;
 
 in vec4 cameraSpaceFragPos;
 in vec4 cameraSpaceNormal;
+in vec2 fragTexCoord;
 
 out vec4 OutColor;
 
@@ -50,5 +51,12 @@ void main() {
     float cosAngleIncidence = dot(normalize(cameraSpaceNormal.xyz), surfaceToLight);
     cosAngleIncidence = clamp(cosAngleIncidence, 0, 1);
 
-    OutColor = (color * Lgt.light.lightIntensity * attenIntensity * cosAngleIncidence) + (color * Lgt.ambientIntensity);
+    vec4 checker_color = color;
+
+    int num_checks = 30;
+    if ((int(floor(num_checks*fragTexCoord.x) + floor(num_checks*fragTexCoord.y)) & 1) == 0) {
+        checker_color = vec4(0.3, 0.3, 0.3, 1.0);
+    }
+
+    OutColor = (checker_color * Lgt.light.lightIntensity * attenIntensity * cosAngleIncidence) + (checker_color * Lgt.ambientIntensity);
 }

@@ -70,6 +70,8 @@ void create_container_program(container_t *state)
     state->position_location = glGetAttribLocation(state->program, "position");
     // Get normal attribute location
     state->normal_location = glGetAttribLocation(state->program, "normal");
+    // Get tex_coord attribute location
+    state->tex_coord_location = glGetAttribLocation(state->program, "tex_coord");
     // Get color uniform location
     state->color_location = glGetUniformLocation(state->program, "color");
     // Get global matrix index
@@ -77,12 +79,15 @@ void create_container_program(container_t *state)
 
     // Setup buffers
     glBindVertexArray(state->vao);    
-    size_t vert_size = 6*sizeof(GL_FLOAT);
+    size_t vert_size = 8*sizeof(GL_FLOAT);
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     glVertexAttribPointer(state->position_location, 3, GL_FLOAT, GL_FALSE, vert_size, 0);
     glEnableVertexAttribArray(state->position_location);
     glVertexAttribPointer(state->normal_location, 3, GL_FLOAT, GL_FALSE, vert_size, (void*)(3*sizeof(GL_FLOAT)));
     glEnableVertexAttribArray(state->normal_location);
+    glVertexAttribPointer(state->tex_coord_location, 2, GL_FLOAT, GL_FALSE, vert_size, (void*)(6*sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(state->tex_coord_location);
+
     glBindVertexArray(0);
 
     glUseProgram(0);
@@ -99,48 +104,46 @@ void create_container_buffers(container_t *state)
 
 void create_container_vertices(container_t *state)
 {
-    // vert x, y, z, normal x, y, z
+    // vert x, y, z, normal x, y, z, tex_coord x, y
     float vertices[] = {
         // Floor
-       -1.0, -1.0,  1.0, 0.0, 1.0, 0.0,
-       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
-        1.0, -1.0,  1.0, 0.0, 1.0, 0.0,
+       -1.0, -1.0,  1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, -1.0,  1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
 
-       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
-        1.0, -1.0,  1.0, 0.0, 1.0, 0.0,
-        1.0, -1.0, -1.0, 0.0, 1.0, 0.0,
+       -1.0, -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        1.0, -1.0,  1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+        1.0, -1.0, -1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
         //right wall
-        1.0, -1.0,  1.0, -1.0, 0.0, 0.0,
-        1.0, -1.0, -1.0, -1.0, 0.0, 0.0,
-        1.0, 1.0,  1.0,  -1.0, 0.0, 0.0,
+        1.0, -1.0,  1.0, -1.0, 0.0, 0.0, 1.0, 0.0,
+        1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+        1.0, 1.0,  1.0,  -1.0, 0.0, 0.0, 1.0, 1.0, 
 
-        1.0, -1.0, -1.0, -1.0, 0.0, 0.0,
-        1.0, 1.0,  1.0,  -1.0, 0.0, 0.0,
-        1.0, 1.0, -1.0,  -1.0, 0.0, 0.0,
+        1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+        1.0, 1.0,  1.0,  -1.0, 0.0, 0.0, 1.0, 1.0,
+        1.0, 1.0, -1.0,  -1.0, 0.0, 0.0, 0.0, 1.0,
         // Back
-       -1.0, 1.0,  -1.0, 0.0, 0.0, 1.0,
-        1.0, 1.0,  -1.0, 0.0, 0.0, 1.0,
-        1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
+       -1.0, 1.0,  -1.0, 0.0, 0.0, 1.0, 0.0, 1.0,
+        1.0, 1.0,  -1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+        1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
 
-        1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
-       -1.0, -1.0, -1.0, 0.0, 0.0, 1.0,
-       -1.0,  1.0, -1.0, 0.0, 0.0, 1.0,
+        1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
+       -1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+       -1.0,  1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 1.0,
         // Left wall
-       -1.0, -1.0,  1.0, 1.0, 0.0, 0.0,
-       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0,
-       -1.0, 1.0,  1.0,  1.0, 0.0, 0.0,
+       -1.0, -1.0,  1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+       -1.0, 1.0,  1.0,  1.0, 0.0, 0.0, 1.0, 1.0,
 
-       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0,
-       -1.0, 1.0,  1.0,  1.0, 0.0, 0.0,
-       -1.0, 1.0, -1.0,  1.0, 0.0, 0.0,
+       -1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+       -1.0, 1.0,  1.0,  1.0, 0.0, 0.0, 1.0, 1.0,
+       -1.0, 1.0, -1.0,  1.0, 0.0, 0.0, 0.0, 1.0,
     };
 
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);
     // Fill buffer
-    glBufferData(GL_ARRAY_BUFFER, 6*24*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-
-    
+    glBufferData(GL_ARRAY_BUFFER, 8*24*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 }
 
 void init_container(container_t *state, int screen_width, int screen_height)
