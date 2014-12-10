@@ -110,6 +110,9 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     // Bind sphere shader program
     glUseProgram(state->sphere_program);
 
+    // Enable VAO
+    glBindVertexArray(state->vao);
+
     // set radius uniform
     glUniform1f(state->sphere_radius_location, radius);
 
@@ -126,9 +129,6 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // Enable VAO
-    glBindVertexArray(state->vao);
 
     // Draw
     glDrawArrays(GL_POINTS, 0, 1);
