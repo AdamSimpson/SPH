@@ -101,13 +101,14 @@ void create_sphere_mover_program(mover_t *state)
     state->sphere_center_location = glGetUniformLocation(state->sphere_program, "center");
     // Get global matrix index
     state->global_matrix_index = glGetUniformBlockIndex(state->sphere_program, "GlobalMatrices");
+    // Get global light index
+    state->global_light_index = glGetUniformBlockIndex(state->sphere_program, "GlobalLight");
 }
 
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color)
 {
     // Bind sphere shader program
     glUseProgram(state->sphere_program);
-
 
     // set radius uniform
     glUniform1f(state->sphere_radius_location, radius);
@@ -120,6 +121,7 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
 
     // Set uniform binding
     glUniformBlockBinding(state->sphere_program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
+    glUniformBlockBinding(state->sphere_program, state->global_light_index, g_GlobalLightBindingIndex);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);

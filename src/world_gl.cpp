@@ -69,20 +69,55 @@ void init_world(world_t *state, int screen_width, int screen_height)
     state->zoom_factor = 1.0f;
 
     // Set global matrices
+
     glGenBuffers(1, &g_GlobalMatricesUBO);
 
     // Create and Allocate buffer storage
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
 
-    // Update buffers
-    update_view(state);
+    // Update view matrix
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]), // Eye position
+        glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
+        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
+    );
+    // Set projection matrix
+    float ratio = (float)state->screen_width/(float)state->screen_height;
+    // 1.22 radians ~ 70 degrees
+    glm::mat4 proj = glm::perspective(state->zoom_factor*1.22f, ratio, 0.7f, 10.0f);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
 
     // Attach to binding index
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalMatricesBindingIndex, g_GlobalMatricesUBO, 0, sizeof(glm::mat4) * 2);
 
     // Setup global lights
+
+    glGenBuffers(1, &g_GlobalLightUBO);
+
+    // Create and Allocate buffer storage
+    glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalLightUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4)*4 + sizeof(float), NULL, GL_STATIC_DRAW);
+
+    // Update view matrix
+    glm::vec4 worldSpacePos = glm::vec4(0.3, -0.1, -0.4, 1.0);
+    glm::vec4 cameraSpacePos     = view*worldSpacePos;
+    glm::vec4 intensity     = glm::vec4(0.8, 0.8, 0.8, 1.0);
+    glm::vec4 ambientIntensity   = glm::vec4(0.1, 0.1, 0.1, 1.0);
+    float attenuation       = 1.0f;
+
+    // Buffer uniform data
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(worldSpacePos));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(cameraSpacePos));
+    glBufferSubData(GL_UNIFORM_BUFFER, 2*sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(intensity));
+    glBufferSubData(GL_UNIFORM_BUFFER, 3*sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(ambientIntensity));
+    glBufferSubData(GL_UNIFORM_BUFFER, 4*sizeof(glm::vec4), sizeof(float), &attenuation);
+
+    // Unbind
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 }
 
 // Rotates the default eye position degrees around the y axis
