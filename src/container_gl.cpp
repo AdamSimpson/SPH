@@ -76,6 +76,8 @@ void create_container_program(container_t *state)
     state->color_location = glGetUniformLocation(state->program, "color");
     // Get global matrix index
     state->global_matrix_index = glGetUniformBlockIndex(state->program, "GlobalMatrices");
+    // Get global light index
+    state->global_light_index = glGetUniformBlockIndex(state->program, "GlobalLight");
 
     // Setup buffers
     glBindVertexArray(state->vao);    
@@ -173,6 +175,7 @@ void render_container(container_t *state)
 
     // Set uniform binding
     glUniformBlockBinding(state->program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
+    glUniformBlockBinding(state->program, state->global_light_index, g_GlobalLightBindingIndex);
 
     // Bind VAO
     glBindVertexArray(state->vao);   

@@ -37,8 +37,8 @@ typedef struct container_t {
 
     // Uniforms
     GLuint color_location;
-
     GLint global_matrix_index;
+    GLint global_light_index;
 
     // Vertex objects
     GLuint vbo;

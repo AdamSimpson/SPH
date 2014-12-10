@@ -36,6 +36,7 @@ typedef struct particles_t {
     GLint color_location;
     GLint sphere_radius_location;
     GLint global_matrix_index;
+    GLint global_light_index;
 
     // Screen dimensions
     int screen_width;

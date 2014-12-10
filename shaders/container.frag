@@ -14,13 +14,14 @@ layout(std140) uniform GlobalMatrices
     mat4 cameraToClip;
 };
 
-struct light_t
+layout(std140) uniform GlobalLight
 {
-    vec4 cameraSpaceLightPos;
-    vec4 lightIntensity;
+    vec4 worldSpacePos;
+    vec4 cameraSpacePos;
+    vec4 intensity;
     vec4 ambientIntensity;
-    float lightAttenuation;
-} Light;
+    float attenuation;
+} LightData;
 
 float CalcAttenuation(in vec3 cameraSpacePosition,
                       in vec3 cameraSpaceLightPos,
@@ -34,12 +35,8 @@ float CalcAttenuation(in vec3 cameraSpacePosition,
 }
 
 void main() {
-    Light.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
-    Light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
-    Light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
-
     vec3 surfaceToLight = vec3(0.0);
-    vec3 LightPos = Light.cameraSpaceLightPos.xyz;
+    vec3 LightPos = LightData.cameraSpacePos.xyz;
     vec3 fragPos =  cameraSpaceFragPos.xyz;
     float attenIntensity = CalcAttenuation(fragPos, LightPos, surfaceToLight);
 
@@ -53,5 +50,5 @@ void main() {
         checker_color = vec4(0.8, 0.8, 0.8, 1.0);
     }
 
-    OutColor = (checker_color * Light.lightIntensity * attenIntensity * cosAngleIncidence) + (checker_color * Light.ambientIntensity);
+    OutColor = (checker_color * LightData.intensity * attenIntensity * cosAngleIncidence) + (checker_color * LightData.ambientIntensity);
 }
