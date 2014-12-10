@@ -15,25 +15,20 @@ in FragData
 
 out vec4 outputColor;
 
-struct MaterialEntry
+struct material_t
 {
     vec4 diffuseColor;
     vec4 specularColor;
     float specularShininess;
 } Mtl;
 
-struct PerLight
+struct light_t
 {
-	vec4 cameraSpaceLightPos;
-	vec4 lightIntensity;
-};
-
-struct Light
-{
-	vec4 ambientIntensity;
-	float lightAttenuation;
-	PerLight light;
-} Lgt;
+    vec4 cameraSpaceLightPos;
+    vec4 lightIntensity;
+    vec4 ambientIntensity;
+    float lightAttenuation;
+} Light;
 
 float CalcAttenuation(in vec3 cameraSpacePosition,
 	in vec3 cameraSpaceLightPos,
@@ -43,13 +38,13 @@ float CalcAttenuation(in vec3 cameraSpacePosition,
 	float lightDistanceSqr = dot(lightDifference, lightDifference);
 	lightDirection = lightDifference * inversesqrt(lightDistanceSqr);
 	
-	return (1 / ( 1.0 + Lgt.lightAttenuation * lightDistanceSqr));
+	return (1 / ( 1.0 + Light.lightAttenuation * lightDistanceSqr));
 }
 
 uniform float sphereRadius;
 
-vec4 ComputeLighting(in PerLight lightData, in vec3 cameraSpacePosition,
-	in vec3 cameraSpaceNormal, in MaterialEntry material)
+vec4 ComputeLighting(in light_t lightData, in vec3 cameraSpacePosition,
+	in vec3 cameraSpaceNormal, in material_t material)
 {
 	vec3 lightDir;
 	vec4 lightIntensity;
@@ -113,11 +108,11 @@ void main()
         Mtl.specularColor = vec4(0.8, 0.8, 0.8, 0.98);
         Mtl.specularShininess = 0.1;
 
-        Lgt.lightAttenuation = 1.0f;/// (25.0*25.0);
+        Light.lightAttenuation = 1.0f;/// (25.0*25.0);
 
-        Lgt.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
-        Lgt.light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
-        Lgt.light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
+        Light.ambientIntensity= vec4(0.1, 0.1, 0.1, 1.0);
+        Light.cameraSpaceLightPos=worldToCameraMatrix*vec4(0.3, -0.1, -0.4, 1.0);
+        Light.lightIntensity=vec4(0.8, 0.8, 0.8, 1.0);
 
 
 	vec3 cameraPos;
@@ -130,8 +125,8 @@ void main()
 	float ndcDepth = clipPos.z / clipPos.w;
 	gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
 	
-	vec4 accumLighting = Mtl.diffuseColor * Lgt.ambientIntensity;
-	accumLighting += ComputeLighting(Lgt.light,
+	vec4 accumLighting = Mtl.diffuseColor * Light.ambientIntensity;
+	accumLighting += ComputeLighting(Light,
 			cameraPos, cameraNormal, Mtl);
 	
 	outputColor = accumLighting;

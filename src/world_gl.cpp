@@ -81,6 +81,8 @@ void init_world(world_t *state, int screen_width, int screen_height)
     // Attach to binding index
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalMatricesBindingIndex, g_GlobalMatricesUBO, 0, sizeof(glm::mat4) * 2);
+
+    // Setup global lights
 }
 
 // Rotates the default eye position degrees around the y axis

@@ -32,6 +32,10 @@ THE SOFTWARE.
 static const int g_GlobalMatricesBindingIndex = 0;
 static GLuint g_GlobalMatricesUBO;
 
+// Binding index for global uniform lights
+static const int g_GlobalLightBindingIndex = 0;
+static GLuint g_GlobalLightUBO;
+
 // This gets compiled by both c and c++ compilers
 #ifdef __cplusplus
 extern "C" {
