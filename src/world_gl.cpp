@@ -76,23 +76,9 @@ void init_world(world_t *state, int screen_width, int screen_height)
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalMatricesUBO);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, NULL, GL_STREAM_DRAW);
 
-    // Update view matrix
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(state->eye_position[0], state->eye_position[1], state->eye_position[2]), // Eye position
-        glm::vec3(state->look_at[0], state->look_at[1], state->look_at[2]), // Looking at
-        glm::vec3(0.0f, 1.0f, 0.0f)  // Up
-    );
-    // Set projection matrix
-    float ratio = (float)state->screen_width/(float)state->screen_height;
-    // 1.22 radians ~ 70 degrees
-    glm::mat4 proj = glm::perspective(state->zoom_factor*1.22f, ratio, 0.7f, 10.0f);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(proj));
-
     // Attach to binding index
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalMatricesBindingIndex, g_GlobalMatricesUBO, 0, sizeof(glm::mat4) * 2);
 
-    // Setup global lights
 
     glGenBuffers(1, &g_GlobalLightUBO);
 
@@ -100,22 +86,11 @@ void init_world(world_t *state, int screen_width, int screen_height)
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalLightUBO);
     glBufferData(GL_UNIFORM_BUFFER, 4*sizeof(glm::vec4) + sizeof(float), NULL, GL_STREAM_DRAW);
 
-    // Update view matrix
-    glm::vec4 worldSpacePos = glm::vec4(0.3, -0.1, -0.4, 1.0);
-    glm::vec4 cameraSpacePos     = view*worldSpacePos;
-    glm::vec4 intensity     = glm::vec4(0.8, 0.8, 0.8, 1.0);
-    glm::vec4 ambientIntensity   = glm::vec4(0.1, 0.1, 0.1, 1.0);
-    float attenuation       = 1.0f;
-
-    // Buffer uniform data
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(worldSpacePos));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(cameraSpacePos));
-    glBufferSubData(GL_UNIFORM_BUFFER, 2*sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(intensity));
-    glBufferSubData(GL_UNIFORM_BUFFER, 3*sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(ambientIntensity));
-    glBufferSubData(GL_UNIFORM_BUFFER, 4*sizeof(glm::vec4), sizeof(float), &attenuation);
-
     // Attach to binding index
     glBindBufferRange(GL_UNIFORM_BUFFER, g_GlobalLightBindingIndex, g_GlobalLightUBO, 0, 4*sizeof(glm::mat4) + sizeof(float));
+
+    // Set all uniform values
+    update_view(state);
 
     // Unbind
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -259,12 +234,12 @@ void update_view(world_t *state)
     // Create and Allocate buffer storage
     glBindBuffer(GL_UNIFORM_BUFFER, g_GlobalLightUBO);
 
-    // Update view matrix
-    glm::vec4 worldSpacePos = glm::vec4(0.3, -0.1, -0.4, 1.0);
+    // Update light attributes
+    glm::vec4 worldSpacePos = glm::vec4(0.3, 0.5, -0.4, 1.0);
     glm::vec4 cameraSpacePos     = view*worldSpacePos;
     glm::vec4 intensity     = glm::vec4(0.8, 0.8, 0.8, 1.0);
     glm::vec4 ambientIntensity   = glm::vec4(0.1, 0.1, 0.1, 1.0);
-    float attenuation       = 1.0f;
+    float attenuation       = 0.5f;
 
     // Buffer uniform data
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4), glm::value_ptr(worldSpacePos));
