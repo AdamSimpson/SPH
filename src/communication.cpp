@@ -23,10 +23,20 @@ THE SOFTWARE.
 */
 
 #include <stdio.h>
-#include "mpi.h"
 #include "communication.h"
 #include "fluid.h"
 #include <stddef.h>
+#include "mpi.h"
+
+// Externally defined in header
+MPI_Comm MPI_COMM_COMPUTE;
+MPI_Group group_world;
+MPI_Group group_compute;
+MPI_Group group_render;
+// Externally defined in header
+MPI_Datatype TunableParamtype;
+MPI_Datatype LeftEdgetype;
+MPI_Datatype RightEdgetype;
 
 // Rank 0 is the render node, the rest are compute nodes
 // This will create appropriate MPI communicators

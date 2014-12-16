@@ -25,8 +25,11 @@ THE SOFTWARE.
 #ifndef GLFW_UTILS_H
 #define GLFW_UTILS_H
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+extern "C"
+{
+    #include <GL/glew.h>
+    #include <GLFW/glfw3.h>
+}
 
 #include "structs.h"
 

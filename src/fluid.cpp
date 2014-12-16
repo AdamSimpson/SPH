@@ -26,8 +26,8 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
-
 #include "mpi.h"
+
 #include "hash_sort.h"
 #include "renderer.h"
 #include "setup.h"

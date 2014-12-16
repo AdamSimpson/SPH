@@ -29,22 +29,16 @@ THE SOFTWARE.
 #include <sys/stat.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "ogl_utils.h"
 #include "glfw_utils.h"
 #include "world_gl.h"
-#ifdef __cplusplus
-}
-#endif
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-extern "C" void init_particles(particles_t *state, int screen_width, int screen_height)
+void init_particles(particles_t *state, int screen_width, int screen_height)
 {
     state->screen_width = screen_width;
     state->screen_height = screen_height;
@@ -59,7 +53,7 @@ extern "C" void init_particles(particles_t *state, int screen_width, int screen_
 }
 
 // Update coordinate of fluid points
-extern "C" void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state)
+void render_particles(float *points, float diameter_pixels, int num_points, particles_t *state)
 {
     // Set buffer
     glBindBuffer(GL_ARRAY_BUFFER, state->vbo);

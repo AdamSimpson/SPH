@@ -57,16 +57,10 @@ typedef struct container_t {
 } container_t;
 
 // This gets compiled by both c and c++ compilers
-#ifdef __cplusplus
-extern "C" {
-#endif
 void init_container(container_t *state, int screen_width, int screen_height);
 void create_container_program(container_t *state);
 void create_container_buffers(container_t *state);
 void create_container_vertices(container_t *state);
 void render_container(container_t *state);
-#ifdef __cplusplus
-}
-#endif
 
 #endif

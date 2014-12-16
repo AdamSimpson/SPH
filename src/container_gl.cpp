@@ -29,15 +29,9 @@ THE SOFTWARE.
 #include "renderer.h"
 #include "container_gl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "ogl_utils.h"
 #include "glfw_utils.h"
 #include "world_gl.h"
-#ifdef __cplusplus
-}
-#endif
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"

@@ -29,14 +29,8 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include "world_gl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "ogl_utils.h"
 #include "glfw_utils.h"
-#ifdef __cplusplus
-}
-#endif
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"

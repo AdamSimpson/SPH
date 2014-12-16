@@ -1,28 +1,14 @@
 #ifndef __STRUCTS_H
 #define __STRUCTS_H
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
+extern "C"
+{
+    #include <GL/glew.h>
+    #include <GLFW/glfw3.h>
+}
 #include "stdbool.h"
 
 typedef unsigned int uint;
-
-// Poor choices have been made
-#ifndef __cplusplus
-typedef struct gl_t gl_t;
-typedef struct world_t world_t;
-typedef struct fluid_particles_t fluid_particles_t;
-typedef struct edge_t edge_t; 
-typedef struct oob_t oob_t;
-typedef struct AABB_t AABB_t;
-typedef struct neighbor_t neighbor_t;
-typedef struct neighbor_grid_t neighbor_grid_t;
-typedef struct tunable_parameters_t tunable_parameters_t;
-typedef struct param_t param_t;
-typedef struct render_t render_t;
-typedef struct fluid_sim_t fluid_sim_t;
-#endif
 
 // gl_t must be lowercase!!! Something else is using GL_T (?)
 struct gl_t {

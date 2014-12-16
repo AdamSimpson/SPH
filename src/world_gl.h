@@ -36,10 +36,6 @@ static GLuint g_GlobalMatricesUBO;
 static const int g_GlobalLightBindingIndex = 1;
 static GLuint g_GlobalLightUBO;
 
-// This gets compiled by both c and c++ compilers
-#ifdef __cplusplus
-extern "C" {
-#endif
 void init_world(world_t *state,  int screen_width, int screen_height);
 void rotate_camera_yaw(world_t *statem, float degrees);
 void rotate_camera_pitch(world_t *statem, float degrees);
@@ -47,8 +43,5 @@ void rotate_camera_yaw_pitch(world_t *state, float degrees_pitch, float degrees_
 void zoom_view(world_t *state, float d_zoom_factor);
 void move_along_view(world_t *state, float dx);
 void update_view(world_t *state);
-#ifdef __cplusplus
-}
-#endif
 
 #endif

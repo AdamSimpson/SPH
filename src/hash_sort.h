@@ -34,13 +34,6 @@ void find_cell_bounds(fluid_sim_t *fluid_sim);
 void fill_particle_neighbors(fluid_sim_t *fluid_sim, uint p_index);
 void fill_neighbors(fluid_sim_t *fluid_sim);
 
-// This gets compiled by both c and c++ compilers
-#ifdef __cplusplus
-extern "C" {
-#endif
 void find_all_neighbors(fluid_sim_t *fluid_sim);
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include <thrust/execution_policy.h>
 
 // Calculate and fill all neighbor particles
-extern "C" void find_all_neighbors(fluid_sim_t *fluid_sim)
+void find_all_neighbors(fluid_sim_t *fluid_sim)
 {
     hash_particles(fluid_sim);
     sort_hash(fluid_sim);

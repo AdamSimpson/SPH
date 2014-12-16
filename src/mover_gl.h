@@ -52,17 +52,10 @@ typedef struct mover_t
     GLuint ubo;
 } mover_t;
 
-// This gets compiled by both c and c++ compilers
-#ifdef __cplusplus
-extern "C" {
-#endif
 void init_mover(mover_t *state,  int screen_width, int screen_height);
 void render_mover(float *center, float radius, float *color, mover_t *state);
 void create_sphere_mover_program(mover_t *state);
 void draw_circle_mover(mover_t *state, float *center, float radius, float *color);
 void create_mover_buffers(mover_t *state);
-#ifdef __cplusplus
-}
-#endif
 
 #endif
