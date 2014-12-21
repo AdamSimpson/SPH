@@ -75,3 +75,68 @@ void compile_shader(GLuint shader, const char *file_name)
 
     free(shader_source);
 }
+
+// Convert hsv to rgb
+// input hsv [0:1]
+// output rgb [0,1]
+void hsv_to_rgb(float* HSV, float *RGB)
+{
+    float hue, saturation, value, hh, p, q, t, ff, r, g, b;
+    long i;
+
+    hue = HSV[0];
+    saturation = HSV[1];
+    value = HSV[2];
+
+    hh = hue*360.0f;
+    if(hh >= 360.0f)
+        hh = 0.0f;
+    hh /= 60.0f;
+    i = (long)hh;
+    ff = hh - i;
+    p = value * (1.0f - saturation);
+    q = value * (1.0f - (saturation * ff));
+    t = value * (1.0f - (saturation * (1.0f - ff)));
+
+    switch(i) {
+        case 0:
+            r = value;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = value;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = value;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = value;
+            break;
+        case 4:
+            r = t;
+            g = p;
+            b = value;
+            break;
+        case 5:
+            r = value;
+            g = p;
+            b = q;
+            break;
+        default:
+            r = value;
+            g = p;
+            b = q;
+            break;
+    }
+
+    RGB[0] = r;
+    RGB[1] = g;
+    RGB[2] = b;
+}

@@ -10,37 +10,6 @@ extern "C"
 
 typedef unsigned int uint;
 
-// gl_t must be lowercase!!! Something else is using GL_T (?)
-struct gl_t {
-    int screen_width;
-    int screen_height;
-
-    // GLFW mouse coordinates for "normal" cursor coordinates
-    float cursor_x;
-    float cursor_y;
-
-    // GLFW mouse coordinates for "view" mode cursor coordinates
-    float cursor_view_x;
-    float cursor_view_y;
-
-    GLFWwindow* window;
-};
-
-struct world_t {
-    // Screen dimensions
-    int screen_width;
-    int screen_height;
-
-    float max_degrees_rotate;// Max degrees user allowed to rotate 
-
-    // zoom factor for perspective matrix
-    float zoom_factor;
-
-    float eye_position[3];
-    float eye_position_default[3];
-    float look_at[3];
-};
-
 // Standard fluid particle paramaters
 struct fluid_particles_t {
     float *x_star;
@@ -154,24 +123,6 @@ struct param_t {
     int steps_per_frame;              // Number of simulation steps before updating render node
     float particle_mass; // "mass" of particle so that density is particle count independent
 }; // Simulation paramaters
-
-struct render_t {
-    float sim_width;
-    float sim_height;
-    float sim_depth;
-    float screen_width;
-    float screen_height;
-    parameters selected_parameter;
-    tunable_parameters_t *node_params; // Holds all nodes paramters including start/end lengths
-    tunable_parameters_t *master_params; // Holds parameters shared by all nodes
-    int num_compute_procs;
-    int num_compute_procs_active; // Number of nodes participating in simulation, user may "remove" nodes at runtime
-    bool view_controls; // When shift is held mouse controls view
-    bool pause;
-    double last_activity_time; // Used to determine if simulation is being used or not
-    world_t *world;
-    gl_t *gl_state;
-};
 
 // Struct containing all simulation information
 struct fluid_sim_t {

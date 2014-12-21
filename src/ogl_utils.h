@@ -31,5 +31,5 @@ inline void check();
 void showlog(GLint shader);
 void show_program_log(GLuint program);
 void compile_shader(GLuint shader, const char *file_name);
-
+void hsv_to_rgb(float* hsv, float *rgb);
 #endif

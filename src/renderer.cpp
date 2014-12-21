@@ -35,21 +35,31 @@ THE SOFTWARE.
 #include "font_gl.h"
 #include "container_gl.h"
 #include "world_gl.h"
-#include "renderer.h"
+#include "renderer.hpp"
 
 #ifdef BLINK1
     #include "blink1_light.h"
 #endif
 
-void start_renderer()
+// Needs refactored, probably with initialization list
+void Renderer::Renderer()
+{
+}
+
+void Renderer::~Renderer()
+{
+
+}
+
+void Renderer::start_renderer()
 {
     // Setup initial OpenGL state
-    gl_t gl_state;
-    memset(&gl_state, 0, sizeof(gl_t));
+//    gl_t gl_state;
+//    memset(&gl_state, 0, sizeof(gl_t));
 
     // Start OpenGL
-    render_t render_state;
-    init_ogl(&gl_state, &render_state);
+//    render_t render_state;
+//    init_ogl(&gl_state, &render_state);
 
     gl_state.cursor_x =  gl_state.screen_width/2.0f;
     gl_state.cursor_y =  gl_state.screen_height/2.0f;
@@ -478,67 +488,65 @@ void update_inactive_state(render_t *render_state)
     set_mover_gl_center(render_state, gl_x, gl_y, 0.0f);
 }
 
-// Convert hsv to rgb
-// input hsv [0:1]
-// output rgb [0,1]
-void hsv_to_rgb(float* HSV, float *RGB)
+void enable_view_controls(render_t *render_state)
 {
-    float hue, saturation, value, hh, p, q, t, ff, r, g, b;
-    long i;
+    render_state->view_controls = true;
+}
 
-    hue = HSV[0];
-    saturation = HSV[1];
-    value = HSV[2];
+void disable_view_controls(render_t *render_state)
+{
+    render_state->view_controls = false;
+}
 
-    hh = hue*360.0f;
-    if(hh >= 360.0f)
-	hh = 0.0f;
-    hh /= 60.0f;
-    i = (long)hh;
-    ff = hh - i;
-    p = value * (1.0f - saturation);
-    q = value * (1.0f - (saturation * ff));
-    t = value * (1.0f - (saturation * (1.0f - ff)));
+void toggle_pause(render_t *state)
+{
+    state->pause = !state->pause;
+}
 
-    switch(i) {
-        case 0:
-	    r = value;
-	    g = t;
-	    b = p;
-	    break;
-	case 1:
-	    r = q;
-	    g = value;
-	    b = p;
-	    break;
-	case 2:
-	    r = p;
-	    g = value;
-	    b = t;
-	    break;
-	case 3:
-	    r = p;
-	    g = q;
-	    b = value;
-	    break;
-        case 4:
-	    r = t;
-	    g = p;
-	    b = value;
-	    break;
-	case 5:
-	    r = value;
-	    g = p;
-	    b = q;
-	    break;
-	default:
-	    r = value;
-	    g = p;
-	    b = q;
-	    break;
-    }
+void set_view_angle(render_t *state, float x_pos, float y_pos)
+{
+    world_t *world_state = state->world;
+    float max_degrees = world_state->max_degrees_rotate;
 
-    RGB[0] = r;
-    RGB[1] = g;
-    RGB[2] = b;
+    // x_pos,y_pos is [-1, 1]
+    // Angle is [-max_degrees, max_degrees]
+    // This is the angle relative to the intial orientation at the start of view mode
+    float degrees_yaw = max_degrees*x_pos;
+    float degrees_pitch = max_degrees*y_pos;
+    rotate_camera_yaw_pitch(world_state, degrees_yaw, degrees_pitch);
+
+    // Update view
+    update_view(world_state);
+}
+
+void move_in_view(render_t *state)
+{
+    float dx = 0.15;
+    world_t *world_state = state->world;
+    move_along_view(world_state, dx);
+    update_view(world_state);
+}
+
+void move_out_view(render_t *state)
+{
+    float dx = -0.15;
+    world_t *world_state = state->world;
+    move_along_view(world_state, dx);
+    update_view(world_state);
+}
+
+void zoom_in_view(render_t *state)
+{
+    float dzoom = 0.07;
+    world_t *world_state = state->world;
+    zoom_view(world_state, dzoom);
+    update_view(world_state);
+}
+
+void zoom_out_view(render_t *state)
+{
+    float dzoom = -0.07;
+    world_t *world_state = state->world;
+    zoom_view(world_state, dzoom);
+    update_view(world_state);
 }

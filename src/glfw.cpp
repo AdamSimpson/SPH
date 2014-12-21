@@ -30,30 +30,15 @@ THE SOFTWARE.
 #include "renderer.h"
 #include "controls.h"
 
-void check_user_input(gl_t *state)
-{
-    // Poll GLFW for key press or mouse input
-    glfwPollEvents();
-}
-
 void error_callback(int error, const char* description)
 {
     fputs(description, stderr);
 }
 
-
-bool window_should_close(gl_t *state)
-{
-    if(glfwWindowShouldClose(state->window))
-	return true;
-    else
-	return false;
-}
-
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     // Get render_state from GLFW user pointer
-    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
+    Renderer *renderer = (Renderer*)glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS)
     {
@@ -188,7 +173,7 @@ void wheel_callback(GLFWwindow* window, double x, double y)
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void init_ogl(gl_t *state, render_t *render_state)
+void GLFW::GLFW(Renderer *render_state)
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -265,7 +250,21 @@ void init_ogl(gl_t *state, render_t *render_state)
     glClear( GL_COLOR_BUFFER_BIT );
 }
 
-void swap_ogl(gl_t *state)
+bool GLFW::window_should_close()
+{
+    if(glfwWindowShouldClose(self->window))
+        return true;
+    else
+        return false;
+}
+
+void GLFW::check_user_input()
+{
+    // Poll GLFW for key press or mouse input
+    glfwPollEvents();
+}
+
+void swap_buffers(gl_t *state)
 {
     glfwSwapBuffers(state->window);
 }

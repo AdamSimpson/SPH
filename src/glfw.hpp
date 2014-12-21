@@ -33,15 +33,32 @@ extern "C"
 
 #include "structs.h"
 
+class GLFW
+{
+    public:
+        GLFW();
+        ~GLFW();
+        void check_user_input();
+        void swap_buffers();
+        bool window_should_close();
+        void exit_program();
+        void pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y);
+    private:
+        GLFWwindow *window;
+        float screen_width;
+        float screen_height;
+        // GLFW mouse coordinates for "normal" cursor coordinates
+        float cursor_x;
+        float cursor_y;
+        // GLFW mouse coordinates for "view" mode cursor coordinates
+        float cursor_view_x;
+        float cursor_view_y;
+}
+
+// GLFW callback function prototypes
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void wheel_callback(GLFWwindow* window, double x, double y);
 void error_callback(int error, const char* description);
-void check_user_input(gl_t *state);
-void init_ogl(gl_t *state, render_t *render_state);
-void exit_ogl(gl_t *state);
-void swap_ogl(gl_t *state);
-bool window_should_close(gl_t *state);
-void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y);
-void exit_program(GLFWwindow* window);
 
 #endif

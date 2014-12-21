@@ -1,0 +1,77 @@
+/*
+The MIT License (MIT)
+
+Copyright (c) 2014 Adam Simpson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#ifndef fluid_renderer_h
+#define fluid_renderer_h
+
+#include "fluid.h"
+
+class Renderer
+{
+    public:
+        Renderer();
+        ~Renderer();
+        void start_rendering();
+        void opengl_to_sim(float x, float y, float z, float *sim_x, float *sim_y, float *sim_z);
+        void sim_to_opengl(float x, float y, float z, float *gl_x, float *gl_y, float *gl_z);
+        void update_node_params();
+        void checkPartitions(int *particle_counts, int total_particles);
+        void check_partition_left(int *particle_counts, int total_particles);
+        void set_activity_time();
+        bool input_is_active();
+        void update_inactive_state();
+        void enable_view_controls();
+        void disable_view_controls();
+        void zoom_in_view();
+        void zoom_out_view();
+        void set_view_angle(const float x_pos, const y_pos);
+        void move_in_view();
+        void move_out_view();
+    private:
+        GLFW glfw;
+        TunableParameters tunable_parameters;
+
+        float sim_width;
+        float sim_height;
+        float sim_depth;
+        float screen_width;
+        float screen_height;
+
+        bool view_controls; // When shift is held mouse controls view
+        bool pause;
+        double last_activity_time; // Used to determine if simulation is being used or not
+
+        //
+        // Camera attributes
+        //
+        float max_degrees_rotate;// Max degrees user allowed to rotate 
+        // zoom factor for perspective matrix
+        float zoom_factor;
+        // Camera vectors
+        float eye_position[3];
+        float eye_position_default[3];
+        float look_at[3];
+}
+
+#endif
