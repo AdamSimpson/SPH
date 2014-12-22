@@ -26,9 +26,9 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <assert.h>
 
-#include "glfw_utils.h"
-#include "renderer.h"
-#include "controls.h"
+#include "gl.hpp"
+#include "renderer.hpp"
+#include "tunable_parameters.hpp"
 
 void error_callback(int error, const char* description)
 {
@@ -37,13 +37,13 @@ void error_callback(int error, const char* description)
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    // Get render_state from GLFW user pointer
+    // Get renderer object from GLFW user pointer
     Renderer *renderer = (Renderer*)glfwGetWindowUserPointer(window);
 
     if(action == GLFW_PRESS)
     {
         // Let renderer know of activity
-        set_activity_time(render_state);
+        renderer->set_activity_time();
 
         switch(key)
         { 
@@ -51,29 +51,29 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 exit_program(window);              
 	        break;
             case GLFW_KEY_RIGHT:
-                increase_parameter(render_state);
+                renderer->tunable_parameters->increase_parameter();
                 break;
             case GLFW_KEY_LEFT:
-                decrease_parameter(render_state);
+                renderer->tunable_parameters->decrease_parameter();
                 break;
             case GLFW_KEY_UP:
-                move_parameter_up(render_state);
+                renderer->tunable_parameters->move_parameter_up();
                 break;
             case GLFW_KEY_DOWN:
-                move_parameter_down(render_state);
+                renderer->tunable_parameters->move_parameter_down();
                 break;
             case GLFW_KEY_LEFT_BRACKET:
-                remove_partition(render_state);
+                renderer->tunable_parameters->remove_partition();
                 break;
             case GLFW_KEY_RIGHT_BRACKET:
-                add_partition(render_state);
+                renderer->tunable_parameters->add_partition();
                 break;
             case GLFW_KEY_P:
-                toggle_pause(render_state);
+                renderer->toggle_pause();
                 break;
             case GLFW_KEY_LEFT_SHIFT:
-                glfwSetCursorPos (window, render_state->gl_state->cursor_view_x, render_state->gl_state->cursor_view_y);
-                enable_view_controls(render_state);
+                glfwSetCursorPos (window, renderer->tunable_parameters->cursor_view_x, renderer->tunable_parameters->cursor_view_y);
+                renderer->enable_view_controls();
                 break;
         }
     }
@@ -82,8 +82,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         {
             case GLFW_KEY_LEFT_SHIFT:
-                glfwSetCursorPos (window, render_state->gl_state->cursor_x, render_state->gl_state->cursor_y);
-                disable_view_controls(render_state);
+                glfwSetCursorPos (window, renderer->tunable_parameters->cursor_x, renderer->tunable_parameters->cursor_y);
+                renderer->disable_view_controls();
                 break;
         }
     }
@@ -91,19 +91,19 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    // Get render_state from GLFW user pointer
-    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
+    // Get renderer object from GLFW user pointer
+    Renderer *renderer = (Renderer*)glfwGetWindowUserPointer(window);
 
     // Make sure mouse stays in bounds
     // GLFW_CURSOR_DISABLED works better on mac than GLFW_CURSOR_HIDDEN but doesn't trap cursor
     // Sometimes jumping can happen when using SetCursorPos with HIDDEN mode
-    float pixel_width = render_state->gl_state->screen_width;
-    float pixel_height = render_state->gl_state->screen_height;
+    float pixel_width  = renderer->tunable_parameters->screen_width;
+    float pixel_height = renderer->tunable_parameters->screen_height;
     if(xpos < 0.0) {
         xpos = 0.0;
         glfwSetCursorPos(window, xpos, ypos);
     }
-    else if(floor(xpos) > render_state->gl_state->screen_width) {
+    else if(floor(xpos) > renderer->tunable_parameters->screen_width) {
         xpos = (double)pixel_width;
         glfwSetCursorPos(window, xpos, ypos);
     }
@@ -111,69 +111,69 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         ypos = 0.0;
         glfwSetCursorPos(window, xpos, ypos);
     }
-    else if(floor(ypos) > render_state->gl_state->screen_height) {
+    else if(floor(ypos) > renderer->tunable_parameters->screen_height) {
         ypos = (double)pixel_height;
         glfwSetCursorPos(window, xpos, ypos);
     }
 
     // Let renderer know of activity
-    set_activity_time(render_state);
+    renderer->tunable_parameters->set_activity_time();
 
-    if(render_state->view_controls) {
-        render_state->gl_state->cursor_view_x = xpos;
-        render_state->gl_state->cursor_view_y = ypos;
+    if(renderer->tunable_parameters->view_controls) {
+        renderer->tunable_parameters->cursor_view_x = xpos;
+        renderer->tunable_parameters->cursor_view_y = ypos;
 
         float new_x, new_y;
-        new_y = render_state->screen_height - ypos; // Flip y = 0
-        new_y = new_y/(0.5*render_state->screen_height) - 1.0;
+        new_y = renderer->tunable_parameters->screen_height - ypos; // Flip y = 0
+        new_y = new_y/(0.5*renderer->tunable_parameters->screen_height) - 1.0;
         new_x = render_state->screen_width - xpos; // Flip x = 0
-        new_x = new_x/(0.5*render_state->screen_width) - 1.0;
+        new_x = new_x/(0.5*renderer->tunable_parameters->screen_width) - 1.0;
 
-        set_view_angle(render_state, new_x, new_y);
+        renderer->set_view_angle(new_x, new_y);
     }
-    else if(!render_state->view_controls) {
-        render_state->gl_state->cursor_x = xpos;
-        render_state->gl_state->cursor_y = ypos;
+    else if(!renderer->tunable_parameters->view_controls) {
+        renderer->tunable_parameters->cursor_x = xpos;
+        renderer->tunable_parameters->cursor_y = ypos;
 
         float new_x, new_y;
-        new_y = (render_state->screen_height - ypos); // Flip y = 0
-        new_y = new_y/(0.5*render_state->screen_height) - 1.0;
-        new_x = xpos/(0.5*render_state->screen_width) - 1.0;
+        new_y = (renderer->tunable_parameters->screen_height - ypos); // Flip y = 0
+        new_y = new_y/(0.5*renderer->tunable_parameters->screen_height) - 1.0;
+        new_x = xpos/(0.5*renderer->tunable_parameters->screen_width) - 1.0;
 
-        set_mover_gl_center(render_state, new_x, new_y, -0.8f);
+        renderer->tunable_parameters->set_mover_gl_center(new_x, new_y, -0.8f);
     }
 }
 
 // scroll wheel callback
 void wheel_callback(GLFWwindow* window, double x, double y)
 {
-    // Get render_state from GLFW user pointer
-    render_t *render_state = (render_t*)glfwGetWindowUserPointer(window);
+    // Get renderer object from GLFW user pointer
+    Renderer *renderer = (Renderer*)glfwGetWindowUserPointer(window);
 
     // Let renderer know of activity
-    set_activity_time(render_state);    
+    renderer->set_activity_time();    
 
-    if(render_state->view_controls) {
+    if(renderer->view_controls) {
         if(x > 0.0)
-            move_in_view(render_state);
+            renderer->move_in_view();
         else if(x < 0.0)
-            move_out_view(render_state);
+            renderer->move_out_view();
     }
     else {
         // Call increase/decrease mover calls
         if(y > 0.0)
-	    increase_mover_radius(render_state);
+	    renderer->tunable_parameters->increase_mover_radius();
         else if(y < 0.0)
-	    decrease_mover_radius(render_state);
+	    renderer->tunable_parameters->decrease_mover_radius();
         if(x > 0.0)
-            increase_mover_radius(render_state);
+            renderer->tunable_parameters->increase_mover_radius();
         else if(x < 0.0)
-            decrease_mover_radius(render_state);
+            renderer->tunable_parameters->decrease_mover_radius();
     }
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void GLFW::GLFW()
+void GL::GL()
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -250,7 +250,7 @@ void GLFW::GLFW()
     glClear( GL_COLOR_BUFFER_BIT );
 }
 
-bool GLFW::window_should_close()
+bool GL::window_should_close()
 {
     if(glfwWindowShouldClose(self->window))
         return true;
@@ -258,18 +258,18 @@ bool GLFW::window_should_close()
         return false;
 }
 
-void GLFW::check_user_input()
+void GL::check_user_input()
 {
     // Poll GLFW for key press or mouse input
     glfwPollEvents();
 }
 
-void swap_buffers(gl_t *state)
+void GL::swap_buffers()
 {
-    glfwSwapBuffers(state->window);
+    glfwSwapBuffers(this->window);
 }
 
-void exit_ogl(gl_t *state)
+void GL::exit()
 {
 //    glDeleteProgram(state->shaderProgram);
 //    glDeleteShader(fragmentShader);
@@ -277,24 +277,24 @@ void exit_ogl(gl_t *state)
 //    glDeleteBuffers(1, &vbo);
 //    glDeleteVertexArrays(1, &vao);
 
-    glfwDestroyWindow(state->window);
+    glfwDestroyWindow(this->window);
     glfwTerminate();
 
     printf("close\n");
 }
 
 // Convert pixel coordinates, lower left origin, to gl coordinates, center origin
-void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y)
+void GL::pixel_to_gl(int pixel_x, int pixel_y, float *gl_x, float *gl_y)
 {
-    float half_x = state->screen_width/2.0;
-    float half_y = state->screen_height/2.0;
+    float half_x = this->screen_width/2.0;
+    float half_y = this->screen_height/2.0;
     *gl_x = pixel_x/half_x - 1.0;
     *gl_y = pixel_y/half_y - 1.0;
 
 }
 
 // Exit and set return value for specific program if one selected
-void exit_program(GLFWwindow* window)
+void GL::exit_program(GLFWwindow* window)
 {
     glfwSetWindowShouldClose(window, GL_TRUE);
 }

@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef CONTAINER_GL_H
 #define CONTAINER_GL_H
 
-#include "glfw_utils.h"
+#include "gl.hpp"
 
 typedef struct container_t {
     GLuint program;

@@ -22,26 +22,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef WORLD_GL_H
-#define WORLD_GL_H
+#ifndef CAMERA_H
+#define CAMERA_H
 
-#include "glfw_utils.h"
-#include "structs.h"
+#include "gl.hpp"
 
-// Binding index for global uniform matrices
-static const int g_GlobalMatricesBindingIndex = 0;
-static GLuint g_GlobalMatricesUBO;
+class Camera
+{
+    public:
+        GL gl;
+        // Binding index for global uniform matrices
+        static const int g_GlobalMatricesBindingIndex = 0;
+        static GLuint g_GlobalMatricesUBO;
 
-// Binding index for global uniform lights
-static const int g_GlobalLightBindingIndex = 1;
-static GLuint g_GlobalLightUBO;
+        // Binding index for global uniform lights
+        static const int g_GlobalLightBindingIndex = 1;
+        static GLuint g_GlobalLightUBO;
 
-void init_world(world_t *state,  int screen_width, int screen_height);
-void rotate_camera_yaw(world_t *statem, float degrees);
-void rotate_camera_pitch(world_t *statem, float degrees);
-void rotate_camera_yaw_pitch(world_t *state, float degrees_pitch, float degrees_yaw);
-void zoom_view(world_t *state, float d_zoom_factor);
-void move_along_view(world_t *state, float dx);
-void update_view(world_t *state);
+        void rotate_camera_yaw(float degrees);
+        void rotate_camera_pitch(float degrees);
+        void rotate_camera_yaw_pitch(float degrees_pitch, float degrees_yaw);
+        void zoom_view(float d_zoom_factor);
+        void move_along_view(float dx);
+        void update_view();
+
+    private:
+        // Max degrees user allowed to rotate
+        float max_degrees_rotate;
+        // zoom factor for perspective matrix
+        float zoom_factor;
+        // Camera vectors
+        float eye_position[3];
+        float eye_position_default[3];
+        float look_at[3];
+}
 
 #endif

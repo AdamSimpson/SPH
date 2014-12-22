@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include "mpi.h"
 
 #include "hash_sort.h"
-#include "renderer.h"
+#include "renderer.hpp"
 #include "setup.h"
 #include "fluid.h"
 #include "communication.h"

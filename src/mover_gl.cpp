@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include "mover_gl.h"
 
 #include "ogl_utils.h"
-#include "glfw_utils.h"
+#include "gl.hpp"
 #include "world_gl.h"
 
 #define GLM_FORCE_RADIANS

@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "controls.h"
-#include "renderer.h"
+#include "tunable_parameters.hpp"
+#include "renderer.hpp"
 #include "world_gl.h"
 
 // Move selected parameter up

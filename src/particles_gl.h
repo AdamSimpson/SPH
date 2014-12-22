@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef PARTICLES_GL_H
 #define PARTICLES_GL_H
 
-#include "glfw_utils.h"
+#include "gl.hpp"
 
 typedef struct particles_t {
     // Program handle

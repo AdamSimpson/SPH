@@ -51,7 +51,7 @@ void Renderer::start_renderer()
     world_t world_GLstate;
     init_world(&world_GLstate, this->screen_width(), this->screen_height());
 
-    render_state.world = &world_GLstate;
+    this->world_state = &world_GLstate;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -186,8 +186,8 @@ void Renderer::start_renderer()
             this->glfw->check_user_input();
 
         // Check if inactive
-        if(!this->input_is_active())
-            this->update_inactive_state();
+//        if(!this->input_is_active())
+//            this->update_inactive_state();
 
         // Update struct params with class values
         this->param_class_to_struct();
@@ -325,60 +325,25 @@ bool Renderer::input_is_active()
     return time_since_active < 120;
 }
 
-// Renderer will move mover if annactive
-void Renderer::update_inactive_state()
+void Renderer::enable_view_controls()
 {
-    float gl_x, gl_y, gl_z;
-    sim_to_opengl(render_state, render_state->master_params[0].mover_center_x,
-                                render_state->master_params[0].mover_center_y,
-                                render_state->master_params[0].mover_center_z, 
-                                &gl_x, &gl_y, &gl_z);
-
-    // Reset mover radius
-    reset_mover_size(render_state);
-
-    // Add in all nodes
-    int i;
-    for(i=render_state->num_compute_procs_active; i<=render_state->num_compute_procs; i++)
-        add_partition(render_state);
-
-    float dx = 0.01f;
-
-    // This is dirty...
-    // Static to hold direction while inactive
-    static int direction = 1;
-
-    gl_x += dx*direction;
-
-    // If outside boundary switch direction
-    if (gl_x > 1.0f || gl_x < -1.0f)
-        direction *= -1;
-
-    // Move in sin pattern
-    gl_y = sinf(3.14f*5.0f*gl_x)/10.0f - 0.6f;
-
-    set_mover_gl_center(render_state, gl_x, gl_y, 0.0f);
+    this->view_controls = true;
 }
 
-void enable_view_controls(render_t *render_state)
+void Renderer::disable_view_controls()
 {
-    render_state->view_controls = true;
+    this->view_controls = false;
 }
 
-void disable_view_controls(render_t *render_state)
+void Renderer::toggle_pause()
 {
-    render_state->view_controls = false;
+    this->pause = !state->pause;
 }
 
-void toggle_pause(render_t *state)
+void Renderer::set_view_angle(float x_pos, float y_pos)
 {
-    state->pause = !state->pause;
-}
-
-void set_view_angle(render_t *state, float x_pos, float y_pos)
-{
-    world_t *world_state = state->world;
-    float max_degrees = world_state->max_degrees_rotate;
+    world_t *world_state = this->world;
+    const float max_degrees_rotate = 40.0f;
 
     // x_pos,y_pos is [-1, 1]
     // Angle is [-max_degrees, max_degrees]
@@ -391,15 +356,15 @@ void set_view_angle(render_t *state, float x_pos, float y_pos)
     update_view(world_state);
 }
 
-void move_in_view(render_t *state)
+void Renderer::move_in_view()
 {
     float dx = 0.15;
-    world_t *world_state = state->world;
+    world_t *world_state = this->world;
     move_along_view(world_state, dx);
     update_view(world_state);
 }
 
-void move_out_view(render_t *state)
+void Renderer::move_out_view()
 {
     float dx = -0.15;
     world_t *world_state = state->world;
@@ -407,7 +372,7 @@ void move_out_view(render_t *state)
     update_view(world_state);
 }
 
-void zoom_in_view(render_t *state)
+void Renderer::zoom_in_view()
 {
     float dzoom = 0.07;
     world_t *world_state = state->world;
@@ -415,7 +380,7 @@ void zoom_in_view(render_t *state)
     update_view(world_state);
 }
 
-void zoom_out_view(render_t *state)
+void Renderer::zoom_out_view()
 {
     float dzoom = -0.07;
     world_t *world_state = state->world;

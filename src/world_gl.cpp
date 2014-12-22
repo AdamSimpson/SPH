@@ -27,10 +27,10 @@ THE SOFTWARE.
 #include <assert.h>
 #include <sys/stat.h>
 #include <stdlib.h>
-#include "world_gl.h"
+#include "camera_gl.hpp"
 
 #include "ogl_utils.h"
-#include "glfw_utils.h"
+#include "gl.hpp"
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
@@ -43,8 +43,6 @@ void init_world(world_t *state, int screen_width, int screen_height)
 {
     state->screen_width = screen_width;
     state->screen_height = screen_height;
-
-    state->max_degrees_rotate = 40.0f;
 
     // eye position rotations are based upon
     state->eye_position_default[0] = 0.0f;

@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef GLFW_UTILS_H
-#define GLFW_UTILS_H
+#ifndef GL_UTILS_H
+#define GL_UTILS_H
 
 extern "C"
 {
@@ -33,18 +33,17 @@ extern "C"
 
 #include "structs.h"
 
-class GLFW
+class GL
 {
     public:
-        GLFW(): cursor_x(0), cursor_y(0), cursor_view_x(0), cursor_view_y(0);
-        ~GLFW();
+        GL(): cursor_x(0), cursor_y(0), cursor_view_x(0), cursor_view_y(0) {};
         void check_user_input();
         void swap_buffers();
         bool window_should_close();
         void exit_program();
         void pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y);
-        int screen_width() const { return this->screen_width };
-        int screen_height() const { return this->screen_height};
+        float get_screen_width() const { return this->screen_width; };
+        float get_screen_height() const { return this->screen_height; };
     private:
         GLFWwindow *window;
         float screen_width;
@@ -55,7 +54,7 @@ class GLFW
         // GLFW mouse coordinates for "view" mode cursor coordinates
         float cursor_view_x;
         float cursor_view_y;
-}
+};
 
 // GLFW callback function prototypes
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);

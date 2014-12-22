@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef OGL_UTILS_H
 #define OGL_UTILS_H
 
-#include "glfw_utils.h"
+#include "gl.hpp"
 
 inline void check();
 void showlog(GLint shader);

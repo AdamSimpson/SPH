@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef MOVER_GL_H
 #define MOVER_GL_H
 
-#include "glfw_utils.h"
+#include "gl.hpp"
 
 typedef struct mover_t
 {

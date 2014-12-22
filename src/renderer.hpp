@@ -31,8 +31,9 @@ THE SOFTWARE.
 class Renderer
 {
     public:
-        Renderer(int num_compute_procs): pause(false), view_controls(false), num_compute_procs(num_compute_procs);
-        const GLFW glfw();
+        Renderer(int num_compute_procs): pause(false), view_controls(false), num_compute_procs(num_compute_procs){};
+        GL gl;
+        Camera camera: gl(gl);
         TunableParameters tunable_parameters(num_compute_procs);
         void start_rendering();
         void opengl_to_sim(float x, float y, float z, float *sim_x, float *sim_y, float *sim_z);
@@ -54,23 +55,15 @@ class Renderer
         float sim_width;
         float sim_height;
         float sim_depth;
+         
+        // Blarg
+        world_t *world_state;
 
         // Struct vector used to deal with tunable param class to mpi sendable type
         std::vector<tunable_parameters_t> tunable_param_structs(num_compute_procs);
         bool view_controls; // When shift is held mouse controls view
         bool pause;
         double last_activity_time; // Used to determine if simulation is being used or not
-
-        //
-        // Camera attributes
-        //
-        float max_degrees_rotate;// Max degrees user allowed to rotate 
-        // zoom factor for perspective matrix
-        float zoom_factor;
-        // Camera vectors
-        float eye_position[3];
-        float eye_position_default[3];
-        float look_at[3];
-}
+};
 
 #endif
