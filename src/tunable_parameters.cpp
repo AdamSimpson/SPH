@@ -204,7 +204,7 @@ void TunableParameters::set_mover_gl_center(const float ogl_x, const float ogl_y
 }
 
 // Increase mover radius
-void TunableParameters::increase_mover_radius()
+void TunableParameters::ibleParametersncrease_mover_radius()
 {
     // Maximum radius of mover
     static const float max_width = 4.0f;
@@ -270,4 +270,57 @@ void TunableParameters::add_partition()
     this->proc_starts[this->num_compute_procs_active] = new_x;
 
     this->num_compute_procs_active += 1;
+}
+
+// Checks for a balanced number of particles on each compute node
+// If unbalanced the partition between nodes will change 
+// Check from right to left
+void TunableParameters::check_partition_left(int *particle_counts, int total_particles)
+{
+    int rank, diff;
+    float h, dx, length, length_left, length_right;
+
+    // Particles per proc if evenly divided
+    int even_particles = total_particles/this->num_compute_procs_active;
+    int max_diff = even_particles/15.0f;
+
+    // Fixed distance to move partition is 0.125*smoothing radius
+    h = this->smoothing_radius;
+    dx = h*0.125;
+
+    for(rank=this->num_compute_procs_active; rank-- > 1; )
+    {
+        length =  this->proc_ends[rank] - this->proc_starts[rank];
+        length_left =  this->proc_ends[rank-1] - this->proc_starts[rank-1];
+        diff = particle_counts[rank] - even_particles;
+
+        // current rank has too many particles
+        if( diff > max_diff && length > 2*h) {
+            this->proc_starts[rank] += dx;
+            this->proc_ends[rank-1] = this->proc_starts[rank];
+        }
+        // current rank has too few particles
+        else if (diff < -max_diff && length_left > 2*h) {
+            this->proc_starts[rank] -= dx;
+            this->proc_ends[rank-1] = this->proc_starts[rank];
+        }
+    }
+
+    // Left most partition has a tendency to not balance correctly so we test it explicitly
+    if(render_state->num_compute_procs_active > 1)
+    {
+        length =  this->proc_ends[0] - this->proc_starts[0];
+        length_right =  this->proc_ends[1]- this->proc_starts[1];
+        diff = particle_counts[0] - even_particles;
+
+        // current rank has too many particles
+        if( diff > max_diff && length > 2*h) {
+            this->proc_ends[0] -= dx;
+            this->proc_starts[1] = this->proc_ends[0];
+        }
+        else if (diff < -max_diff && length_right > 2*h) {
+            this->proc_ends[0] += dx;
+            this->proc_starts[1] = this->proc_ends[0];
+        }
+    }
 }

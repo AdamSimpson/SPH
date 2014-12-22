@@ -43,7 +43,9 @@ enum selected_param_t {
 class TunableParameters
 {
     public:
-        TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs) ;
+        TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs),  
+                                                  num_compute_procs_active(num_compute_procs),
+                                                  selected_parameter((selected_param_t)0);
         ~TunableParameters();
         void move_parameter_up();
         void move_parameter_down();
@@ -68,6 +70,7 @@ class TunableParameters
         void toggle_pause();
         void set_mover_gl_center(const float ogl_x, const float ogl_y, const float ogl_z);
         void reset_mover_size();
+        void check_partition_left(int *particle_counts, int total_particles);
 
     private:
         selected_param_t selected_parameter;

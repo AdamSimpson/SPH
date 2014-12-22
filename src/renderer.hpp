@@ -26,18 +26,18 @@ THE SOFTWARE.
 #define fluid_renderer_h
 
 #include "fluid.h"
+#include "structs.h"
 
 class Renderer
 {
     public:
-        Renderer();
-        ~Renderer();
+        Renderer(int num_compute_procs): pause(false), view_controls(false), num_compute_procs(num_compute_procs);
+        const GLFW glfw();
+        TunableParameters tunable_parameters(num_compute_procs);
         void start_rendering();
         void opengl_to_sim(float x, float y, float z, float *sim_x, float *sim_y, float *sim_z);
         void sim_to_opengl(float x, float y, float z, float *gl_x, float *gl_y, float *gl_z);
         void update_node_params();
-        void checkPartitions(int *particle_counts, int total_particles);
-        void check_partition_left(int *particle_counts, int total_particles);
         void set_activity_time();
         bool input_is_active();
         void update_inactive_state();
@@ -48,16 +48,15 @@ class Renderer
         void set_view_angle(const float x_pos, const y_pos);
         void move_in_view();
         void move_out_view();
+        const int screen_width() const { return this->glfw->screen_width() };
+        const int screen_height() const { return this->glfw->screen_height() }; 
     private:
-        GLFW glfw;
-        TunableParameters tunable_parameters;
-
         float sim_width;
         float sim_height;
         float sim_depth;
-        float screen_width;
-        float screen_height;
 
+        // Struct vector used to deal with tunable param class to mpi sendable type
+        std::vector<tunable_parameters_t> tunable_param_structs(num_compute_procs);
         bool view_controls; // When shift is held mouse controls view
         bool pause;
         double last_activity_time; // Used to determine if simulation is being used or not

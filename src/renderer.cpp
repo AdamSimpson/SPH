@@ -41,60 +41,33 @@ THE SOFTWARE.
     #include "blink1_light.h"
 #endif
 
-// Needs refactored, probably with initialization list
-void Renderer::Renderer()
-{
-}
-
-void Renderer::~Renderer()
-{
-
-}
-
 void Renderer::start_renderer()
 {
-    // Setup initial OpenGL state
-//    gl_t gl_state;
-//    memset(&gl_state, 0, sizeof(gl_t));
+    int i,j;
 
-    // Start OpenGL
-//    render_t render_state;
-//    init_ogl(&gl_state, &render_state);
-
-    gl_state.cursor_x =  gl_state.screen_width/2.0f;
-    gl_state.cursor_y =  gl_state.screen_height/2.0f;
-    gl_state.cursor_view_x =  gl_state.screen_width/2.0f;
-    gl_state.cursor_view_y =  gl_state.screen_height/2.0f;
-
-    render_state.pause = false;
-    render_state.view_controls = false;
     set_activity_time(&render_state);
-    render_state.screen_width = gl_state.screen_width;
-    render_state.screen_height = gl_state.screen_height;
 
     // Initialize "world" OpenGL state
     world_t world_GLstate;
-    init_world(&world_GLstate, gl_state.screen_width, gl_state.screen_height);
+    init_world(&world_GLstate, this->screen_width(), this->screen_height());
 
-    printf("Fix this world/render crap!\n");
     render_state.world = &world_GLstate;
-    render_state.gl_state = &gl_state;
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
-    init_particles(&particle_GLstate, gl_state.screen_width, gl_state.screen_height);
+    init_particles(&particle_GLstate, this->screen_width(), this->screen_height());
 
     // Initialize mover OpenGL state
     mover_t mover_GLstate;
-    init_mover(&mover_GLstate, gl_state.screen_width, gl_state.screen_height);
+    init_mover(&mover_GLstate, this->screen_width(), this->screen_height());
 
     // Initialize font OpenGL state
     font_t font_state;
-    init_font(&font_state, gl_state.screen_width, gl_state.screen_height);
+    init_font(&font_state, this->screen_width(), this->screen_height());
 
     // Init container OpenGL state
     container_t container_state;
-    init_container(&container_state, gl_state.screen_width, gl_state.screen_height);
+    init_container(&container_state, this->screen_width(), this->screen_height());
 
     // Initialize RGB Light if present
     #if defined BLINK1
@@ -102,47 +75,21 @@ void Renderer::start_renderer()
     init_rgb_light(&light_state, 255, 0, 0);
     #endif
 
-    // Number of processes
-    int num_procs, num_compute_procs, num_compute_procs_active;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-    num_compute_procs = num_procs - 1;
-    num_compute_procs_active = num_compute_procs;
-
-    // Allocate array of paramaters
-    // So we can use MPI_Gather instead of MPI_Gatherv
-    tunable_parameters_t *node_params = (tunable_parameters_t*)malloc(num_compute_procs*sizeof(tunable_parameters_t));
-
-    // The render node must keep it's own set of master parameters
-    // This is due to the GLFW key callback method
-    tunable_parameters_t *master_params = (tunable_parameters_t*)malloc(num_compute_procs*sizeof(tunable_parameters_t));
-
-    // Setup render state
-    render_state.node_params = node_params;
-    render_state.master_params = master_params;
-    render_state.num_compute_procs = num_compute_procs;
-    render_state.num_compute_procs_active = num_compute_procs;
-    render_state.selected_parameter =(parameters)0;
-
-    int i,j;
-
     // Broadcast pixels ratio
     short pixel_dims[2];
-    pixel_dims[0] = (short)gl_state.screen_width;
-    pixel_dims[1] = (short)gl_state.screen_height;
+    pixel_dims[0] = (short)this->screen_width();
+    pixel_dims[1] = (short)this->screen_height();
     MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
  
     // Recv simulation world dimensions from global rank 1
     float sim_dims[3];
     MPI_Recv(sim_dims, 3, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    render_state.sim_width = sim_dims[0];
-    render_state.sim_depth = sim_dims[1];
-    render_state.sim_height = sim_dims[2];
+    this->sim_width = sim_dims[0];
+    this->sim_depth = sim_dims[1];
+    this->sim_height = sim_dims[2];
     // Receive number of global particles
     int max_particles;
     MPI_Recv(&max_particles, 1, MPI_INT, 1, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    // Calculate world unit to pixel
-    float world_to_pix_scale = gl_state.screen_width/render_state.sim_width;
 
     // Gatherv initial tunable parameters values
     int *param_counts = (int*)malloc(num_procs * sizeof(int));
@@ -151,12 +98,9 @@ void Renderer::start_renderer()
         param_counts[i] = i?1:0; // will not receive from rank 0
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }
-    // Initial gather
-    MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, node_params, param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
-
-    // Fill in master parameters
-    for(i=0; i<render_state.num_compute_procs; i++)
-        render_state.master_params[i] = node_params[i];
+    // Initial gather from compute nodes to renderer
+    MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, this->tunable_param_structs.data(), param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
+    this->param_struct_to_class();
 
     // Allocate particle receive array
     int num_coords = 3;
@@ -170,19 +114,16 @@ void Renderer::start_renderer()
     float mover_center[3];
     float mover_color[3];
 
-    // Allocate space for node edges
-    float *node_edges = (float*)malloc(2*render_state.num_compute_procs*sizeof(float));
-
     // Number of coordinates received from each proc
     int *particle_coordinate_counts = (int*)malloc(num_compute_procs * sizeof(int));
     // Keep track of order in which particles received
     int *particle_coordinate_ranks = (int*)malloc(num_compute_procs * sizeof(int));
 
     // Create color index, equally spaced around HSV
-    float *colors_by_rank = (float*)malloc(3*render_state.num_compute_procs*sizeof(float));
-    float angle_space = 0.5f/(float)render_state.num_compute_procs;
+    float *colors_by_rank = (float*)malloc(3*this->num_compute_procs*sizeof(float));
+    float angle_space = 0.5f/(float)this->num_compute_procs;
     float HSV[3];
-    for(i=0; i<render_state.num_compute_procs; i++)
+    for(i=0; i<this->num_compute_procs; i++)
     {
         if(i%2)
             HSV[0] = angle_space*i;
@@ -194,7 +135,7 @@ void Renderer::start_renderer()
     }
  
     #if defined BLINK1
-    MPI_Bcast(colors_by_rank, 3*render_state.num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(colors_by_rank, 3*this->num_compute_procs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     #endif
 
     int num_coords_rank;
@@ -217,10 +158,6 @@ void Renderer::start_renderer()
 
     MPI_Status status;
 
-    // Remove all partitions but one initially
-//    for(i=0; i<render_state.num_compute_procs-1; i++)
-//        remove_partition(&render_state);
-
     while(1){
         // Every frames_per_fps steps calculate FPS
         if(num_steps%frames_per_fps == 0) {
@@ -233,27 +170,27 @@ void Renderer::start_renderer()
 
         // Check to see if simulation should close
         if(window_should_close(&gl_state)) {
-            for(i=0; i<render_state.num_compute_procs; i++)
-                render_state.node_params[i].kill_sim = true;
+            this->tunable_parameters->kill_sim();
+            this->param_class_to_struct();
             // Send kill paramaters to compute nodes
             MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
             break;
         }    
 
         // Check for user keyboard/mouse input
-        if(render_state.pause) {
-            while(render_state.pause)
-                check_user_input(&gl_state);
+        if(this->pause) {
+            while(this->pause)
+                this->glfw->check_user_input();
         }
         else
-            check_user_input(&gl_state);
+            this->glfw->check_user_input();
 
         // Check if inactive
-        if(!input_is_active(&render_state))
-            update_inactive_state(&render_state);
+        if(!this->input_is_active())
+            this->update_inactive_state();
 
-        // Update node params with master param values
-        update_node_params(&render_state);
+        // Update struct params with class values
+        this->param_class_to_struct();
 
         // Send updated paramaters to compute nodes
         MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
@@ -262,7 +199,7 @@ void Renderer::start_renderer()
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
 	    // OR do synchronous recv...very likely that synchronous receive is as fast as anything else
 	    coords_recvd = 0;
-	    for(i=0; i<render_state.num_compute_procs; i++) {
+	    for(i=0; i<this->num_compute_procs; i++) {
 	        // Wait until message is ready from any proc
                 MPI_Probe(MPI_ANY_SOURCE, 17, MPI_COMM_WORLD, &status);
 	        // Retrieve probed values
@@ -278,7 +215,7 @@ void Renderer::start_renderer()
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
         if(num_steps%frames_per_check == 0)
-            check_partition_left(&render_state, particle_coordinate_counts, coords_recvd);
+            this->tunable_parameters->check_partition_left(particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClearColor(0.15, 0.15, 0.15, 1.0);
@@ -288,17 +225,15 @@ void Renderer::start_renderer()
         render_container(&container_state);
 
         // update mover
-        sim_to_opengl(&render_state, render_state.master_params[0].mover_center_x,
+        this->sim_to_opengl(render_state.master_params[0].mover_center_x,
                                      render_state.master_params[0].mover_center_y,
                                      render_state.master_params[0].mover_center_z,
                                      &mover_center[0], &mover_center[1], &mover_center[2]);
 
-        float mover_radius = render_state.master_params[0].mover_width/render_state.sim_width * 1.0f;
+        float mover_radius = this->mover_radius/this->sim_width * 1.0f;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
-
-        printf("%f, %f, %f\n", mover_center[0], mover_center[1], mover_center[2]);
 
         render_all_text(&font_state, &render_state, fps);
 
@@ -332,7 +267,7 @@ void Renderer::start_renderer()
         render_mover(mover_center, mover_radius, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
-        swap_ogl(&gl_state);
+        this->glfw->swap_ogl(&gl_state);
 
         update_view(&world_GLstate);
 
@@ -358,9 +293,9 @@ void Renderer::start_renderer()
 
 // Translate between OpenGL coordinates with origin at screen center
 // to simulation coordinates
-void opengl_to_sim(render_t *render_state, float x, float y, float z, float *sim_x, float *sim_y, float *sim_z)
+void Renderer::opengl_to_sim(float x, float y, float z, float *sim_x, float *sim_y, float *sim_z)
 {
-    float half_scale = render_state->sim_width*0.5f;
+    float half_scale = this->sim_width*0.5f;
 
     *sim_x = x*half_scale + half_scale;
     *sim_y = y*half_scale + half_scale;
@@ -368,93 +303,30 @@ void opengl_to_sim(render_t *render_state, float x, float y, float z, float *sim
 }
 
 // Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
-void sim_to_opengl(render_t *render_state, float x, float y, float z, float *gl_x, float *gl_y, float *gl_z)
+void Renderer::sim_to_opengl(render_t *render_state, float x, float y, float z, float *gl_x, float *gl_y, float *gl_z)
 {
-    float half_scale = render_state->sim_width*0.5f;
+    float half_scale = this->sim_width*0.5f;
 
     *gl_x = x/half_scale - 1.0f;
     *gl_y = y/half_scale - 1.0f;
     *gl_z = z/half_scale - 1.0f;
 }
 
-void update_node_params(render_t *render_state)
-{
-    int i;
-	// Update all node parameters with master paramter values
-    for(i=0; i<render_state->num_compute_procs; i++)
-        render_state->node_params[i] = render_state->master_params[i]; 
-}
-
-// Checks for a balanced number of particles on each compute node
-// If unbalanced the partition between nodes will change 
-// Check from right to left
-void check_partition_left(render_t *render_state, int *particle_counts, int total_particles)
-{
-    int rank, diff;
-    float h, dx, length, length_left, length_right;   
-
-    // Particles per proc if evenly divided
-    int even_particles = total_particles/render_state->num_compute_procs_active;
-    int max_diff = even_particles/15.0f;
-
-    // Fixed distance to move partition is 0.125*smoothing radius
-    h = render_state->master_params[0].smoothing_radius;
-    dx = h*0.125;
-
-    tunable_parameters_t *master_params = render_state->master_params;
-
-    for(rank=render_state->num_compute_procs_active; rank-- > 1; )
-    {
-        length =  master_params[rank].node_end_x - master_params[rank].node_start_x;
-        length_left =  master_params[rank-1].node_end_x - master_params[rank-1].node_start_x;
-        diff = particle_counts[rank] - even_particles;
-
-        // current rank has too many particles
-        if( diff > max_diff && length > 2*h) {
-            master_params[rank].node_start_x += dx;
-            master_params[rank-1].node_end_x = master_params[rank].node_start_x;
-        }
-        // current rank has too few particles
-        else if (diff < -max_diff && length_left > 2*h) {
-            master_params[rank].node_start_x -= dx;
-            master_params[rank-1].node_end_x = master_params[rank].node_start_x;
-        }
-    }
-
-    // Left most partition has a tendency to not balance correctly so we test it explicitly
-    if(render_state->num_compute_procs_active > 1)
-    {
-        length =  master_params[0].node_end_x - master_params[0].node_start_x;
-        length_right =  master_params[1].node_end_x - master_params[1].node_start_x;
-        diff = particle_counts[0] - even_particles;
-
-        // current rank has too many particles
-        if( diff > max_diff && length > 2*h) {
-            master_params[0].node_end_x -= dx;
-            master_params[1].node_start_x = master_params[0].node_end_x;
-        }
-        else if (diff < -max_diff && length_right > 2*h) {
-            master_params[0].node_end_x += dx;
-            master_params[1].node_start_x = master_params[0].node_end_x;
-        }
-    }
-}
-
 // Set time of last user input
-void set_activity_time(render_t *render_state)
+void Renderer::set_activity_time()
 {
-    render_state->last_activity_time = MPI_Wtime();
+    this->last_activity_time = MPI_Wtime();
 }
 
 // Return if simulation has active input or not
-bool input_is_active(render_t *render_state)
+bool Renderer::input_is_active()
 {
-    double time_since_active = MPI_Wtime() - render_state->last_activity_time;
+    double time_since_active = MPI_Wtime() - this->last_activity_time;
     return time_since_active < 120;
 }
 
 // Renderer will move mover if annactive
-void update_inactive_state(render_t *render_state)
+void Renderer::update_inactive_state()
 {
     float gl_x, gl_y, gl_z;
     sim_to_opengl(render_state, render_state->master_params[0].mover_center_x,

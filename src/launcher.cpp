@@ -7,10 +7,12 @@ int main(int argc, char *argv[])
 {
     // Initialize MPI
     MPI_Init(&argc, &argv);
-    int rank;
+    int rank, size;
 
     // Rank in world space
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Total size in world space
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     create_communicators();
 
@@ -18,7 +20,8 @@ int main(int argc, char *argv[])
 
     // Rank 0 is the render node, otherwise a simulation node
     if(rank == 0) {
-        Renderer renderer;
+        int num_compute_procs = size-1;
+        Renderer renderer(num_compute_procs);
         renderer.start_renderer();
     }
     else

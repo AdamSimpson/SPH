@@ -162,18 +162,18 @@ void wheel_callback(GLFWwindow* window, double x, double y)
     else {
         // Call increase/decrease mover calls
         if(y > 0.0)
-	    increase_mover_height(render_state);
+	    increase_mover_radius(render_state);
         else if(y < 0.0)
-	    decrease_mover_height(render_state);
+	    decrease_mover_radius(render_state);
         if(x > 0.0)
-            increase_mover_width(render_state);
+            increase_mover_radius(render_state);
         else if(x < 0.0)
-            decrease_mover_width(render_state);
+            decrease_mover_radius(render_state);
     }
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void GLFW::GLFW(Renderer *render_state)
+void GLFW::GLFW()
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -203,14 +203,14 @@ void GLFW::GLFW(Renderer *render_state)
     GLFWvidmode *mode = (GLFWvidmode*)glfwGetVideoMode(glfwGetPrimaryMonitor());
     state->window = glfwCreateWindow(mode->width, mode->height, "SPH", glfwGetPrimaryMonitor(), NULL);
 
-    glfwGetFramebufferSize(state->window, &state->screen_width, &state->screen_height);
-    glViewport(0, 0, state->screen_width, state->screen_height);
+    glfwGetFramebufferSize(this->window, this->screen_width, this->screen_height);
+    glViewport(0, 0, this->screen_width, this->screen_height);
 
     if(!state->window)
 	exit(EXIT_FAILURE);
 
     // Set current context to window
-    glfwMakeContextCurrent(state->window);
+    glfwMakeContextCurrent(this->window);
 
     // Initialize GLEW
     glewExperimental = GL_TRUE;
@@ -226,20 +226,20 @@ void GLFW::GLFW(Renderer *render_state)
     glEnable(GL_FRAMEBUFFER_SRGB);
 
     // Set key callback
-    glfwSetKeyCallback(state->window, key_callback);
+    glfwSetKeyCallback(this->window, key_callback);
 
     // Set mouse cursor callback
-    glfwSetCursorPosCallback(state->window, mouse_callback);
+    glfwSetCursorPosCallback(this->window, mouse_callback);
 
     // Set scroll wheel callback
-    glfwSetScrollCallback(state->window, wheel_callback);
+    glfwSetScrollCallback(this->window, wheel_callback);
 
     // Add render state to window pointer
     // Used for key callbacks
-    glfwSetWindowUserPointer(state->window, render_state);
+    glfwSetWindowUserPointer(this->window, render_state);
 
     // Disable regular cursor
-    glfwSetInputMode(state->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Disable vsync for true FPS testing
     // Default limit 60 fps

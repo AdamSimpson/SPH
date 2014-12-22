@@ -36,13 +36,15 @@ extern "C"
 class GLFW
 {
     public:
-        GLFW();
+        GLFW(): cursor_x(0), cursor_y(0), cursor_view_x(0), cursor_view_y(0);
         ~GLFW();
         void check_user_input();
         void swap_buffers();
         bool window_should_close();
         void exit_program();
         void pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y);
+        int screen_width() const { return this->screen_width };
+        int screen_height() const { return this->screen_height};
     private:
         GLFWwindow *window;
         float screen_width;

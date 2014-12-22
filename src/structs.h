@@ -103,9 +103,7 @@ struct tunable_parameters_t {
     float mover_center_x;
     float mover_center_y;
     float mover_center_z;
-    float mover_width;
-    float mover_height;
-    char mover_type;
+    float mover_radius;
     char kill_sim;
     char active;
 };
