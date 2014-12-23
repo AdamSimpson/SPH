@@ -30,7 +30,7 @@ THE SOFTWARE.
 
 #include "ogl_utils.h"
 #include "gl.hpp"
-#include "world_gl.h"
+#include "camera.hpp"
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
@@ -117,8 +117,8 @@ void draw_circle_mover(mover_t *state, float *center, float radius, float *color
     glUniform3fv(state->sphere_center_location, 1, center);
 
     // Set uniform binding
-    glUniformBlockBinding(state->sphere_program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
-    glUniformBlockBinding(state->sphere_program, state->global_light_index, g_GlobalLightBindingIndex);
+    glUniformBlockBinding(state->sphere_program, state->global_matrix_index, Camera::g_GlobalMatricesBindingIndex);
+    glUniformBlockBinding(state->sphere_program, state->global_light_index, Camera::g_GlobalLightBindingIndex);
 
     // Blend is required to show cleared color when the frag shader draws transparent pixels
     glEnable(GL_BLEND);

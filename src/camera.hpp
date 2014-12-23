@@ -25,12 +25,13 @@ THE SOFTWARE.
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include "glm/glm.hpp"
 #include "gl.hpp"
 
 class Camera
 {
     public:
-        GL gl;
+        Camera(GL& gl); // Initializer list in .cpp
         // Binding index for global uniform matrices
         static const int g_GlobalMatricesBindingIndex = 0;
         static GLuint g_GlobalMatricesUBO;
@@ -39,22 +40,23 @@ class Camera
         static const int g_GlobalLightBindingIndex = 1;
         static GLuint g_GlobalLightUBO;
 
-        void rotate_camera_yaw(float degrees);
-        void rotate_camera_pitch(float degrees);
-        void rotate_camera_yaw_pitch(float degrees_pitch, float degrees_yaw);
+        void rotate_yaw(float degrees);
+        void rotate_pitch(float degrees);
+        void rotate_yaw_pitch(float degrees_pitch, float degrees_yaw);
         void zoom_view(float d_zoom_factor);
         void move_along_view(float dx);
         void update_view();
 
     private:
+        GL& gl;
         // Max degrees user allowed to rotate
         float max_degrees_rotate;
         // zoom factor for perspective matrix
         float zoom_factor;
         // Camera vectors
-        float eye_position[3];
-        float eye_position_default[3];
-        float look_at[3];
-}
+        glm::vec3 position;
+        glm::vec3 position_default;
+        glm::vec3 look_at;
+};
 
 #endif

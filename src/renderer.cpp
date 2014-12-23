@@ -30,28 +30,21 @@ THE SOFTWARE.
 #include "setup.h"
 #include "mover_gl.h"
 #include "communication.h"
-#include "controls.h"
 #include "fluid.h"
 #include "font_gl.h"
 #include "container_gl.h"
-#include "world_gl.h"
+#include "camera.hpp"
 #include "renderer.hpp"
 
 #ifdef BLINK1
     #include "blink1_light.h"
 #endif
 
-void Renderer::start_renderer()
+void Renderer::start_rendering()
 {
     int i,j;
 
-    set_activity_time(&render_state);
-
-    // Initialize "world" OpenGL state
-    world_t world_GLstate;
-    init_world(&world_GLstate, this->screen_width(), this->screen_height());
-
-    this->world_state = &world_GLstate;
+    this->set_activity_time();
 
     // Initialize particles OpenGL state
     particles_t particle_GLstate;
@@ -92,9 +85,9 @@ void Renderer::start_renderer()
     MPI_Recv(&max_particles, 1, MPI_INT, 1, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     // Gatherv initial tunable parameters values
-    int *param_counts = (int*)malloc(num_procs * sizeof(int));
-    int *param_displs = (int*)malloc(num_procs * sizeof(int));
-    for(i=0; i<num_procs; i++) {
+    int *param_counts = (int*)malloc(this->num_compute_procs+1 * sizeof(int));
+    int *param_displs = (int*)malloc(this->num_compute_procs+1 * sizeof(int));
+    for(i=0; i<this->num_compute_procs+1; i++) {
         param_counts[i] = i?1:0; // will not receive from rank 0
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }

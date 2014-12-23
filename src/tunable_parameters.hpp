@@ -45,8 +45,27 @@ class TunableParameters
     public:
         TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs),  
                                                   num_compute_procs_active(num_compute_procs),
-                                                  selected_parameter((selected_param_t)0);
+                                                  selected_parameter((selected_param_t)0){};
         ~TunableParameters();
+
+        // Not quite sure how to deal with this...public for now
+        selected_param_t selected_parameter;
+        float rest_density;
+        float smoothing_radius;
+        float g;
+        float k;
+        float dq;
+        float c;
+        float time_step;
+        float node_start_x;
+        float node_end_x;
+        float mover_center_x;
+        float mover_center_y;
+        float mover_center_z;
+        float mover_radius;
+        bool kill_sim;
+
+
         void move_parameter_up();
         void move_parameter_down();
         void increase_parameter();
@@ -73,25 +92,10 @@ class TunableParameters
         void check_partition_left(int *particle_counts, int total_particles);
 
     private:
-        selected_param_t selected_parameter;
-        float rest_density;
-        float smoothing_radius;
-        float g;
-        float k;
-        float dq;
-        float c;
-        float time_step;
-        float node_start_x;
-        float node_end_x;
-        float mover_center_x;
-        float mover_center_y;
-        float mover_center_z;
-        float mover_radius;
-        bool kill_sim;
         int num_compute_procs;
         int num_compute_procs_active;
-        std::vector<float> proc_starts(num_compute_procs);
-        std::vector<float> proc_ends(num_compute_procs);
-}
+        std::vector<float> proc_starts;
+        std::vector<float> proc_ends;
+};
 
 #endif

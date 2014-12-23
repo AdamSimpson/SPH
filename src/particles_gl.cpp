@@ -31,7 +31,7 @@ THE SOFTWARE.
 
 #include "ogl_utils.h"
 #include "gl.hpp"
-#include "world_gl.h"
+#include "camera.hpp"
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
@@ -138,8 +138,8 @@ void draw_particles(particles_t *state, float diameter_pixels, int num_points)
     glUniform1f(state->sphere_radius_location, (GLfloat)diameter_pixels/state->screen_width/2.0f);
 
     // Set uniform binding
-    glUniformBlockBinding(state->program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
-    glUniformBlockBinding(state->program, state->global_light_index, g_GlobalLightBindingIndex);
+    glUniformBlockBinding(state->program, state->global_matrix_index, Camera::g_GlobalMatricesBindingIndex);
+    glUniformBlockBinding(state->program, state->global_light_index, Camera::g_GlobalLightBindingIndex);
 
     // Enable VAO
     glBindVertexArray(state->vao);

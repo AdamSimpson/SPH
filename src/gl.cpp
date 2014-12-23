@@ -48,7 +48,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                exit_program(window);              
+                self->exit_program(window);              
 	        break;
             case GLFW_KEY_RIGHT:
                 renderer->tunable_parameters->increase_parameter();

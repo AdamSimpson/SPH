@@ -25,9 +25,9 @@ THE SOFTWARE.
 #ifndef FONTS_GL_H
 #define FONTS_GL_H
 
-#include "renderer.h"
-
-#include "glfw_utils.h"
+#include "renderer.hpp"
+#include "tunable_parameters.hpp"
+#include "gl.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -90,9 +90,7 @@ void create_font_program(font_t *state);
 void create_font_buffers(font_t *state);
 void create_font_atlas(font_t *state);
 void init_font(font_t *state, int screen_width, int screen_height);
-void render_fps(font_t *state, float fps);
-void render_parameters(font_t *state, render_t *render_state);
 int add_text_coords(font_t *state, char *text, text_vert_t* verts, float *color, float x, float y, float sx, float sy);
-void render_all_text(font_t *state, render_t *render_state, double fps);
+void render_all_text(font_t *state, const TunableParameters &params, double fps);
 
 #endif

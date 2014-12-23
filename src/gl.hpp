@@ -44,10 +44,13 @@ class GL
         void pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y);
         float get_screen_width() const { return this->screen_width; };
         float get_screen_height() const { return this->screen_height; };
+
     private:
         GLFWwindow *window;
+
         float screen_width;
         float screen_height;
+
         // GLFW mouse coordinates for "normal" cursor coordinates
         float cursor_x;
         float cursor_y;

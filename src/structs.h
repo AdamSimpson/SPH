@@ -77,18 +77,6 @@ struct neighbor_grid_t {
     neighbor_t *neighbors; // Particle neighbor buckets
 };
 
-// enum of displayed parameter values
-typedef enum {
-    MIN = 0,
-    GRAVITY = MIN,
-    SMOOTH,
-    DENSITY,
-    K,
-    DQ,
-    VISCOSITY,
-    MAX = VISCOSITY
-} parameters;
-
 // These parameters are tunable by the render node
 struct tunable_parameters_t {
     float rest_density;

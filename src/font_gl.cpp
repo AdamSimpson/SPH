@@ -25,7 +25,8 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include "fluid.h"
-#include "renderer.h"
+#include "renderer.hpp"
+#include "tunable_parameters.hpp"
 #include "font_gl.h"
 
 #include "ogl_utils.h"
@@ -215,7 +216,7 @@ int add_text_coords(font_t *state, char *text, text_vert_t* verts, float *color,
 	return n;
 }
 
-void render_all_text(font_t *state, render_t *render_state, double fps)
+void render_all_text(font_t *state, const TunableParameters &params, double fps)
 {
 	// Setup environment
 	glUseProgram(state->program);
@@ -245,15 +246,15 @@ void render_all_text(font_t *state, render_t *render_state, double fps)
 	float sx = 2.0f / state->screen_width;
 	float sy = 2.0f / state->screen_height;
 
-	parameters selected_param = render_state->selected_parameter;
+	selected_param_t selected_param = params.selected_parameter;
 	float gravity, viscosity, density, k, dq, smooth;
 
-	gravity = render_state->master_params[0].g;
-	viscosity = render_state->master_params[0].c;
-	density = render_state->master_params[0].rest_density;
-	k = render_state->master_params[0].k;
-	dq = render_state->master_params[0].dq;
-        smooth = render_state->master_params[0].smoothing_radius;
+	gravity = params.g;
+	viscosity = params.c;
+	density = params.rest_density;
+	k = params.k;
+	dq = params.dq;
+        smooth = params.smoothing_radius;
 
 	float unselected_color[3] = {1.0f ,1.0f, 1.0f};
 	float selected_color[3]   = {0.1f, 0.80f, 0.43f};  

@@ -31,7 +31,7 @@ THE SOFTWARE.
 
 #include "ogl_utils.h"
 #include "gl.hpp"
-#include "world_gl.h"
+#include "camera.hpp"
 
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
@@ -168,8 +168,8 @@ void render_container(container_t *state)
     glUniform4fv(state->color_location, 1, color);
 
     // Set uniform binding
-    glUniformBlockBinding(state->program, state->global_matrix_index, g_GlobalMatricesBindingIndex);
-    glUniformBlockBinding(state->program, state->global_light_index, g_GlobalLightBindingIndex);
+    glUniformBlockBinding(state->program, state->global_matrix_index, Camera::g_GlobalMatricesBindingIndex);
+    glUniformBlockBinding(state->program, state->global_light_index, Camera::g_GlobalLightBindingIndex);
 
     // Bind VAO
     glBindVertexArray(state->vao);   
