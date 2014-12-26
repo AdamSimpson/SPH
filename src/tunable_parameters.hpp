@@ -39,34 +39,30 @@ enum selected_param_t {
     MAX = VISCOSITY
 };
 
+// These parameters are tunable by the render node
+// A struct is provided for easy MPI transfer
+struct tunable_parameters_t {
+    float rest_density;
+    float smoothing_radius;
+    float g;
+    float k;
+    float dq;
+    float c;
+    float time_step;
+    float proc_start;
+    float proc_end;
+    float mover_center_x;
+    float mover_center_y;
+    float mover_center_z;
+    float mover_radius;
+    char kill_sim;
+    char active;
+};
+
 class TunableParameters
 {
     public:
-        TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs),  
-                                                  num_compute_procs_active(num_compute_procs),
-                                                  selected_parameter((selected_param_t)0){
-                                                      proc_starts.reserve(num_compute_procs);
-                                                      proc_ends.reserve(num_compute_procs);
-                                                  };
-//        ~TunableParameters();
-
-        // Not quite sure how to deal with this...public for now
-        selected_param_t selected_parameter;
-        float rest_density;
-        float smoothing_radius;
-        float g;
-        float k;
-        float dq;
-        float c;
-        float time_step;
-        float node_start_x;
-        float node_end_x;
-        float mover_center_x;
-        float mover_center_y;
-        float mover_center_z;
-        float mover_radius;
-        bool kill_sim;
-
+        TunableParameters(int num_compute_procs);
 
         void move_parameter_up();
         void move_parameter_down();
@@ -88,15 +84,32 @@ class TunableParameters
         void decrease_mover_radius();
         void add_partition();
         void remove_partition();
-        void toggle_pause();
         void set_mover_gl_center(const float ogl_x, const float ogl_y, const float ogl_z);
         void reset_mover_radius();
         void check_partition_left(int *particle_counts, int total_particles);
+        void update_structs();
+    private:
+        selected_param_t selected_parameter;
+        float rest_density;
+        float smoothing_radius;
+        float g;
+        float k;
+        float dq;
+        float c;
+        float time_step;
+        float node_start_x;
+        float node_end_x;
+        float mover_center_x;
+        float mover_center_y;
+        float mover_center_z;
+        float mover_radius;
+        bool kill_sim;
 
         int num_compute_procs;
         int num_compute_procs_active;
         std::vector<float> proc_starts;
         std::vector<float> proc_ends;
+        std::vector<tunable_parameters_t> tunable_param_structs;
 };
 
 #endif

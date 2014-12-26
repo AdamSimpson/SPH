@@ -33,10 +33,6 @@ void alloc_and_init_sim(fluid_sim_t *fluid_sim)
     float start_x = 0.0f;
     int number_particles_x = 0;
 
-    // Partition simulation and set particle numbers
-    // Requires MPI_Send for particle counts
-    partition_simulation(fluid_sim, &start_x, &number_particles_x);
-
     // Allocate main simulation memory and set struct values
     alloc_sim(fluid_sim);
 
@@ -225,13 +221,23 @@ void free_sim_memory(fluid_sim_t *fluid_sim)
     free(fluid_sim->out_of_bounds->vacant_indices);
 }
 
-void init_sim_particles(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
+void init_sim_particles(fluid_sim_t *fluid_sim)
 {
     int i;
     uint p_index;
 
     // Create fluid volume
-    construct_fluid_volume(fluid_sim, start_x, number_particles_x);
+    construct_fluid_volume(fluid_sim);
+
+    // Set number of particles local and max index
+    // This is assuming only compute rank 0 has particles initially
+    int local_particles = 0;
+    int compute_rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &compute_rank);
+    if(compute_rank == 0)
+        local_particles = params->number_fluid_particles_global;
+    fluid_sim->params->number_fluid_particles_local = local_particles;
+    fluid_sim->params->max_fluid_particle_index = local_particles - 1;
 
     // invalidate unused fluid pointers
     for(i=fluid_sim->params->number_fluid_particles_local; i<fluid_sim->params->max_fluid_particles_local; i++)
@@ -250,7 +256,6 @@ void alloc_sim_structs(fluid_sim_t *fluid_sim)
 {
    fluid_sim->params = (param_t*) calloc(1, sizeof(param_t));
    fluid_sim->fluid_particles = (fluid_particles_t*) calloc(1, sizeof(fluid_particles_t));
-   fluid_sim->water_volume_global = (AABB_t*) calloc(1, sizeof(AABB_t));
    fluid_sim->boundary_global = (AABB_t*) calloc(1, sizeof(AABB_t));
    fluid_sim->edges = (edge_t*) calloc(1, sizeof(edge_t));
    fluid_sim->out_of_bounds = (oob_t*) calloc(1, sizeof(oob_t)); 
@@ -261,7 +266,6 @@ void free_sim_structs(fluid_sim_t *fluid_sim)
 {
     free(fluid_sim->params);
     free(fluid_sim->fluid_particles);
-    free(fluid_sim->water_volume_global);
     free(fluid_sim->boundary_global);
     free(fluid_sim->edges);
     free(fluid_sim->out_of_bounds);
@@ -274,19 +278,9 @@ void init_params(fluid_sim_t *fluid_sim)
     edge_t *edges = fluid_sim->edges;
     param_t *params = fluid_sim->params;
 
-    params->tunable_params.kill_sim = false;
-    params->tunable_params.active = true;
-    params->tunable_params.g = 10.0f;
-    params->tunable_params.time_step = 1.0f/60.0f;
-    params->tunable_params.k = 0.2f;
-    params->tunable_params.c = 0.01;
-    params->tunable_params.rest_density = 0.1;
-    params->tunable_params.mover_radius = 25.0f;
-    params->steps_per_frame = 4;  // Number of steps to compute before updating render node
-    //params->tunable_params.time_step /= (float)steps_per_frame;
-
     // The number of particles used may differ slightly
     params->number_fluid_particles_global = 5000;
+    params->steps_per_frame = 4;  // Number of steps to compute before updating render node
 
     // Boundary box
     // This simulation assumes in various spots min is 0.0
@@ -296,21 +290,6 @@ void init_params(fluid_sim_t *fluid_sim)
     fluid_sim->boundary_global->max_y = 40.0f;
     fluid_sim->boundary_global->min_z = 0.0f;
     fluid_sim->boundary_global->max_z = 30.0f;
-
-    // Receive aspect ratio to scale world y max
-    short pixel_dims[2];
-    float aspect_ratio;
-    MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
-    aspect_ratio = (float)pixel_dims[0]/(float)pixel_dims[1];
-//    fluid_sim->boundary_global->max_z = fluid_sim->boundary_global->max_x / aspect_ratio;
-
-    // water volume
-    fluid_sim->water_volume_global->min_x = 10.0f;
-    fluid_sim->water_volume_global->max_x = fluid_sim->boundary_global->max_x-10.0f;
-    fluid_sim->water_volume_global->min_y = 15.0f;
-    fluid_sim->water_volume_global->max_y = fluid_sim->boundary_global->max_y-15.0f;
-    fluid_sim->water_volume_global->min_z = 5.0f;
-    fluid_sim->water_volume_global->max_z = fluid_sim->boundary_global->max_z-5.0f;
 
     // Zero out number of halo particles
     params->number_halo_particles = 0;
@@ -322,70 +301,60 @@ void init_params(fluid_sim_t *fluid_sim)
     edges->number_edge_particles_right = 0;
 }
 
-void construct_fluid_volume(fluid_sim_t *fluid_sim, float start_x, int number_particles_x)
+// Construct the fluid volume on the first compute rank
+void construct_fluid_volume(fluid_sim_t *fluid_sim)
 {
-    int num_y,num_z;
+    int compute_rank;
+    MPI_Comm_rank(MPI_COMM_COMPUTE, &compute_rank);
+    if(compute_rank == 0)
+    {
+        // Unpack fluid_sim
+        uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
+        fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
 
-    // Unpack fluid_sim
-    uint *fluid_particle_indices = fluid_sim->fluid_particle_indices;
-    fluid_particles_t *fluid_particles = fluid_sim->fluid_particles;
+        param_t *params = fluid_sim->params;
+        int total_particles = params->number_fluid_particles_global;
+        float spacing = params->tunable_params.smoothing_radius/2.0f;   
 
-    AABB_t* fluid = fluid_sim->water_volume_global;
-    param_t *params = fluid_sim->params;
+        // Number of particles in x,z plane(y up)
+        int num_x = floor(fluid_sim->boundary_global->max_x/spacing);
+        int num_z = floor(fluid_sim->boundary_global->max_z/spacing);;    
+        int num_y = ceil(total_particles/(num_x*num_z));
 
-    float spacing = fluid_sim->params->tunable_params.smoothing_radius/2.0f;   
+        // Place particles inside bounding volume
+        float x,y,z;
+        int nx = 0;
+        int ny = 0;
+        int nz = 0;
+        int i = 0;
+        uint p;
 
-    // Number of particles in y,z, number in x is passed in
-    num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
-    num_z = floor((fluid->max_z - fluid->min_z ) / spacing);    
+        for(nz=0; nz<num_z; nz++) {
+            z = nz*spacing;
+            for(ny=0; ny<num_y; ny++) {
+                y = ny*spacing;
+                for(nx=0; nx<num_x; nx++) {
+                    x = nx*spacing;
 
-    // Place particles inside bounding volume
-    float x,y,z;
-    int nx = 0;
-    int ny = 0;
-    int nz = 0;
-    int i = 0;
-    uint p;
+                    if(i<total_particles) {
+                        x = nx*spacing;
+                        fluid_particles->x[i] = x;
+                        fluid_particles->y[i] = y;
+                        fluid_particles->z[i] = z;            
 
-    for(nz=0; nz<num_z; nz++) {
-            z = fluid->min_z + nz*spacing;
-        for(ny=0; ny<num_y; ny++) {
-            y = fluid->min_y + ny*spacing;
-            for(nx=0; nx<number_particles_x; nx++) {
-                x = fluid->min_x + (start_x + nx)*spacing;
-                fluid_particles->x[i] = x;
-                fluid_particles->y[i] = y;
-                fluid_particles->z[i] = z;            
-
-                // Set index array
-                fluid_particle_indices[i] = i;
-	        fluid_particles->id[i] = i;
-                i++;
+                        // Set index array
+                        fluid_particle_indices[i] = i;
+	                fluid_particles->id[i] = i;
+                        i++;
+                    }
+                }
             }
         }
     }
-
-    int rank;
-    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
-    printf("rank %d max fluid x: %f\n", rank,fluid->min_x + (start_x + nx-1)*spacing);
-
-    params->number_fluid_particles_local = i;
-    params->max_fluid_particle_index = i - 1;
 }
 
-void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_particles_x)
+void partition_simulation(fluid_sim_t *fluid_sim)
 {
-    // Fluid volume in initial configuration
-    float volume = (fluid_sim->water_volume_global->max_x - fluid_sim->water_volume_global->min_x) 
-                 * (fluid_sim->water_volume_global->max_y - fluid_sim->water_volume_global->min_y)
-                 * (fluid_sim->water_volume_global->max_z - fluid_sim->water_volume_global->min_z);
-
-    // Initial spacing between particles
-    float spacing_particle = pow(volume/fluid_sim->params->number_fluid_particles_global,1.0/3.0);
-
-    // Divide problem set amongst nodes
-    partition_geometry(fluid_sim, start_x, number_particles_x, spacing_particle);
-
     // Set local/global number of particles to allocate
     set_particle_numbers(fluid_sim, *number_particles_x, spacing_particle);
 
@@ -393,15 +362,6 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
     // So this value can be even greater than the number of global
     // Before reaching this point the program should, but doesn't, intelligenly clean up fluid_particles
     fluid_sim->params->max_fluid_particles_local = 2*fluid_sim->params->number_fluid_particles_global;
-
-    // Smoothing radius, h
-    fluid_sim->params->tunable_params.smoothing_radius = 2.0f*spacing_particle;
-    // Set dq, used in S_corr
-    fluid_sim->params->tunable_params.dq = 0.3*fluid_sim->params->tunable_params.smoothing_radius;
-
-
-    // Particle mass is used to make density particle number inconsistant
-    fluid_sim->params->particle_mass = (volume*fluid_sim->params->tunable_params.rest_density)/(float)fluid_sim->params->number_fluid_particles_global;
 
     // Send initial world dimensions and max particle count to render node
     int rank;
@@ -421,18 +381,10 @@ void partition_simulation(fluid_sim_t *fluid_sim, float *start_x, int *number_pa
 // These numbers are set judiciously for TitanTitan as the number of particles is always small
 void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float spacing)
 {
-    int num_x, num_y, num_z;
-
     // Unpack fluid_sim
-    AABB_t* fluid_global = fluid_sim->water_volume_global;
     edge_t *edges = fluid_sim->edges;
     oob_t *out_of_bounds = fluid_sim->out_of_bounds;
     param_t *params = fluid_sim->params;
-
-    // Set fluid local
-    num_x = number_particles_x;
-    num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
-    num_z = floor((fluid_global->max_z - fluid_global->min_z ) / spacing);
 
     // Maximum edge(halo) particles
     edges->max_edge_particles = params->number_fluid_particles_global;
@@ -441,79 +393,7 @@ void set_particle_numbers(fluid_sim_t *fluid_sim, int number_particles_x, float 
     // If a flood of particles flows into and then out of a node
     // This will be large
     out_of_bounds->max_oob_particles = params->number_fluid_particles_global;
-
-    // Initial fluid particles
-    int num_initial = num_x * num_y * num_z;
-    printf("initial number of particles %d\n", num_initial);
-
     out_of_bounds->number_vacancies = 0;
-}
-
-// Set local boundary and fluid particle
-void partition_geometry(fluid_sim_t *fluid_sim, float *x_start, int *num_particles_x, float spacing)
-{
-
-    // Unpack fluid_sim
-    AABB_t *fluid_global = fluid_sim->water_volume_global;
-    AABB_t *boundary_global = fluid_sim->boundary_global;
-    param_t *params = fluid_sim->params;
-
-    int i, rank, nprocs;
-    MPI_Comm_rank(MPI_COMM_COMPUTE, &rank);
-    MPI_Comm_size(MPI_COMM_COMPUTE, &nprocs);
-
-    // number of fluid particles in x direction
-    // +1 added for zeroth particle
-    int fluid_particles_x = floor((fluid_global->max_x - fluid_global->min_x ) / spacing) + 1;
-    
-    // number of particles x direction
-    int *particle_length_x = (int*)malloc(nprocs*sizeof(int));
-    
-    // Number of particles in x direction assuming equal spacing
-    int equal_spacing = floor(fluid_particles_x/nprocs);
-    
-    // Initialize each node to have equal width
-    for (i=0; i<nprocs; i++)
-        particle_length_x[i] = equal_spacing;
-    
-    // Remaining particles from equal division
-    int remaining = fluid_particles_x - (equal_spacing * nprocs);
-    
-    // Add any remaining particles sequantially to left most nodes
-    for (i=0; i<nprocs; i++)
-        particle_length_x[i] += (i<remaining?1:0);
-    
-    // Number of particles to left of current node
-    int number_to_left = 0;
-    for (i=0; i<rank; i++)
-        number_to_left+=particle_length_x[i];
-       
-    // starting position of nodes x particles
-    *x_start = number_to_left;
-    // Number of particles in x direction for node
-    *num_particles_x = particle_length_x[rank];
-        
-    // Set node partition values
-    params->tunable_params.proc_start = fluid_global->min_x + ((number_to_left-1) * spacing);
-    params->tunable_params.proc_end   = params->tunable_params.proc_start + (particle_length_x[rank] * spacing);
-    
-    if (rank == 0)
-        params->tunable_params.proc_start  = boundary_global->min_x;
-    if (rank == nprocs-1)
-        params->tunable_params.proc_end   = boundary_global->max_x;
-
-    printf("Rank %d start_x: %f, end_x :%f\n", rank, params->tunable_params.proc_start, params->tunable_params.proc_end);
-
-    // Update requested number of particles with actual value used
-    int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);
-    int num_z = floor((fluid_global->max_z - fluid_global->min_z ) / spacing);
-    int total_x = 0;
-    for(i=0; i<nprocs; i++)
-        total_x += particle_length_x[i];
-
-    params->number_fluid_particles_global = total_x * num_y * num_z;
-
-    free(particle_length_x);
 }
 
 // initial Syncronization of tunable params with render node

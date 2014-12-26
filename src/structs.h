@@ -77,25 +77,6 @@ struct neighbor_grid_t {
     neighbor_t *neighbors; // Particle neighbor buckets
 };
 
-// These parameters are tunable by the render node
-struct tunable_parameters_t {
-    float rest_density;
-    float smoothing_radius;
-    float g;
-    float k;
-    float dq;
-    float c;
-    float time_step;
-    float proc_start;
-    float proc_end;
-    float mover_center_x;
-    float mover_center_y;
-    float mover_center_z;
-    float mover_radius;
-    char kill_sim;
-    char active;
-};
-
 // Full parameters struct for simulation
 struct param_t {
     tunable_parameters_t tunable_params;
@@ -107,13 +88,11 @@ struct param_t {
     int number_halo_particles_left;   // Number of halo particles from left neighbor
     int number_halo_particles_right;  // Number of halo particles from right neighbor
     int steps_per_frame;              // Number of simulation steps before updating render node
-    float particle_mass; // "mass" of particle so that density is particle count independent
 }; // Simulation paramaters
 
 // Struct containing all simulation information
 struct fluid_sim_t {
     param_t *params;
-    AABB_t *water_volume_global;
     AABB_t *boundary_global;
     edge_t *edges;
     oob_t *out_of_bounds;

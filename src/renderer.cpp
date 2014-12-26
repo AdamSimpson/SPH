@@ -69,12 +69,6 @@ void Renderer::start_rendering()
     init_rgb_light(&light_state, 255, 0, 0);
     #endif
 
-    // Broadcast pixels ratio
-    short pixel_dims[2];
-    pixel_dims[0] = (short)this->screen_width();
-    pixel_dims[1] = (short)this->screen_height();
-    MPI_Bcast(pixel_dims, 2, MPI_SHORT, 0, MPI_COMM_WORLD);
- 
     // Recv simulation world dimensions from global rank 1
     float sim_dims[3];
     MPI_Recv(sim_dims, 3, MPI_FLOAT, 1, 8, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -92,10 +86,6 @@ void Renderer::start_rendering()
         param_counts[i] = i?1:0; // will not receive from rank 0
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }
-    // Initial gather from compute nodes to renderer
-    this->tunable_param_structs.reserve(this->num_compute_procs+1);
-    MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, this->tunable_param_structs.data(), param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
-    this->param_struct_to_class();
 
     // Allocate particle receive array
     int num_coords = 3;
@@ -375,45 +365,4 @@ void Renderer::zoom_out_view()
     float dzoom = -0.07;
     this->camera.zoom_view(dzoom);
     this->camera.update_view();
-}
-
-void Renderer::param_struct_to_class()
-{
-    this->tunable_parameters.rest_density = this->tunable_param_structs[0].rest_density;
-    this->tunable_parameters.smoothing_radius = this->tunable_param_structs[0].smoothing_radius;
-    this->tunable_parameters.g = this->tunable_param_structs[0].g;
-    this->tunable_parameters.k = this->tunable_param_structs[0].k;
-    this->tunable_parameters.dq = this->tunable_param_structs[0].dq;
-    this->tunable_parameters.c = this->tunable_param_structs[0].c;
-    this->tunable_parameters.time_step = this->tunable_param_structs[0].time_step;
-    this->tunable_parameters.mover_center_x = this->tunable_param_structs[0].mover_center_x;
-    this->tunable_parameters.mover_center_y = this->tunable_param_structs[0].mover_center_y;
-    this->tunable_parameters.mover_center_z = this->tunable_param_structs[0].mover_center_z;
-    this->tunable_parameters.mover_radius = this->tunable_param_structs[0].mover_radius;
-    this->tunable_parameters.kill_sim = this->tunable_param_structs[0].kill_sim;
-    
-    for(int i=0; i<this->num_compute_procs; i++) {
-        this->tunable_parameters.proc_starts[i] = this->tunable_param_structs[i].proc_start;
-        this->tunable_parameters.proc_ends[i] = this->tunable_param_structs[i].proc_end;
-    }
-}
-
-void Renderer::param_class_to_struct()
-{
-    for(int i=0; i<this->num_compute_procs; i++) {
-        this->tunable_param_structs[i].proc_start = this->tunable_parameters.proc_starts[i];
-        this->tunable_param_structs[i].proc_end = this->tunable_parameters.proc_ends[i];
-        this->tunable_param_structs[i].rest_density = this->tunable_parameters.rest_density;
-        this->tunable_param_structs[i].smoothing_radius = this->tunable_parameters.smoothing_radius;
-        this->tunable_param_structs[i].g = this->tunable_parameters.g;
-        this->tunable_param_structs[i].k = this->tunable_parameters.k;
-        this->tunable_param_structs[i].dq = this->tunable_parameters.dq;
-        this->tunable_param_structs[i].c = this->tunable_parameters.c;
-        this->tunable_param_structs[i].time_step = this->tunable_parameters.time_step;
-        this->tunable_param_structs[i].mover_center_x = this->tunable_parameters.mover_center_x;
-        this->tunable_param_structs[i].mover_center_y = this->tunable_parameters.mover_center_y;
-        this->tunable_param_structs[i].mover_center_z = this->tunable_parameters.mover_center_z;
-        this->tunable_param_structs[i].mover_radius = this->tunable_parameters.mover_radius;
-        this->tunable_param_structs[i].kill_sim = this->tunable_parameters.kill_sim;
-    }
 }

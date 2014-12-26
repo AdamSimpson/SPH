@@ -25,6 +25,42 @@ THE SOFTWARE.
 #include "tunable_parameters.hpp"
 #include "renderer.hpp"
 
+TunableParameters::TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs),
+                                                  num_compute_procs_active(num_compute_procs),
+                                                  selected_parameter((selected_param_t)0)
+{
+    // Reserve space for vectors
+    this->proc_starts.reserve(num_compute_procs);
+    this->proc_ends.reserve(num_compute_procs);
+    this->tunable_param_structs.reserve(num_compute_procs);
+
+    // Setup initial parameters
+    this->kill_sim = false;
+    this->active = true;
+    this->g = 10.0f;
+    this->time_step = 1.0f/60.0f;
+    this->k = 0.2f;
+    this->c = 0.01f;
+    this->rest_density = 0.1f;
+    this->mover_radius = 25.0f;
+    this->smoothing_radius = 1.0f;
+    this->dq = 0.3*this->smoothing_radius;
+
+    // Start off with single active compute proc
+    this->num_compute_procs_active = 1;
+
+    // Hacktastic...not sure how to best fix yet
+    // These values are also hard coded in setup.c
+    this->proc_starts[0] = 0.0f;
+    this->proc_ends[0] = 100.0f;
+
+    // Set initial node boundaries to out of bounds
+    for(int i=0; i<num_compute_procs; i++) {
+        this->proc_starts[i] = -1.0;
+        this->proc_ends[i] = -1.0;
+    }
+};
+
 // Move selected parameter up
 void TunableParameters::move_parameter_up()
 {
@@ -320,5 +356,25 @@ void TunableParameters::check_partition_left(int *particle_counts, int total_par
             this->proc_ends[0] += dx;
             this->proc_starts[1] = this->proc_ends[0];
         }
+    }
+}
+
+void TunableParameters::update_structs()
+{
+    for(int i=0; i<this->num_compute_procs; i++) {
+        this->tunable_param_structs[i].proc_start       = this->proc_starts[i];
+        this->tunable_param_structs[i].proc_enda        = this->proc_ends[i];
+        this->tunable_param_structs[i].rest_density     = this->rest_density;
+        this->tunable_param_structs[i].smoothing_radius = this->smoothing_radius;
+        this->tunable_param_structs[i].g                = this->g;
+        this->tunable_param_structs[i].k                = this->k;
+        this->tunable_param_structs[i].dq               = this->dq;
+        this->tunable_param_structs[i].c                = this->c;
+        this->tunable_param_structs[i].time_step        = this->time_step;
+        this->tunable_param_structs[i].mover_center_x   = this->mover_center_x;
+        this->tunable_param_structs[i].mover_center_y   = this->mover_center_y;
+        this->tunable_param_structs[i].mover_center_z   = this->mover_center_z;
+        this->tunable_param_structs[i].mover_radius     = this->mover_radius;
+        this->tunable_param_structs[i].kill_sim         = this->kill_sim;
     }
 }
