@@ -26,7 +26,6 @@ THE SOFTWARE.
 #define tunable_parameters_h
 
 #include <vector>
-#include "renderer.hpp"
 
 // enum of displayed parameter values
 enum selected_param_t {
@@ -45,8 +44,11 @@ class TunableParameters
     public:
         TunableParameters(int num_compute_procs): num_compute_procs(num_compute_procs),  
                                                   num_compute_procs_active(num_compute_procs),
-                                                  selected_parameter((selected_param_t)0){};
-        ~TunableParameters();
+                                                  selected_parameter((selected_param_t)0){
+                                                      proc_starts.reserve(num_compute_procs);
+                                                      proc_ends.reserve(num_compute_procs);
+                                                  };
+//        ~TunableParameters();
 
         // Not quite sure how to deal with this...public for now
         selected_param_t selected_parameter;
@@ -88,10 +90,9 @@ class TunableParameters
         void remove_partition();
         void toggle_pause();
         void set_mover_gl_center(const float ogl_x, const float ogl_y, const float ogl_z);
-        void reset_mover_size();
+        void reset_mover_radius();
         void check_partition_left(int *particle_counts, int total_particles);
 
-    private:
         int num_compute_procs;
         int num_compute_procs_active;
         std::vector<float> proc_starts;

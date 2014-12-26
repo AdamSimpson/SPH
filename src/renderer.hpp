@@ -36,9 +36,12 @@ class Renderer
         Renderer(int num_compute_procs): pause(false), 
                                          view_controls(false), 
                                          num_compute_procs(num_compute_procs),
-                                         gl(), 
+                                         gl((void*)this), 
                                          camera(gl),
                                          tunable_parameters(num_compute_procs){};
+        GL gl;
+        Camera camera;
+        TunableParameters tunable_parameters;
         void start_rendering();
         void opengl_to_sim(float x, float y, float z, float *sim_x, float *sim_y, float *sim_z);
         void sim_to_opengl(float x, float y, float z, float *gl_x, float *gl_y, float *gl_z);
@@ -48,6 +51,7 @@ class Renderer
         void update_inactive_state();
         void enable_view_controls();
         void disable_view_controls();
+        void toggle_pause();
         void zoom_in_view();
         void zoom_out_view();
         void set_view_angle(const float x_pos, const float y_pos);
@@ -57,11 +61,10 @@ class Renderer
         const int screen_height() const { return this->gl.get_screen_height(); }; 
         void param_struct_to_class();
         void param_class_to_struct();
-    private:
-        GL gl;
-        Camera camera;
-        TunableParameters tunable_parameters;
 
+        bool view_controls; // When shift is held mouse controls view
+
+    private:
         float sim_width;
         float sim_height;
         float sim_depth;
@@ -70,7 +73,6 @@ class Renderer
 
         // Struct vector used to deal with tunable param class to mpi sendable type
         std::vector<tunable_parameters_t> tunable_param_structs;
-        bool view_controls; // When shift is held mouse controls view
         bool pause;
         double last_activity_time; // Used to determine if simulation is being used or not
 };

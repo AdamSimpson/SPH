@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     if(rank == 0) {
         int num_compute_procs = size-1;
         Renderer renderer(num_compute_procs);
-        renderer.start_renderer();
+        renderer.start_rendering();
     }
     else
         start_simulation();

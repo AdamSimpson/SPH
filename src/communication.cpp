@@ -77,8 +77,8 @@ void create_MPI_types()
     disps[4] = offsetof( tunable_parameters_t, dq );
     disps[5] = offsetof( tunable_parameters_t, c );
     disps[6] = offsetof( tunable_parameters_t, time_step );
-    disps[7] = offsetof( tunable_parameters_t, node_start_x );
-    disps[8] = offsetof( tunable_parameters_t, node_end_x );
+    disps[7] = offsetof( tunable_parameters_t, proc_start );
+    disps[8] = offsetof( tunable_parameters_t, proc_end );
     disps[9] = offsetof( tunable_parameters_t, mover_center_x );
     disps[10] = offsetof( tunable_parameters_t, mover_center_y );
     disps[11] = offsetof( tunable_parameters_t, mover_center_z );
@@ -376,9 +376,9 @@ void halo_exchange(fluid_sim_t *fluid_sim)
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         p_index = fluid_particle_indices[i];
-        if (fluid_particles->x[p_index] - params->tunable_params.node_start_x <= h)
+        if (fluid_particles->x[p_index] - params->tunable_params.proc_start <= h)
             edges->edge_indices_left[edges->number_edge_particles_left++] = p_index;
-        else if (params->tunable_params.node_end_x - fluid_particles->x[p_index] <= h)
+        else if (params->tunable_params.proc_end - fluid_particles->x[p_index] <= h)
             edges->edge_indices_right[edges->number_edge_particles_right++] = p_index;
     }
 

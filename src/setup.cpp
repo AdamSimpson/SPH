@@ -281,8 +281,7 @@ void init_params(fluid_sim_t *fluid_sim)
     params->tunable_params.k = 0.2f;
     params->tunable_params.c = 0.01;
     params->tunable_params.rest_density = 0.1;
-    params->tunable_params.mover_width = 25.0f;
-    params->tunable_params.mover_height = 25.0f;
+    params->tunable_params.mover_radius = 25.0f;
     params->steps_per_frame = 4;  // Number of steps to compute before updating render node
     //params->tunable_params.time_step /= (float)steps_per_frame;
 
@@ -495,15 +494,15 @@ void partition_geometry(fluid_sim_t *fluid_sim, float *x_start, int *num_particl
     *num_particles_x = particle_length_x[rank];
         
     // Set node partition values
-    params->tunable_params.node_start_x = fluid_global->min_x + ((number_to_left-1) * spacing);
-    params->tunable_params.node_end_x   = params->tunable_params.node_start_x + (particle_length_x[rank] * spacing);
+    params->tunable_params.proc_start = fluid_global->min_x + ((number_to_left-1) * spacing);
+    params->tunable_params.proc_end   = params->tunable_params.proc_start + (particle_length_x[rank] * spacing);
     
     if (rank == 0)
-        params->tunable_params.node_start_x  = boundary_global->min_x;
+        params->tunable_params.proc_start  = boundary_global->min_x;
     if (rank == nprocs-1)
-        params->tunable_params.node_end_x   = boundary_global->max_x;
+        params->tunable_params.proc_end   = boundary_global->max_x;
 
-    printf("Rank %d start_x: %f, end_x :%f\n", rank, params->tunable_params.node_start_x, params->tunable_params.node_end_x);
+    printf("Rank %d start_x: %f, end_x :%f\n", rank, params->tunable_params.proc_start, params->tunable_params.proc_end);
 
     // Update requested number of particles with actual value used
     int num_y = floor((fluid_global->max_y - fluid_global->min_y ) / spacing);

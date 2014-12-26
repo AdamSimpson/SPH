@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "mpi.h"
 #include "setup.h"
 #include "mover_gl.h"
+#include "ogl_utils.h"
 #include "communication.h"
 #include "fluid.h"
 #include "font_gl.h"
@@ -92,6 +93,7 @@ void Renderer::start_rendering()
         param_displs[i] = i?i-1:0; // rank i will reside in params[i-1]
     }
     // Initial gather from compute nodes to renderer
+    this->tunable_param_structs.reserve(this->num_compute_procs+1);
     MPI_Gatherv(MPI_IN_PLACE, 0, TunableParamtype, this->tunable_param_structs.data(), param_counts, param_displs, TunableParamtype, 0, MPI_COMM_WORLD);
     this->param_struct_to_class();
 
@@ -146,8 +148,8 @@ void Renderer::start_rendering()
     int src, coords_recvd;
     float gl_x, gl_y;
     // Particle radius in pixels
-    float particle_diameter_pixels = gl_state.screen_width * 0.0425;
-    float liquid_particle_diameter_pixels = gl_state.screen_width * 0.015;
+    float particle_diameter_pixels = this->screen_width() * 0.0425;
+    float liquid_particle_diameter_pixels = this->screen_width() * 0.015;
 
     MPI_Status status;
 
@@ -162,21 +164,21 @@ void Renderer::start_rendering()
         }
 
         // Check to see if simulation should close
-        if(window_should_close(&gl_state)) {
-            this->tunable_parameters->kill_sim();
+        if(this->gl.window_should_close()) {
+            this->tunable_parameters.kill_sim=true;
             this->param_class_to_struct();
             // Send kill paramaters to compute nodes
-            MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(this->tunable_param_structs.data(), param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
             break;
         }    
 
         // Check for user keyboard/mouse input
         if(this->pause) {
             while(this->pause)
-                this->glfw->check_user_input();
+                this->gl.check_user_input();
         }
         else
-            this->glfw->check_user_input();
+            this->gl.check_user_input();
 
         // Check if inactive
 //        if(!this->input_is_active())
@@ -186,7 +188,7 @@ void Renderer::start_rendering()
         this->param_class_to_struct();
 
         // Send updated paramaters to compute nodes
-        MPI_Scatterv(node_params, param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(this->tunable_param_structs.data(), param_counts, param_displs, TunableParamtype, MPI_IN_PLACE, 0, TunableParamtype, 0, MPI_COMM_WORLD);
 
             // Retrieve all particle coordinates (x,y,z)
   	    // Potentially probe is expensive? Could just allocated num_compute_procs*num_particles_global and async recv
@@ -208,7 +210,7 @@ void Renderer::start_rendering()
         // Ensure a balanced partition
         // We pass in number of coordinates instead of particle counts    
         if(num_steps%frames_per_check == 0)
-            this->tunable_parameters->check_partition_left(particle_coordinate_counts, coords_recvd);
+            this->tunable_parameters.check_partition_left(particle_coordinate_counts, coords_recvd);
 
         // Clear background
         glClearColor(0.15, 0.15, 0.15, 1.0);
@@ -218,17 +220,17 @@ void Renderer::start_rendering()
         render_container(&container_state);
 
         // update mover
-        this->sim_to_opengl(render_state.master_params[0].mover_center_x,
-                                     render_state.master_params[0].mover_center_y,
-                                     render_state.master_params[0].mover_center_z,
-                                     &mover_center[0], &mover_center[1], &mover_center[2]);
+        this->sim_to_opengl(this->tunable_parameters.mover_center_x,
+                            this->tunable_parameters.mover_center_y,
+                            this->tunable_parameters.mover_center_z,
+                            &mover_center[0], &mover_center[1], &mover_center[2]);
 
-        float mover_radius = this->mover_radius/this->sim_width * 1.0f;
+        float mover_radius = this->tunable_parameters.mover_radius/this->sim_width * 1.0f;
         mover_color[0] = 1.0f;
         mover_color[1] = 0.0f;
         mover_color[2] = 0.0f;
 
-        render_all_text(&font_state, &render_state, fps);
+        render_all_text(&font_state, this->tunable_parameters, fps);
 
         // Wait for all coordinates to be received
         MPI_Waitall(num_compute_procs, coord_reqs, MPI_STATUSES_IGNORE);
@@ -260,9 +262,9 @@ void Renderer::start_rendering()
         render_mover(mover_center, mover_radius, mover_color, &mover_GLstate);
 
         // Swap front/back buffers
-        this->glfw->swap_ogl(&gl_state);
+        this->gl.swap_buffers();
 
-        update_view(&world_GLstate);
+        this->camera.update_view();
 
         num_steps++;
     }
@@ -272,9 +274,6 @@ void Renderer::start_rendering()
     #endif
 
     // Clean up memory
-    exit_ogl(&gl_state);
-    free(node_params);
-    free(master_params);
     free(param_counts);
     free(param_displs);
     free(particle_coords);
@@ -296,7 +295,7 @@ void Renderer::opengl_to_sim(float x, float y, float z, float *sim_x, float *sim
 }
 
 // Translate between simulation coordinates, origin bottom left, and opengl -1,1 center of screen coordinates
-void Renderer::sim_to_opengl(render_t *render_state, float x, float y, float z, float *gl_x, float *gl_y, float *gl_z)
+void Renderer::sim_to_opengl(float x, float y, float z, float *gl_x, float *gl_y, float *gl_z)
 {
     float half_scale = this->sim_width*0.5f;
 
@@ -320,63 +319,101 @@ bool Renderer::input_is_active()
 
 void Renderer::enable_view_controls()
 {
+    this->gl.set_view_cursor();
     this->view_controls = true;
 }
 
 void Renderer::disable_view_controls()
 {
+    this->gl.set_cursor();
     this->view_controls = false;
 }
 
 void Renderer::toggle_pause()
 {
-    this->pause = !state->pause;
+    this->pause = !this->pause;
 }
 
 void Renderer::set_view_angle(float x_pos, float y_pos)
 {
-    world_t *world_state = this->world;
-    const float max_degrees_rotate = 40.0f;
+    const float max_degrees = 40.0f;
 
     // x_pos,y_pos is [-1, 1]
     // Angle is [-max_degrees, max_degrees]
     // This is the angle relative to the intial orientation at the start of view mode
     float degrees_yaw = max_degrees*x_pos;
     float degrees_pitch = max_degrees*y_pos;
-    rotate_camera_yaw_pitch(world_state, degrees_yaw, degrees_pitch);
+    this->camera.rotate_yaw_pitch(degrees_yaw, degrees_pitch);
 
     // Update view
-    update_view(world_state);
+    this->camera.update_view();
 }
 
 void Renderer::move_in_view()
 {
     float dx = 0.15;
-    world_t *world_state = this->world;
-    move_along_view(world_state, dx);
-    update_view(world_state);
+    this->camera.move_along_view(dx);
+    this->camera.update_view();
 }
 
 void Renderer::move_out_view()
 {
     float dx = -0.15;
-    world_t *world_state = state->world;
-    move_along_view(world_state, dx);
-    update_view(world_state);
+    this->camera.move_along_view(dx);
+    this->camera.update_view();
 }
 
 void Renderer::zoom_in_view()
 {
     float dzoom = 0.07;
-    world_t *world_state = state->world;
-    zoom_view(world_state, dzoom);
-    update_view(world_state);
+    this->camera.zoom_view(dzoom);
+    this->camera.update_view();
 }
 
 void Renderer::zoom_out_view()
 {
     float dzoom = -0.07;
-    world_t *world_state = state->world;
-    zoom_view(world_state, dzoom);
-    update_view(world_state);
+    this->camera.zoom_view(dzoom);
+    this->camera.update_view();
+}
+
+void Renderer::param_struct_to_class()
+{
+    this->tunable_parameters.rest_density = this->tunable_param_structs[0].rest_density;
+    this->tunable_parameters.smoothing_radius = this->tunable_param_structs[0].smoothing_radius;
+    this->tunable_parameters.g = this->tunable_param_structs[0].g;
+    this->tunable_parameters.k = this->tunable_param_structs[0].k;
+    this->tunable_parameters.dq = this->tunable_param_structs[0].dq;
+    this->tunable_parameters.c = this->tunable_param_structs[0].c;
+    this->tunable_parameters.time_step = this->tunable_param_structs[0].time_step;
+    this->tunable_parameters.mover_center_x = this->tunable_param_structs[0].mover_center_x;
+    this->tunable_parameters.mover_center_y = this->tunable_param_structs[0].mover_center_y;
+    this->tunable_parameters.mover_center_z = this->tunable_param_structs[0].mover_center_z;
+    this->tunable_parameters.mover_radius = this->tunable_param_structs[0].mover_radius;
+    this->tunable_parameters.kill_sim = this->tunable_param_structs[0].kill_sim;
+    
+    for(int i=0; i<this->num_compute_procs; i++) {
+        this->tunable_parameters.proc_starts[i] = this->tunable_param_structs[i].proc_start;
+        this->tunable_parameters.proc_ends[i] = this->tunable_param_structs[i].proc_end;
+    }
+}
+
+void Renderer::param_class_to_struct()
+{
+    for(int i=0; i<this->num_compute_procs; i++) {
+        this->tunable_param_structs[i].proc_start = this->tunable_parameters.proc_starts[i];
+        this->tunable_param_structs[i].proc_end = this->tunable_parameters.proc_ends[i];
+        this->tunable_param_structs[i].rest_density = this->tunable_parameters.rest_density;
+        this->tunable_param_structs[i].smoothing_radius = this->tunable_parameters.smoothing_radius;
+        this->tunable_param_structs[i].g = this->tunable_parameters.g;
+        this->tunable_param_structs[i].k = this->tunable_parameters.k;
+        this->tunable_param_structs[i].dq = this->tunable_parameters.dq;
+        this->tunable_param_structs[i].c = this->tunable_parameters.c;
+        this->tunable_param_structs[i].time_step = this->tunable_parameters.time_step;
+        this->tunable_param_structs[i].mover_center_x = this->tunable_parameters.mover_center_x;
+        this->tunable_param_structs[i].mover_center_y = this->tunable_parameters.mover_center_y;
+        this->tunable_param_structs[i].mover_center_z = this->tunable_parameters.mover_center_z;
+        this->tunable_param_structs[i].mover_radius = this->tunable_parameters.mover_radius;
+        this->tunable_param_structs[i].kill_sim = this->tunable_parameters.kill_sim;
+    }
 }

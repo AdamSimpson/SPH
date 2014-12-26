@@ -24,7 +24,6 @@ THE SOFTWARE.
 
 #include "tunable_parameters.hpp"
 #include "renderer.hpp"
-#include "world_gl.h"
 
 // Move selected parameter up
 void TunableParameters::move_parameter_up()
@@ -101,7 +100,7 @@ void TunableParameters::increase_gravity()
 }
 
 // Decreate gravity parameter
-void TunableParameters::decrease_gravity(render_t *render_state)
+void TunableParameters::decrease_gravity()
 {
     static const float min_grav = 9.0f;
     if(this->g < min_grav)
@@ -165,7 +164,6 @@ void TunableParameters::increase_viscosity()
     static const float max_viscosity = 100.0f;
     if(this->c < max_viscosity)
         this->c += 0.05f;
-    }
 }
 
 // Decreate viscosity parameter
@@ -196,15 +194,15 @@ void TunableParameters::decrease_k()
 void TunableParameters::set_mover_gl_center(const float ogl_x, const float ogl_y, const float ogl_z)
 {
     float sim_x, sim_y, sim_z;
-    opengl_to_sim(render_state, ogl_x, ogl_y, ogl_z, &sim_x, &sim_y, &sim_z);
+//    opengl_to_sim(ogl_x, ogl_y, ogl_z, &sim_x, &sim_y, &sim_z);
 
-        this->mover_center_x = sim_x;
-        this->mover_center_y = sim_y;
-        this->mover_center_z = sim_z;
+    this->mover_center_x = sim_x;
+    this->mover_center_y = sim_y;
+    this->mover_center_z = sim_z;
 }
 
 // Increase mover radius
-void TunableParameters::ibleParametersncrease_mover_radius()
+void TunableParameters::increase_mover_radius()
 {
     // Maximum radius of mover
     static const float max_width = 4.0f;
@@ -307,7 +305,7 @@ void TunableParameters::check_partition_left(int *particle_counts, int total_par
     }
 
     // Left most partition has a tendency to not balance correctly so we test it explicitly
-    if(render_state->num_compute_procs_active > 1)
+    if(this->num_compute_procs_active > 1)
     {
         length =  this->proc_ends[0] - this->proc_starts[0];
         length_right =  this->proc_ends[1]- this->proc_starts[1];

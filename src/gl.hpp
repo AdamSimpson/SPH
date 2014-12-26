@@ -36,20 +36,19 @@ extern "C"
 class GL
 {
     public:
-        GL(): cursor_x(0), cursor_y(0), cursor_view_x(0), cursor_view_y(0) {};
+        GL(void* renderer);
+        ~GL();
         void check_user_input();
         void swap_buffers();
         bool window_should_close();
-        void exit_program();
         void pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y);
         float get_screen_width() const { return this->screen_width; };
         float get_screen_height() const { return this->screen_height; };
-
-    private:
-        GLFWwindow *window;
-
-        float screen_width;
-        float screen_height;
+        void set_cursor();
+        void exit_program();
+        void set_view_cursor();
+        void update_cursor(double xpos, double ypos);
+        void update_view_cursor(double xpos, double ypos);
 
         // GLFW mouse coordinates for "normal" cursor coordinates
         float cursor_x;
@@ -57,6 +56,12 @@ class GL
         // GLFW mouse coordinates for "view" mode cursor coordinates
         float cursor_view_x;
         float cursor_view_y;
+
+    private:
+        GLFWwindow *window;
+
+        float screen_width;
+        float screen_height;
 };
 
 // GLFW callback function prototypes

@@ -86,8 +86,8 @@ struct tunable_parameters_t {
     float dq;
     float c;
     float time_step;
-    float node_start_x;
-    float node_end_x;
+    float proc_start;
+    float proc_end;
     float mover_center_x;
     float mover_center_y;
     float mover_center_z;

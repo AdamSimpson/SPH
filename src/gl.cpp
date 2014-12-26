@@ -48,31 +48,30 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                self->exit_program(window);              
+                renderer->gl.exit_program();              
 	        break;
             case GLFW_KEY_RIGHT:
-                renderer->tunable_parameters->increase_parameter();
+                renderer->tunable_parameters.increase_parameter();
                 break;
             case GLFW_KEY_LEFT:
-                renderer->tunable_parameters->decrease_parameter();
+                renderer->tunable_parameters.decrease_parameter();
                 break;
             case GLFW_KEY_UP:
-                renderer->tunable_parameters->move_parameter_up();
+                renderer->tunable_parameters.move_parameter_up();
                 break;
             case GLFW_KEY_DOWN:
-                renderer->tunable_parameters->move_parameter_down();
+                renderer->tunable_parameters.move_parameter_down();
                 break;
             case GLFW_KEY_LEFT_BRACKET:
-                renderer->tunable_parameters->remove_partition();
+                renderer->tunable_parameters.remove_partition();
                 break;
             case GLFW_KEY_RIGHT_BRACKET:
-                renderer->tunable_parameters->add_partition();
+                renderer->tunable_parameters.add_partition();
                 break;
             case GLFW_KEY_P:
                 renderer->toggle_pause();
                 break;
             case GLFW_KEY_LEFT_SHIFT:
-                glfwSetCursorPos (window, renderer->tunable_parameters->cursor_view_x, renderer->tunable_parameters->cursor_view_y);
                 renderer->enable_view_controls();
                 break;
         }
@@ -82,7 +81,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         {
             case GLFW_KEY_LEFT_SHIFT:
-                glfwSetCursorPos (window, renderer->tunable_parameters->cursor_x, renderer->tunable_parameters->cursor_y);
                 renderer->disable_view_controls();
                 break;
         }
@@ -94,53 +92,13 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     // Get renderer object from GLFW user pointer
     Renderer *renderer = (Renderer*)glfwGetWindowUserPointer(window);
 
-    // Make sure mouse stays in bounds
-    // GLFW_CURSOR_DISABLED works better on mac than GLFW_CURSOR_HIDDEN but doesn't trap cursor
-    // Sometimes jumping can happen when using SetCursorPos with HIDDEN mode
-    float pixel_width  = renderer->tunable_parameters->screen_width;
-    float pixel_height = renderer->tunable_parameters->screen_height;
-    if(xpos < 0.0) {
-        xpos = 0.0;
-        glfwSetCursorPos(window, xpos, ypos);
+    if(renderer->view_controls) {
+        renderer->gl.update_cursor(xpos, ypos);
+        renderer->tunable_parameters.set_mover_gl_center(renderer->gl.cursor_x, renderer->gl.cursor_y, -0.8f);
     }
-    else if(floor(xpos) > renderer->tunable_parameters->screen_width) {
-        xpos = (double)pixel_width;
-        glfwSetCursorPos(window, xpos, ypos);
-    }
-    if(ypos < 0.0) {
-        ypos = 0.0;
-        glfwSetCursorPos(window, xpos, ypos);
-    }
-    else if(floor(ypos) > renderer->tunable_parameters->screen_height) {
-        ypos = (double)pixel_height;
-        glfwSetCursorPos(window, xpos, ypos);
-    }
-
-    // Let renderer know of activity
-    renderer->tunable_parameters->set_activity_time();
-
-    if(renderer->tunable_parameters->view_controls) {
-        renderer->tunable_parameters->cursor_view_x = xpos;
-        renderer->tunable_parameters->cursor_view_y = ypos;
-
-        float new_x, new_y;
-        new_y = renderer->tunable_parameters->screen_height - ypos; // Flip y = 0
-        new_y = new_y/(0.5*renderer->tunable_parameters->screen_height) - 1.0;
-        new_x = render_state->screen_width - xpos; // Flip x = 0
-        new_x = new_x/(0.5*renderer->tunable_parameters->screen_width) - 1.0;
-
-        renderer->set_view_angle(new_x, new_y);
-    }
-    else if(!renderer->tunable_parameters->view_controls) {
-        renderer->tunable_parameters->cursor_x = xpos;
-        renderer->tunable_parameters->cursor_y = ypos;
-
-        float new_x, new_y;
-        new_y = (renderer->tunable_parameters->screen_height - ypos); // Flip y = 0
-        new_y = new_y/(0.5*renderer->tunable_parameters->screen_height) - 1.0;
-        new_x = xpos/(0.5*renderer->tunable_parameters->screen_width) - 1.0;
-
-        renderer->tunable_parameters->set_mover_gl_center(new_x, new_y, -0.8f);
+    else {
+        renderer->gl.update_view_cursor(xpos, ypos);
+        renderer->set_view_angle(renderer->gl.cursor_view_x, renderer->gl.cursor_view_y);
     }
 }
 
@@ -162,18 +120,18 @@ void wheel_callback(GLFWwindow* window, double x, double y)
     else {
         // Call increase/decrease mover calls
         if(y > 0.0)
-	    renderer->tunable_parameters->increase_mover_radius();
+	    renderer->tunable_parameters.increase_mover_radius();
         else if(y < 0.0)
-	    renderer->tunable_parameters->decrease_mover_radius();
+	    renderer->tunable_parameters.decrease_mover_radius();
         if(x > 0.0)
-            renderer->tunable_parameters->increase_mover_radius();
+            renderer->tunable_parameters.increase_mover_radius();
         else if(x < 0.0)
-            renderer->tunable_parameters->decrease_mover_radius();
+            renderer->tunable_parameters.decrease_mover_radius();
     }
 }
 
 // Description: Sets the display, OpenGL context and screen stuff
-void GL::GL()
+GL::GL(void* renderer) : cursor_x(0), cursor_y(0), cursor_view_x(0), cursor_view_y(0)
 {
     // Set error callback
     glfwSetErrorCallback(error_callback);
@@ -201,12 +159,16 @@ void GL::GL()
     // Try to get full screen
     // Retina screen is a pain...
     GLFWvidmode *mode = (GLFWvidmode*)glfwGetVideoMode(glfwGetPrimaryMonitor());
-    state->window = glfwCreateWindow(mode->width, mode->height, "SPH", glfwGetPrimaryMonitor(), NULL);
+    this->window = glfwCreateWindow(mode->width, mode->height, "SPH", glfwGetPrimaryMonitor(), NULL);
 
-    glfwGetFramebufferSize(this->window, this->screen_width, this->screen_height);
-    glViewport(0, 0, this->screen_width, this->screen_height);
+    int width, height;
+    glfwGetFramebufferSize(this->window, &width, &height);
+    glViewport(0, 0, width, height);
 
-    if(!state->window)
+    this->screen_width = (float)width;
+    this->screen_height = (float)height;
+
+    if(!this->window)
 	exit(EXIT_FAILURE);
 
     // Set current context to window
@@ -236,7 +198,7 @@ void GL::GL()
 
     // Add render state to window pointer
     // Used for key callbacks
-    glfwSetWindowUserPointer(this->window, render_state);
+    glfwSetWindowUserPointer(this->window, renderer);
 
     // Disable regular cursor
     glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -250,9 +212,82 @@ void GL::GL()
     glClear( GL_COLOR_BUFFER_BIT );
 }
 
+void GL::update_cursor(double xpos, double ypos)
+{
+    // Make sure mouse stays in bounds
+    // GLFW_CURSOR_DISABLED works better on mac than GLFW_CURSOR_HIDDEN but doesn't trap cursor
+    // Sometimes jumping can happen when using SetCursorPos with HIDDEN mode
+    if(xpos < 0.0) {
+        xpos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(xpos) > this->screen_width) {
+        xpos = (double)this->screen_width;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    if(ypos < 0.0) {
+        ypos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(ypos) > this->screen_height) {
+        ypos = (double)this->screen_height;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+
+    this->cursor_x = xpos;
+    this->cursor_y = ypos;
+
+    float new_x, new_y;
+    new_y = (this->screen_height - ypos); // Flip y = 0
+    new_y = new_y/(0.5*this->screen_height) - 1.0;
+    new_x = xpos/(0.5*this->screen_width) - 1.0;
+}
+
+void GL::update_view_cursor(double xpos, double ypos)
+{
+    // Make sure mouse stays in bounds
+    // GLFW_CURSOR_DISABLED works better on mac than GLFW_CURSOR_HIDDEN but doesn't trap cursor
+    // Sometimes jumping can happen when using SetCursorPos with HIDDEN mode
+    if(xpos < 0.0) {
+        xpos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(xpos) > this->screen_width) {
+        xpos = (double)this->screen_width;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    if(ypos < 0.0) {
+        ypos = 0.0;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+    else if(floor(ypos) > this->screen_height) {
+        ypos = (double)this->screen_height;
+        glfwSetCursorPos(window, xpos, ypos);
+    }
+
+    this->cursor_view_x = xpos;
+    this->cursor_view_y = ypos;
+
+    float new_x, new_y;
+    new_y = this->screen_height - ypos; // Flip y = 0
+    new_y = new_y/(0.5*this->screen_height) - 1.0;
+    new_x = this->screen_width - xpos; // Flip x = 0
+    new_x = new_x/(0.5*this->screen_width) - 1.0;
+}
+
+void GL::set_view_cursor()
+{
+    glfwSetCursorPos(this->window, this->cursor_view_x, this->cursor_view_y);
+}
+
+void GL::set_cursor()
+{
+    glfwSetCursorPos(this->window, this->cursor_x, this->cursor_y);
+}
+
 bool GL::window_should_close()
 {
-    if(glfwWindowShouldClose(self->window))
+    if(glfwWindowShouldClose(this->window))
         return true;
     else
         return false;
@@ -269,14 +304,8 @@ void GL::swap_buffers()
     glfwSwapBuffers(this->window);
 }
 
-void GL::exit()
+GL::~GL()
 {
-//    glDeleteProgram(state->shaderProgram);
-//    glDeleteShader(fragmentShader);
-//    glDeleteShader(vertexShader);
-//    glDeleteBuffers(1, &vbo);
-//    glDeleteVertexArrays(1, &vao);
-
     glfwDestroyWindow(this->window);
     glfwTerminate();
 
@@ -284,18 +313,18 @@ void GL::exit()
 }
 
 // Convert pixel coordinates, lower left origin, to gl coordinates, center origin
-void GL::pixel_to_gl(int pixel_x, int pixel_y, float *gl_x, float *gl_y)
+void GL::pixel_to_gl(const int pixel_x, const int pixel_y, float &gl_x, float &gl_y)
 {
     float half_x = this->screen_width/2.0;
     float half_y = this->screen_height/2.0;
-    *gl_x = pixel_x/half_x - 1.0;
-    *gl_y = pixel_y/half_y - 1.0;
+    gl_x = pixel_x/half_x - 1.0;
+    gl_y = pixel_y/half_y - 1.0;
 
 }
 
 // Exit and set return value for specific program if one selected
-void GL::exit_program(GLFWwindow* window)
+void GL::exit_program()
 {
-    glfwSetWindowShouldClose(window, GL_TRUE);
+    glfwSetWindowShouldClose(this->window, GL_TRUE);
 }
 

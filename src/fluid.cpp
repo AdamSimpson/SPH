@@ -554,9 +554,9 @@ void identify_oob_particles(fluid_sim_t *fluid_sim)
         p_index = fluid_particle_indices[i];
 
         // Set OOB particle indices and update number
-        if (fluid_particles->x[p_index] < params->tunable_params.node_start_x)
+        if (fluid_particles->x[p_index] < params->tunable_params.proc_start)
             out_of_bounds->oob_index_indices_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (fluid_particles->x[p_index] > params->tunable_params.node_end_x)
+        else if (fluid_particles->x[p_index] > params->tunable_params.proc_end)
             out_of_bounds->oob_index_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
  
@@ -648,7 +648,7 @@ void boundary_conditions(uint p_index, fluid_sim_t *fluid_sim)
 
     // Boundary condition for sphere mover
     // Sphere width == height
-    float radius = params->tunable_params.mover_width*0.5f;
+    float radius = params->tunable_params.mover_radius;
     float norm_x; 
     float norm_y;
     float norm_z;

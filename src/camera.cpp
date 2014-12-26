@@ -39,6 +39,9 @@ THE SOFTWARE.
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtx/norm.hpp"
 
+GLuint Camera::g_GlobalMatricesUBO;
+GLuint Camera::g_GlobalLightUBO;
+
 Camera::Camera(GL& gl): gl(gl)
 {
     // Camera position rotations are based upon
