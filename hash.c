@@ -21,7 +21,6 @@ unsigned int hash_val(double x, double y, double z, param *params)
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;
     int num_y = params->grid_size_y;
-    int num_z = params->grid_size_z;
 
     unsigned int grid_position = (num_x * num_y * grid_z) + (grid_y * num_x + grid_x);
 
@@ -34,6 +33,7 @@ unsigned int hash_val(double x, double y, double z, param *params)
 // it is a waste to check as we hash as well
 void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *hash, param *params)
 {
+    printf("rank %d starting hash halo\n", params->rank);
     int index,i,dx,dy,dz,dupes,n;
     double x,y,z,r;
     bool duped;
@@ -47,8 +47,6 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
     for(i=n_s; i<n_f; i++)
     {
         h_p = &fluid_particles[i];
-        index = hash_val(h_p->x,h_p->y,h_p->z, params);
-
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
         for (dx=-1; dx<=0; dx++) {
@@ -63,8 +61,8 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
                       for (n=0;n<hash[index].number_fluid;n++) {
                           q = hash[index].fluid_particles[n];
                           r = sqrt((h_p->x-q->x)*(h_p->x-q->x) + (h_p->y-q->y)*(h_p->y-q->y) + (h_p->z-q->z)*(h_p->z-q->z));
-                         if(r > h)
-                            continue;
+                          if(r > h)
+                              continue;
 
                           // Get neighbor ne for particle q
                           ne = &neighbors[q->id];
@@ -80,14 +78,13 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
                                 ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
                                 ne->number_fluid_neighbors++;
                             }
-
                       }
                 }
             }
         }
     }
 
-    printf("Hashed Halo\n");
+    printf("rank %d finished hash halo\n", params->rank);
 }
 
 // Fill fluid particles into hash
