@@ -3,6 +3,7 @@
 #include "communication.h"
 #include "fluid.h"
 #include <stddef.h>
+#include <string.h>
 
 void createMpiTypes()
 {
@@ -41,7 +42,7 @@ void freeMpiTypes()
     MPI_Type_free(&Particletype);
 }
 
-void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
+void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params)
 {
     int i;
     int rank = params->rank;
@@ -50,16 +51,16 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     fluid_particle *p;
     double h = params->smoothing_radius;
 
-    // Set edge particle indicies and update number
+    // Set edge particle indices and update number
     edges->number_edge_particles_left = 0;
     edges->number_edge_particles_right = 0;
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
-        p = fluid_particle_pointers[i];
+        p = &fluid_particles[i];
         if (p->x - params->node_start_x <= h)
-            edges->edge_pointers_left[edges->number_edge_particles_left++] = p;
+            edges->edge_indices_left[edges->number_edge_particles_left++] = i;
         else if (params->node_end_x - p->x <= h)
-            edges->edge_pointers_right[edges->number_edge_particles_right++] = p;
+            edges->edge_indices_right[edges->number_edge_particles_right++] = i;
     }
 
     int num_moving_left = edges->number_edge_particles_left;
@@ -79,52 +80,39 @@ void startHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle 
     tag = 8425;
     MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    int *blocklens_left = (int*)malloc(num_moving_left * sizeof(int));
-    int *blocklens_right = (int*)malloc(num_moving_right * sizeof(int));
-    int *indicies_left = (int*)malloc(num_moving_left * sizeof(int));
-    int *indicies_right = (int*)malloc(num_moving_right * sizeof(int));
+    // Allocate send buffers
+    int total_send = num_moving_left + num_moving_right;
+    fluid_particle *send_buffer = malloc(total_send*sizeof(fluid_particle));
+    fluid_particle *sendl_buffer = send_buffer;
+    fluid_particle *sendr_buffer = send_buffer + num_moving_left;
 
-    // Convert the edge pointer into a particle array index using pointer arithmetic
-    int index;
-    int edge_global_index; // Should perhaps use ptrdiff_t
-    for (i=0; i<num_moving_left; i++) {
-        blocklens_left[i] = 1;
-        edge_global_index = (int) (edges->edge_pointers_left[i] - fluid_particles);
-        indicies_left[i]  = edge_global_index;
-    }
-    for (i=0; i<num_moving_right; i++) {
-        blocklens_right[i] = 1;
-        edge_global_index = (int) (edges->edge_pointers_right[i] - fluid_particles);
-        indicies_right[i]  = edge_global_index;
-    }
-
-    MPI_Type_indexed(num_moving_left,blocklens_left,indicies_left,Particletype,&LeftEdgetype);
-    MPI_Type_commit(&LeftEdgetype);
-    MPI_Type_indexed(num_moving_right,blocklens_right,indicies_right,Particletype,&RightEdgetype);
-    MPI_Type_commit(&RightEdgetype);
+    // Pack send buffers
+    for(i=0; i<edges->number_edge_particles_left; i++)
+        sendl_buffer[i] = fluid_particles[edges->edge_indices_left[i]];
+    for(i=0; i<edges->number_edge_particles_right; i++)
+        sendl_buffer[i] = fluid_particles[edges->edge_indices_right[i]];
 
     //Index to start receiving halo particles
-    int indexToReceiveLeft = params->max_fluid_particle_index + 1;
+    int indexToReceiveLeft = params->number_fluid_particles_local;
     int indexToReceiveRight = indexToReceiveLeft + num_from_left;
 
     int tagl = 4312;
     int tagr = 5177;
+
     // Receive halo from left rank
     MPI_Irecv(&fluid_particles[indexToReceiveLeft], num_from_left, Particletype, proc_to_left,tagl, MPI_COMM_WORLD, &edges->reqs[0]);
     // Receive halo from right rank
     MPI_Irecv(&fluid_particles[indexToReceiveRight], num_from_right, Particletype, proc_to_right,tagr, MPI_COMM_WORLD, &edges->reqs[1]);
     // Send halo to right rank
-    MPI_Isend(fluid_particles,1,RightEdgetype,proc_to_right,tagl,MPI_COMM_WORLD, &edges->reqs[2]);
-    MPI_Isend(fluid_particles,1,LeftEdgetype,proc_to_left,tagr,MPI_COMM_WORLD, &edges->reqs[3]);
+    MPI_Isend(sendr_buffer, num_moving_right, Particletype, proc_to_right, tagl, MPI_COMM_WORLD, &edges->reqs[2]);
+    // Send halo to left rank
+    MPI_Isend(sendl_buffer, num_moving_left, Particletype, proc_to_left, tagr, MPI_COMM_WORLD, &edges->reqs[3]);
 
     // Free allocated arays
-    free(blocklens_left);
-    free(blocklens_right);
-    free(indicies_left);
-    free(indicies_right);
+    free(send_buffer);
 }
 
-void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,  edge *edges, param *params)
+void finishHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params)
 {
     int i;
     // Wait for transfer to complete
@@ -139,25 +127,11 @@ void finishHaloExchange(fluid_particle **fluid_particle_pointers, fluid_particle
     int total_received = num_received_left + num_received_right;
     params->number_halo_particles = total_received;
 
-//    printf("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
-
-    // Update pointer array with new values
-    int local_index;
-    int global_index;
-    for (i=0; i< total_received; i++) {
-        local_index = params->number_fluid_particles_local + i;
-        global_index = params->max_fluid_particle_index + 1 + i;
-        fluid_particle_pointers[local_index] = &fluid_particles[global_index];
-        fluid_particle_pointers[local_index]->id = local_index;
-    }
-
-    // Free indexed types
-    MPI_Type_free(&LeftEdgetype);
-    MPI_Type_free(&RightEdgetype);
+    printf("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
 }
 
 // Transfer particles that are out of node bounds
-void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles, oob *out_of_bounds, param *params)
+void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, param *params)
 {
     int i;
     fluid_particle *p;
@@ -181,60 +155,28 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
     tag = 8278;
     MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    // Create indexed type to send
-    MPI_Datatype LeftMovetype;
-    MPI_Datatype RightMovetype;
-    int *blocklens_left = malloc(num_moving_left*sizeof(int));
-    int *blocklens_right = malloc(num_moving_right*sizeof(int));
-    int *indicies_left = malloc(num_moving_left*sizeof(int));
-    int *indicies_right = malloc(num_moving_right*sizeof(int));
+    // Allocate send buffers
+    int total_send = num_moving_left + num_moving_right;
+    fluid_particle *send_buffer = malloc(total_send*sizeof(fluid_particle));
+    fluid_particle *sendl_buffer = send_buffer;
+    fluid_particle *sendr_buffer = send_buffer + num_moving_left;
 
-    // Convert the OOB pointer into a particle array index using pointer arithmetic
+    // Pack send buffers
     int index;
-    int oob_global_index;
     for (i=0; i<num_moving_left; i++) {
-        blocklens_left[i] = 1;
-        index = out_of_bounds->oob_pointer_indicies_left[i];
-        oob_global_index = (int) (fluid_particle_pointers[index] - fluid_particles);
-        indicies_left[i]  = oob_global_index;
+        index = out_of_bounds->oob_indices_left[i];
+        sendl_buffer[i] = fluid_particles[index];
     }
     for (i=0; i<num_moving_right; i++) {
-        blocklens_right[i] = 1;
-        index = out_of_bounds->oob_pointer_indicies_right[i];
-        oob_global_index = (int) (fluid_particle_pointers[index] - fluid_particles);
-        indicies_right[i]  = oob_global_index;
+        index = out_of_bounds->oob_indices_right[i];
+        sendr_buffer[i] = fluid_particles[index];
     }
 
-    MPI_Type_indexed(num_moving_left,blocklens_left,indicies_left,Particletype,&LeftMovetype);
-    MPI_Type_commit(&LeftMovetype);
-    MPI_Type_indexed(num_moving_right,blocklens_right,indicies_right,Particletype,&RightMovetype);
-    MPI_Type_commit(&RightMovetype);
-
-    // Create indexed type to recv
-    MPI_Datatype LeftRecvtype;
-    MPI_Datatype RightRecvtype;
-
+    // Allocate recieve buffers
     int total_recv = num_from_left + num_from_right;
-    int *blocklens_recv = malloc(total_recv*sizeof(int));
-    int *indicies_recv = malloc(total_recv*sizeof(int));
-    // Go through vacancies, starting at end, to create receive indicies
-    // Go through reverse so it's easy to set update vacancies below
-    for (i=0; i<out_of_bounds->number_vacancies && i<total_recv; i++) {
-        blocklens_recv[i] = 1;
-        index = out_of_bounds->number_vacancies-1-i;
-        indicies_recv[i] = out_of_bounds->vacant_indicies[index];
-    }
-    int replaced = i;
-    int remaining = total_recv - replaced;
-    for (i=0; i<remaining; i++) {
-        blocklens_recv[replaced+i] = 1;
-        indicies_recv[replaced+i] = params->max_fluid_particle_index + 1 + i;
-    }
-
-    MPI_Type_indexed(num_from_left, blocklens_recv, indicies_recv, Particletype, &LeftRecvtype);
-    MPI_Type_commit(&LeftRecvtype);
-    MPI_Type_indexed(num_from_right, &blocklens_recv[num_from_left],&indicies_recv[num_from_left], Particletype, &RightRecvtype);
-    MPI_Type_commit(&RightRecvtype); 
+    fluid_particle *recv_buffer = malloc(total_recv*sizeof(fluid_particle));
+    fluid_particle *recvl_buffer = recv_buffer;
+    fluid_particle *recvr_buffer = recv_buffer + num_from_left;
 
     MPI_Status status;
     MPI_Request request;
@@ -245,106 +187,52 @@ void transferOOBParticles(fluid_particle **fluid_particle_pointers, fluid_partic
 
     // Sending to right, recv from left
     tag = 2522;
-    MPI_Sendrecv(fluid_particles,1,RightMovetype,proc_to_right,tag,fluid_particles,1,LeftRecvtype,proc_to_left,tag,MPI_COMM_WORLD,&status);
+    MPI_Sendrecv(sendr_buffer, num_moving_right, Particletype,proc_to_right, tag,
+                 recvl_buffer, num_from_left, Particletype, proc_to_left, tag,
+                 MPI_COMM_WORLD, &status);
     MPI_Get_count(&status, Particletype, &num_received_left);
+
     // Sending to left, recv from right
     tag = 1165;
-    MPI_Sendrecv(fluid_particles,1,LeftMovetype,proc_to_left,tag,fluid_particles,1,RightRecvtype,proc_to_right,tag,MPI_COMM_WORLD,&status);
+    MPI_Sendrecv(sendl_buffer, num_moving_left, Particletype, proc_to_left, tag,
+                 recvr_buffer, num_from_right, Particletype, proc_to_right, tag,
+                 MPI_COMM_WORLD, &status);
     MPI_Get_count(&status, Particletype, &num_received_right);
 
     int total_sent = num_moving_left + num_moving_right;
     int total_received = num_received_right + num_received_left;
 
-//    printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
-   
-    // Update maximum particle index if neccessary
-    if (indicies_recv[total_received-1] > params->max_fluid_particle_index)
-        params->max_fluid_particle_index = indicies_recv[total_received-1];
-    
-    // Update vacancy total for particles received
-    if (total_received < out_of_bounds->number_vacancies )
-        out_of_bounds->number_vacancies -= total_received;
-    else
-        out_of_bounds->number_vacancies = 0;
+    printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
 
-    // Update vacancy indicies and total for particles sent
-    // Set sent particle pointer to received particle location or to NULL
-    int oob_pointer_index;
-    int recv_replaced = 0; // received particles that have replaced leaving particles
-    for (i=0; i<num_moving_left; i++) {
-        // Index of particle pointer that has left
-        oob_pointer_index = out_of_bounds->oob_pointer_indicies_left[i];
-        // Index of particle that has left
-        oob_global_index = (int) (fluid_particle_pointers[oob_pointer_index] - fluid_particles);
-        out_of_bounds->vacant_indicies[out_of_bounds->number_vacancies] = oob_global_index;
-        // Incriment the number of vacancies
-        out_of_bounds->number_vacancies++;
-
-        // Set pointer from removed particle to a recvd particle ,if any, else NULL
-        if(recv_replaced < total_received) {
-            fluid_particle_pointers[oob_pointer_index] = &fluid_particles[indicies_recv[recv_replaced]]; 
-            recv_replaced++;
-        }
-        else
-	    fluid_particle_pointers[oob_pointer_index] = NULL;
-    }
-    for (i=0; i<num_moving_right; i++) {
-        // Index of particle pointer that has left
-        oob_pointer_index = out_of_bounds->oob_pointer_indicies_right[i];
-        // Index of particle that has left
-        oob_global_index = (int) (fluid_particle_pointers[oob_pointer_index] - fluid_particles);
-        // Set new vacancy index
-        out_of_bounds->vacant_indicies[out_of_bounds->number_vacancies] = oob_global_index;
-        // Incriment the number of vacancies
-        out_of_bounds->number_vacancies++;
-
-        // Set pointer from removed particle to a recvd particle ,if any, else NULL
-        if(recv_replaced < total_received) {
-            fluid_particle_pointers[oob_pointer_index] = &fluid_particles[indicies_recv[recv_replaced]];
-            recv_replaced++;
-        }
-        else
-            fluid_particle_pointers[oob_pointer_index] = NULL;
-    }
-
-    // If more particles are received than sent add to end of pointer array
-    remaining = total_received - recv_replaced;
-    int pointer_index;
-    int global_index;
-    int max_fluid_pointers = params->number_fluid_particles_local;
-    for(i=0; i<remaining; i++)
+    // Unpack received particles
+    int *vacant_indices = malloc(total_sent*sizeof(int));
+    memcpy(vacant_indices, out_of_bounds->oob_indices_left, num_moving_left*sizeof(int));
+    memcpy(vacant_indices+num_moving_left, out_of_bounds->oob_indices_right, num_moving_right*sizeof(int));
+    int filled;
+    for(i=0; i<total_received; i++)
     {
-        pointer_index = params->number_fluid_particles_local + i;
-        global_index = indicies_recv[recv_replaced + i];
-        fluid_particle_pointers[pointer_index] = &fluid_particles[global_index];
-        max_fluid_pointers++;
-    }
-
-    // Update particle pointer array
-    // Go through all possible fluid particles and remove null entries
-    int num_particles = 0;
-    for (i=0; i<max_fluid_pointers; i++) {
-        p = fluid_particle_pointers[i];
-        if (p != NULL) {
-            fluid_particle_pointers[num_particles] = p;
-            fluid_particle_pointers[num_particles]->id = num_particles;
-            num_particles++;
+        // If there is a vacancy place the received particle there
+        if(i < total_sent) {
+            fluid_particles[vacant_indices[i]] = recv_buffer[i];
+            fluid_particles[vacant_indices[i]].id = vacant_indices[i];
+            filled++;
+        }
+        else { // else place it on the end
+            fluid_particles[params->number_fluid_particles_local] = recv_buffer[i];
+            fluid_particles[params->number_fluid_particles_local].id = params->number_fluid_particles_local;
+            params->number_fluid_particles_local++;
         }
     }
 
-    params->number_fluid_particles_local = num_particles;
+    // If more particles sent than received
+    // move particles from end to vacancies
+    for(i=0; i<total_sent-total_received; i++) {
+        fluid_particles[vacant_indices[i+filled]] = fluid_particles[params->number_fluid_particles_local];
+        fluid_particles[vacant_indices[i+filled]].id = vacant_indices[i+filled];
+        params->number_fluid_particles_local--;
+    }
 
-    // Free indexed types
-    MPI_Type_free(&LeftRecvtype);
-    MPI_Type_free(&RightRecvtype);
-    MPI_Type_free(&LeftMovetype);
-    MPI_Type_free(&RightMovetype);
-
-    free(blocklens_left);
-    free(blocklens_right);
-    free(indicies_left);
-    free(indicies_right);
-    free(blocklens_recv);
-    free(indicies_recv);
+    free(send_buffer);
+    free(recv_buffer);
+    free(vacant_indices);
 }
-

@@ -1,0 +1,9 @@
+CC=cc
+CFLAGS= -std=gnu99 -g -O3 -lm
+
+all:
+	mkdir -p bin
+	$(CC) $(CFLAGS) $(CLIBS) geometry.c hash.c communication.c fluid.c fileio.c -o bin/sph.out
+clean:
+	rm -f ./sph.out
+	rm -f ./*.o

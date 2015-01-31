@@ -58,7 +58,6 @@ struct PARAM {
     int grid_size_z;
     int number_fluid_particles_global;
     int number_fluid_particles_local; // Number of non vacant particles
-    int max_fluid_particle_index;     // Max index used in actual particle array
     int max_fluid_particles_local;    // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles;        // Starting at max_fluid_particle_index
     int max_node_difference;
@@ -81,11 +80,11 @@ void updateParticle(fluid_particle *p, int particle_index, param *params);
 void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm);
 
 void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
-void updatePressures(fluid_particle **fluid_particle_pointers,neighbor *neighbors, param *params);
-void updateAccelerations(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void updatePositions(fluid_particle **fluid_particle_pointers,oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
-void eulerStart(fluid_particle **fluid_particle_pointers, neighbor *neighbors, param *params);
-void initParticles(fluid_particle **fluid_particle_pointers, fluid_particle *fluid_particles,
-                   neighbor *neighbors, n_bucket *hash, AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
+void updatePressures(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
+void updateAccelerations(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
+void updatePositions(fluid_particle *fluid_particles,oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
+void eulerStart(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
+void initParticles(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *hash,
+                   AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
 
 #endif

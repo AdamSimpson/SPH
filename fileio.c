@@ -8,13 +8,13 @@
 #include "fluid.h"
 
 // Write boundary in MPI
-void writeMPI(fluid_particle **particles, int fileNum, param *params)
+void writeMPI(fluid_particle *particles, int fileNum, param *params)
 {
     MPI_File file;
     MPI_Status status;
     int i;
     char name[64];
-    sprintf(name, "/tmp/work/atj/sim-%d.bin", fileNum);
+    sprintf(name, "/Users/atj/SPH/output/sim-%d.bin", fileNum);
 
     int num_particles = params->number_fluid_particles_local;
 
@@ -36,9 +36,9 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
 
     int index=0;
     for(i=0; i<num_particles; i++) {
-        send_buffer[index]   = particles[i]->x;
-        send_buffer[index+1] = particles[i]->y;
-        send_buffer[index+2] = particles[i]->z;
+        send_buffer[index]   = particles[i].x;
+        send_buffer[index+1] = particles[i].y;
+        send_buffer[index+2] = particles[i].z;
         index+=3;
     }
 
@@ -55,25 +55,25 @@ void writeMPI(fluid_particle **particles, int fileNum, param *params)
     // Close file
     MPI_File_close(&file);
 
-    // Free buffer 
+    // Free buffer
     free(send_buffer);
 }
 
 // Write fluid particle data to file
-void writeFile(fluid_particle **particles, int fileNum, param *params)
+void writeFile(fluid_particle *particles, int fileNum, param *params)
 {
     fluid_particle *p;
     FILE *fp ;
     int i;
     char name[64];
-    sprintf(name, "/tmp/work/atj/sim-%d.csv", fileNum);
+    sprintf(name, "//lustre/atlas/scratch/atj/stf007/sim-%d.csv", fileNum);
     fp = fopen ( name,"w" );
     if (!fp) {
         printf("ERROR: error opening file\n");
         exit(1);
     }
     for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = particles[i];
+        p = &particles[i];
         fprintf(fp,"%f,%f,%f\n",p->x,p->y,p->z);
     }
     fclose(fp);
