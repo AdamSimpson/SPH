@@ -208,7 +208,7 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
     int *vacant_indices = malloc(total_sent*sizeof(int));
     memcpy(vacant_indices, out_of_bounds->oob_indices_left, num_moving_left*sizeof(int));
     memcpy(vacant_indices+num_moving_left, out_of_bounds->oob_indices_right, num_moving_right*sizeof(int));
-    int filled;
+    int filled = 0;
     for(i=0; i<total_received; i++)
     {
         // If there is a vacancy place the received particle there
@@ -226,7 +226,7 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
 
     // If more particles sent than received
     // move particles from end to vacancies
-    for(i=0; i<total_sent-total_received; i++) {
+    for(i=0; i<(total_sent-total_received); i++) {
         fluid_particles[vacant_indices[i+filled]] = fluid_particles[params->number_fluid_particles_local];
         fluid_particles[vacant_indices[i+filled]].id = vacant_indices[i+filled];
         params->number_fluid_particles_local--;
