@@ -90,7 +90,7 @@ void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *par
     for(i=0; i<edges->number_edge_particles_left; i++)
         sendl_buffer[i] = fluid_particles[edges->edge_indices_left[i]];
     for(i=0; i<edges->number_edge_particles_right; i++)
-        sendl_buffer[i] = fluid_particles[edges->edge_indices_right[i]];
+        sendr_buffer[i] = fluid_particles[edges->edge_indices_right[i]];
 
     //Index to start receiving halo particles
     int indexToReceiveLeft = params->number_fluid_particles_local;
@@ -109,7 +109,11 @@ void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *par
     MPI_Isend(sendl_buffer, num_moving_left, Particletype, proc_to_left, tagr, MPI_COMM_WORLD, &edges->reqs[3]);
 
     // Free allocated arays
-    free(send_buffer);
+    // Can't free send_buffer!!!!
+    //!!!!
+    // MEMORY LEAK HERE WITHOUT FREE, NEED TO FIX
+    printf("MEMORY LEAK IN START HALO\n\n");
+//    free(send_buffer);
 }
 
 void finishHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params)
@@ -138,8 +142,38 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
     int rank = params->rank;
     int nprocs = params->nprocs;
 
-    int num_moving_left = out_of_bounds->number_oob_particles_left;
-    int num_moving_right = out_of_bounds->number_oob_particles_right;
+    int i_left = 0;
+    int i_right = 0;
+
+    // Allocate send buffers
+    printf("HACK MAX SEND NUMBER FOR NOW\n");
+    int max_send = 1000;
+    fluid_particle *send_buffer = malloc(max_send*sizeof(fluid_particle));
+    fluid_particle *sendl_buffer = send_buffer;
+    fluid_particle *sendr_buffer = send_buffer + max_send/2;
+
+    for(i=0; i<params->number_fluid_particles_local; i++) {
+        p = &fluid_particles[i];
+
+        // Set OOB particle indices and update number
+        // remove particle from end of array to fill vacancy
+        if (p->x < params->node_start_x && params->rank != 0) {
+            sendl_buffer[i_left++] = *p;
+            fluid_particles[i] = fluid_particles[params->number_fluid_particles_local-1];
+            fluid_particles[i].id = i;
+            params->number_fluid_particles_local--;
+        }
+        else if (p->x > params->node_end_x && params->rank != params->nprocs-1) {
+            sendr_buffer[i_right++] = *p;
+            fluid_particles[i] = fluid_particles[params->number_fluid_particles_local-1];
+            fluid_particles[i].id = i;
+            params->number_fluid_particles_local--;
+        }
+    }
+
+    int num_moving_left = i_left;
+    int num_moving_right = i_right;
+    int total_send = num_moving_left + num_moving_right;
 
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
@@ -155,28 +189,10 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
     tag = 8278;
     MPI_Sendrecv(&num_moving_left, 1, MPI_INT, proc_to_left, tag, &num_from_right,1,MPI_INT,proc_to_right,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    // Allocate send buffers
-    int total_send = num_moving_left + num_moving_right;
-    fluid_particle *send_buffer = malloc(total_send*sizeof(fluid_particle));
-    fluid_particle *sendl_buffer = send_buffer;
-    fluid_particle *sendr_buffer = send_buffer + num_moving_left;
-
-    // Pack send buffers
-    int index;
-    for (i=0; i<num_moving_left; i++) {
-        index = out_of_bounds->oob_indices_left[i];
-        sendl_buffer[i] = fluid_particles[index];
-    }
-    for (i=0; i<num_moving_right; i++) {
-        index = out_of_bounds->oob_indices_right[i];
-        sendr_buffer[i] = fluid_particles[index];
-    }
-
     // Allocate recieve buffers
     int total_recv = num_from_left + num_from_right;
-    fluid_particle *recv_buffer = malloc(total_recv*sizeof(fluid_particle));
-    fluid_particle *recvl_buffer = recv_buffer;
-    fluid_particle *recvr_buffer = recv_buffer + num_from_left;
+    fluid_particle *recvl_buffer = &fluid_particles[params->number_fluid_particles_local];
+    fluid_particle *recvr_buffer = &fluid_particles[params->number_fluid_particles_local + num_from_left];
 
     MPI_Status status;
     MPI_Request request;
@@ -199,40 +215,18 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
                  MPI_COMM_WORLD, &status);
     MPI_Get_count(&status, Particletype, &num_received_right);
 
-    int total_sent = num_moving_left + num_moving_right;
     int total_received = num_received_right + num_received_left;
+
+    // Update received particle ID
+    for(i=params->number_fluid_particles_local; i<params->number_fluid_particles_local+total_received; i++)
+    {
+        fluid_particles[i].id = i;
+    }
+
+    // Update number of particles
+    params->number_fluid_particles_local += total_received;
 
     printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
 
-    // Unpack received particles
-    int *vacant_indices = malloc(total_sent*sizeof(int));
-    memcpy(vacant_indices, out_of_bounds->oob_indices_left, num_moving_left*sizeof(int));
-    memcpy(vacant_indices+num_moving_left, out_of_bounds->oob_indices_right, num_moving_right*sizeof(int));
-    int filled = 0;
-    for(i=0; i<total_received; i++)
-    {
-        // If there is a vacancy place the received particle there
-        if(i < total_sent) {
-            fluid_particles[vacant_indices[i]] = recv_buffer[i];
-            fluid_particles[vacant_indices[i]].id = vacant_indices[i];
-            filled++;
-        }
-        else { // else place it on the end
-            fluid_particles[params->number_fluid_particles_local] = recv_buffer[i];
-            fluid_particles[params->number_fluid_particles_local].id = params->number_fluid_particles_local;
-            params->number_fluid_particles_local++;
-        }
-    }
-
-    // If more particles sent than received
-    // move particles from end to vacancies
-    for(i=0; i<(total_sent-total_received); i++) {
-        fluid_particles[vacant_indices[i+filled]] = fluid_particles[params->number_fluid_particles_local];
-        fluid_particles[vacant_indices[i+filled]].id = vacant_indices[i+filled];
-        params->number_fluid_particles_local--;
-    }
-
     free(send_buffer);
-    free(recv_buffer);
-    free(vacant_indices);
 }

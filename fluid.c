@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
         transferOOBParticles(fluid_particles, &out_of_bounds, &params);
 
         if (n % steps_per_frame == 0)
-          writeMPI(fluid_particles, fileNum++, &params);
+            writeMPI(fluid_particles, fileNum++, &params);
 
     }
     end_time = MPI_Wtime();
@@ -377,20 +377,10 @@ void updatePositions(fluid_particle *fluid_particles, oob *out_of_bounds,
     fluid_particle *p;
     double h = params->smoothing_radius;
 
-    // Reset OOB numbers
-    out_of_bounds->number_oob_particles_left = 0;
-    out_of_bounds->number_oob_particles_right = 0;
-
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = &fluid_particles[i];
         updateParticle(p, i, params);
         boundaryConditions(p, boundary_global, params);
-
-        // Set OOB particle indices and update number
-        if (p->x < params->node_start_x)
-            out_of_bounds->oob_indices_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x > params->node_end_x)
-            out_of_bounds->oob_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 }
 

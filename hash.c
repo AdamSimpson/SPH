@@ -47,6 +47,7 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
     for(i=n_s; i<n_f; i++)
     {
         h_p = &fluid_particles[i];
+        printf("rank %d: halo[%d]=%f\n", params->rank, i, h_p->x);
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
         for (dx=-1; dx<=0; dx++) {
@@ -78,13 +79,14 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
                                 ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
                                 ne->number_fluid_neighbors++;
                             }
+
                       }
                 }
             }
         }
     }
-
     printf("rank %d finished hash halo\n", params->rank);
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 // Fill fluid particles into hash
