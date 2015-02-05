@@ -16,22 +16,22 @@ void createMpiTypes()
     for (i=0; i<16; i++) blocklens[i] = 1;
     MPI_Aint disps[16];
     // Get displacement of each struct member
-    disps[0] = offsetof( fluid_particle, x);
-    disps[1] = offsetof( fluid_particle, y);
-    disps[2] = offsetof( fluid_particle, z);
-    disps[3] = offsetof( fluid_particle, v_x);
-    disps[4] = offsetof( fluid_particle, v_y);
-    disps[5] = offsetof( fluid_particle, v_z);
-    disps[6] = offsetof( fluid_particle, v_half_x);
-    disps[7] = offsetof( fluid_particle, v_half_y);
-    disps[8] = offsetof( fluid_particle, v_half_z);
-    disps[9] = offsetof( fluid_particle, a_x);
-    disps[10] = offsetof( fluid_particle, a_y);
-    disps[11] = offsetof( fluid_particle, a_z);
-    disps[12] = offsetof( fluid_particle, density);
-    disps[13] = offsetof( fluid_particle, pressure);
-    disps[14] = offsetof( fluid_particle, id);
-    disps[15] = sizeof(fluid_particle);
+    disps[0] = offsetof( fluid_particle_t,  x_star);
+    disps[1] = offsetof( fluid_particle_t,  y_star);
+    disps[2] = offsetof( fluid_particle_t,  z_star);
+    disps[3] = offsetof( fluid_particle_t,  x);
+    disps[4] = offsetof( fluid_particle_t,  y);
+    disps[5] = offsetof( fluid_particle_t,  z);
+    disps[6] = offsetof( fluid_particle_t,  v_x);
+    disps[7] = offsetof( fluid_particle_t,  v_y);
+    disps[8] = offsetof( fluid_particle_t,  v_z);
+    disps[9] = offsetof( fluid_particle_t,  dp_x);
+    disps[10] = offsetof( fluid_particle_t, dp_y);
+    disps[11] = offsetof( fluid_particle_t, dp_z);
+    disps[12] = offsetof( fluid_particle_t, density);
+    disps[13] = offsetof( fluid_particle_t, lambda);
+    disps[14] = offsetof( fluid_particle_t, id);
+    disps[15] = sizeof(fluid_particle_t);
     // Commit type
     MPI_Type_create_struct( 16, blocklens, disps, types, &Particletype );
     MPI_Type_commit( &Particletype );
@@ -42,13 +42,13 @@ void freeMpiTypes()
     MPI_Type_free(&Particletype);
 }
 
-void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params)
+void startHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params)
 {
     int i;
     int rank = params->rank;
     int nprocs = params->nprocs;
 
-    fluid_particle *p;
+    fluid_particle_t *p;
     double h = params->smoothing_radius;
 
     // Set edge particle indices and update number
@@ -82,9 +82,9 @@ void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *par
 
     // Allocate send buffers
     int total_send = num_moving_left + num_moving_right;
-    fluid_particle *send_buffer = malloc(total_send*sizeof(fluid_particle));
-    fluid_particle *sendl_buffer = send_buffer;
-    fluid_particle *sendr_buffer = send_buffer + num_moving_left;
+    fluid_particle_t *send_buffer = malloc(total_send*sizeof(fluid_particle_t));
+    fluid_particle_t *sendl_buffer = send_buffer;
+    fluid_particle_t *sendr_buffer = send_buffer + num_moving_left;
 
     // Pack send buffers
     for(i=0; i<edges->number_edge_particles_left; i++)
@@ -116,7 +116,7 @@ void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *par
 //    free(send_buffer);
 }
 
-void finishHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params)
+void finishHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params)
 {
     int i;
     // Wait for transfer to complete
@@ -135,10 +135,10 @@ void finishHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *pa
 }
 
 // Transfer particles that are out of node bounds
-void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, param *params)
+void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params)
 {
     int i;
-    fluid_particle *p;
+    fluid_particle_t *p;
     int rank = params->rank;
     int nprocs = params->nprocs;
 
@@ -148,9 +148,9 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
     // Allocate send buffers
     printf("HACK MAX SEND NUMBER FOR NOW\n");
     int max_send = 1000;
-    fluid_particle *send_buffer = malloc(max_send*sizeof(fluid_particle));
-    fluid_particle *sendl_buffer = send_buffer;
-    fluid_particle *sendr_buffer = send_buffer + max_send/2;
+    fluid_particle_t *send_buffer = malloc(max_send*sizeof(fluid_particle_t));
+    fluid_particle_t *sendl_buffer = send_buffer;
+    fluid_particle_t *sendr_buffer = send_buffer + max_send/2;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         p = &fluid_particles[i];
@@ -191,8 +191,8 @@ void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, p
 
     // Allocate recieve buffers
     int total_recv = num_from_left + num_from_right;
-    fluid_particle *recvl_buffer = &fluid_particles[params->number_fluid_particles_local];
-    fluid_particle *recvr_buffer = &fluid_particles[params->number_fluid_particles_local + num_from_left];
+    fluid_particle_t *recvl_buffer = &fluid_particles[params->number_fluid_particles_local];
+    fluid_particle_t *recvr_buffer = &fluid_particles[params->number_fluid_particles_local + num_from_left];
 
     MPI_Status status;
     MPI_Request request;

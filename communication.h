@@ -1,8 +1,8 @@
 #ifndef fluid_communication_h
 #define fluid_communication_h
 
-typedef struct EDGES edge;
-typedef struct OOB oob;
+typedef struct EDGES edge_t;
+typedef struct OOB oob_t;
 
 #include "fluid.h"
 #include "mpi.h"
@@ -30,9 +30,9 @@ struct OOB {
 
 void createMpiTypes();
 void freeMpiTypes();
-void transferHalos(fluid_particle *fluid_particles, edge *edges, param *params);
-void transferOOBParticles(fluid_particle *fluid_particles, oob *out_of_bounds, param *params);
-void startHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params);
-void finishHaloExchange(fluid_particle *fluid_particles,  edge *edges, param *params);
+void transferHalos(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);
+void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params);
+void startHaloExchange(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);
+void finishHaloExchange(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);
 
 #endif

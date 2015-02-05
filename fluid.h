@@ -1,9 +1,9 @@
 #ifndef fluid_fluid_h
 #define fluid_fluid_h
 
-typedef struct FLUID_PARTICLE fluid_particle;
-typedef struct NEIGHBOR neighbor;
-typedef struct PARAM param;
+typedef struct FLUID_PARTICLE fluid_particle_t;
+typedef struct NEIGHBOR neighbor_t;
+typedef struct PARAM param_t;
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -19,38 +19,37 @@ typedef struct PARAM param;
 ////////////////////////////////////////////////
 
 struct FLUID_PARTICLE {
-    double x;
-    double y;
-    double z;
-    double v_x;
-    double v_y;
-    double v_z;
-    double v_half_x;
-    double v_half_y;
-    double v_half_z;
-    double a_x;
-    double a_y;
-    double a_z;
-    double density;
-    double pressure;
+    float x_star;
+    float y_star;
+    float z_star;
+    float x;
+    float y;
+    float z;
+    float v_x;
+    float v_y;
+    float v_z;
+    float dp_x;
+    float dp_y;
+    float dp_z;
+    float density;
+    float lambda;
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
-struct NEIGHBOR{
-    fluid_particle* fluid_neighbors[201];
+struct NEIGHBOR {
+    fluid_particle_t* fluid_neighbors[201];
     int number_fluid_neighbors;
 };
 
 struct PARAM {
     double rest_density;
-    double mass_particle;
     double spacing_particle;
     double smoothing_radius;
     double g;
     double time_step;
-    double alpha;
-    double surface_tension;
-    double speed_sound;
+    double k;
+    double dq;
+    double c;
     double node_start_x; // left x position of node partition
     double node_end_x;   // right x position of node partition
     int grid_size_x;
@@ -70,21 +69,23 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-double lap_W_visc(const double r, const double h);
-double W_dens(const double r, const double h);
-double del_W_pressure(const double r, const double h);
-double computeDensity(const double r, const param *const params);
-double computePressure(const fluid_particle *const p, const param *const params);
-void computeAcceleration(fluid_particle *p, fluid_particle *q, param *params);
-void updateParticle(fluid_particle *p, int particle_index, param *params);
-void reflectParticle(fluid_particle *p, param* params, double pen_depth, double *norm);
+float W(float r, float h);
+float del_W(float r, float h);
+void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params);
+void compute_densities(fluid_particle_t *fluid_particles, param_t *params);
+void apply_gravity(fluid_particle_t *fluid_particles, param_t *params);
+void update_dp_positions(fluid_particle_t *fluid_particles, param_t *params);
+void update_positions(fluid_particle_t *fluid_particles, param_t *params);
+void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbor_grid, param_t *params);
+void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbor_grid, param_t *params);
+void identify_oob_particles(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params);
+void predict_positions(fluid_particle_t *fluid_particles, param_t *params);
+void check_velocity(float *v_x, float *v_y, float *v_z);
+void update_velocities(fluid_particle_t *fluid_particles, param_t *params);
+void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB_t *boudnary);
+void initParticles(fluid_particle_t *fluid_particles,
+                neighbor_t *neighbors, bucket_t *hash, AABB_t* water,
+                int start_x, int number_particles_x, edge_t *edges, param_t* params);
 
-void boundaryConditions(fluid_particle *p, AABB *boundary, param *params);
-void updatePressures(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
-void updateAccelerations(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
-void updatePositions(fluid_particle *fluid_particles,oob *out_of_bounds, edge *edges, AABB *boundary_global, param *params);
-void eulerStart(fluid_particle *fluid_particles, neighbor *neighbors, param *params);
-void initParticles(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *hash,
-                   AABB* water, int start_x, int number_particles_x, edge *edges, param* params);
 
 #endif

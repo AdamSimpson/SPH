@@ -2,8 +2,8 @@
 #include "geometry.h"
 #include "fluid.h"
 
-void constructFluidVolume(fluid_particle *fluid_particles, AABB* fluid,
-                          int start_x, int number_particles_x, edge *edges, param *params)
+void constructFluidVolume(fluid_particle_t *fluid_particles, AABB_t* fluid,
+                          int start_x, int number_particles_x, edge_t *edges, param_t *params)
 {
     double spacing;
     int num_y;
@@ -22,7 +22,7 @@ void constructFluidVolume(fluid_particle *fluid_particles, AABB* fluid,
     double x,y,z;
     int nx,ny,nz;
     int i = 0;
-    fluid_particle *p;
+    fluid_particle_t *p;
     for(nz=0; nz<num_z; nz++) {
         z = fluid->min_z + nz*spacing;
         for(ny=0; ny<num_y; ny++) {
@@ -44,8 +44,8 @@ void constructFluidVolume(fluid_particle *fluid_particles, AABB* fluid,
 }
 
 // Sets upper bound on number of particles, used for memory allocation
-void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges,
-                        oob *out_of_bounds, int number_particles_x, param *params)
+void setParticleNumbers(AABB_t *boundary_global, AABB_t *fluid_global, edge_t *edges,
+                        oob_t *out_of_bounds, int number_particles_x, param_t *params)
 {
     int num_x;
     int num_y;
@@ -75,8 +75,8 @@ void setParticleNumbers(AABB *boundary_global, AABB *fluid_global, edge *edges,
 }
 
 // Set local boundary and fluid particle
-void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start,
-                      int *length_x, param *params)
+void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_start,
+                      int *length_x, param_t *params)
 {
     int i;
     int nprocs = params->nprocs;
@@ -130,11 +130,11 @@ void partitionProblem(AABB *boundary_global, AABB *fluid_global, int *x_start,
 }
 
 // Test if boundaries need to be adjusted
-void checkPartition(fluid_particle *fluid_particles, oob *out_of_bounds, param *params)
+void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params)
 {
 
     int i;
-    fluid_particle *p;
+    fluid_particle_t *p;
     int max_diff = params->max_node_difference;
     int num_rank = params->number_fluid_particles_local;
     int rank = params->rank;

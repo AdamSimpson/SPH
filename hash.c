@@ -6,7 +6,7 @@
 
 // Uniform grid hash, this prevents having to check duplicates when inserting
 // Fabs needed as neighbor search can go out of bounds
-unsigned int hash_val(double x, double y, double z, param *params)
+unsigned int hash_val(double x, double y, double z, param_t *params)
 {
     const double spacing = params->smoothing_radius;
     // Calculate grid coordinates
@@ -31,18 +31,18 @@ unsigned int hash_val(double x, double y, double z, param *params)
 // Halo particles are not added to hash, only neighbors list
 // Neighbors may be more than h away...since distance is computed in all smoothing functions
 // it is a waste to check as we hash as well
-void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *hash, param *params)
+void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params)
 {
     printf("rank %d starting hash halo\n", params->rank);
     int index,i,dx,dy,dz,dupes,n;
     double x,y,z,r;
     bool duped;
-    fluid_particle *h_p, *q;
+    fluid_particle_t *h_p, *q;
     int n_s = params->number_fluid_particles_local;
     int n_f = n_s + params->number_halo_particles;
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
-    neighbor *ne;
+    neighbor_t *ne;
 
     for(i=n_s; i<n_f; i++)
     {
@@ -92,7 +92,7 @@ void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *h
 // Fill fluid particles into hash
 // Neighbors may be more than h away...since distance is computed in all smoothing functions
 // it is a waste to check as we hash as well
-void hash_fluid(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket * hash, param *params)
+void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t * hash, param_t *params)
 {
         int i,dx,dy,dz,n,c;
         bool duped;
@@ -100,8 +100,8 @@ void hash_fluid(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *
         double spacing = params->smoothing_radius;
         double h = params->smoothing_radius;
         int n_f = params->number_fluid_particles_local;
-        fluid_particle *p, *q, *q_neighbor;
-        neighbor *ne;
+        fluid_particle_t *p, *q, *q_neighbor;
+        neighbor_t *ne;
         double r;
         unsigned int index, neighbor_index;
 

@@ -8,7 +8,7 @@
 #include "fluid.h"
 
 // Write boundary in MPI
-void writeMPI(fluid_particle *particles, int fileNum, param *params)
+void writeMPI(fluid_particle_t *particles, int fileNum, param_t *params)
 {
     MPI_File file;
     MPI_Status status;
@@ -60,13 +60,13 @@ void writeMPI(fluid_particle *particles, int fileNum, param *params)
 }
 
 // Write fluid particle data to file
-void writeFile(fluid_particle *particles, int fileNum, param *params)
+void writeFile(fluid_particle_t *particles, int fileNum, param_t *params)
 {
-    fluid_particle *p;
+    fluid_particle_t *p;
     FILE *fp ;
     int i;
     char name[64];
-    sprintf(name, "//lustre/atlas/scratch/atj/stf007/sim-%d.csv", fileNum);
+    sprintf(name, "/lustre/atlas/scratch/atj/stf007/sim-%d.csv", fileNum);
     fp = fopen ( name,"w" );
     if (!fp) {
         printf("ERROR: error opening file\n");

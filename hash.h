@@ -1,21 +1,19 @@
 #ifndef fluid_hash_h
 #define fluid_hash_h
 
+typedef struct BUCKET bucket_t;
+
 #include <stdbool.h>
-
-typedef struct N_BUCKET n_bucket;
-
 #include "fluid.h"
 
-struct N_BUCKET {
-    fluid_particle *fluid_particles[201];
+struct BUCKET {
+    fluid_particle_t *fluid_particles[201];
     unsigned int number_fluid;
     bool hashed;
 }; // neighbor 'bucket' for hash value
 
-unsigned int hash_val(double x, double y, double z, param *params);
-//unsigned int hash_val(double x, double y, double z, double h, int hash_size);
-void hash_fluid(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket * hash, param *params);
-void hash_halo(fluid_particle *fluid_particles, neighbor *neighbors, n_bucket *hash, param *params);
+unsigned int hash_val(double x, double y, double z, param_t *params);
+void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params);
+void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params);
 
 #endif
