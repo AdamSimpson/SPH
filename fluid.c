@@ -29,28 +29,28 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 100;
+    params.number_steps = 500;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.2;
-    params.number_fluid_particles_global = 1000;
-    params.rest_density = 5000.0; // water: kg/m^3
+    params.number_fluid_particles_global = 5000;
+    params.rest_density = 0.1; // water: kg/m^3
 
     // Boundary box
     boundary_global.min_x = 0.0;
-    boundary_global.max_x = 1.0;
+    boundary_global.max_x = 100.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 1.0;
+    boundary_global.max_y = 40.0;
     boundary_global.min_z = 0.0;
-    boundary_global.max_z = 1.0;
+    boundary_global.max_z = 30.0;
 
     // water volume
-    water_volume_global.min_x = 0.1;
-    water_volume_global.max_x = 0.5;
-    water_volume_global.min_y = 0.1;
-    water_volume_global.max_y = 0.5;
-    water_volume_global.min_z = 0.1;
-    water_volume_global.max_z = 0.5;
+    water_volume_global.min_x = 10.0;
+    water_volume_global.max_x = boundary_global.max_x - 10.0;
+    water_volume_global.min_y = 15.0;
+    water_volume_global.max_y = boundary_global.max_y - 15.0;
+    water_volume_global.min_z = 5.0;
+    water_volume_global.max_z = boundary_global.max_z - 5.0;
 
     // Cubed volume
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
