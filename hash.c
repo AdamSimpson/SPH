@@ -70,13 +70,13 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
                           // Make sure not to add duplicate neighbors
                           duped = false;
                           for (dupes=0; dupes < ne->number_fluid_neighbors; dupes++) {
-                                if (ne->fluid_neighbors[dupes] == h_p) {
+                                if (ne->neighbor_indices[dupes] == i) {
                                     duped = true;
                                     break;
                                 }
                             }
                             if (!duped && ne->number_fluid_neighbors < 200) {
-                                ne->fluid_neighbors[ne->number_fluid_neighbors] = h_p;
+                                ne->neighbor_indices[ne->number_fluid_neighbors] = i;
                                 ne->number_fluid_neighbors++;
                             }
 
@@ -164,7 +164,7 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                                 if(r > h)
                                     continue;
 
-                                ne->fluid_neighbors[ne->number_fluid_neighbors++] = q_neighbor;
+                                ne->neighbor_indices[ne->number_fluid_neighbors++] = q_neighbor->id;
 		                        }
                        }
 
@@ -180,7 +180,7 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
 	        for(n=c+1; n<hash[index].number_fluid; n++) {
 		          q = hash[index].fluid_particles[n];
 		          // Append q to p's neighbor list
-		          ne->fluid_neighbors[ne->number_fluid_neighbors++] = q;
+		          ne->neighbor_indices[ne->number_fluid_neighbors++] = q->id;
 		      }
       }
 
