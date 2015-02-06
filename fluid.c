@@ -465,7 +465,7 @@ void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_globa
         fluid_particles[i].z_star = fluid_particles[i].z + (fluid_particles[i].v_z * dt);
 
         // Enforce boundary conditions
-        boundary_conditions(fluid_particles, i, boundary_global);
+//        boundary_conditions(fluid_particles, i, boundary_global);
     }
 }
 

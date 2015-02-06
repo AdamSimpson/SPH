@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-// Uniform grid hash, this prevents having to check duplicates when inserting
-// Fabs needed as neighbor search can go out of bounds
+// Uniform grid hash
+// fabs used as when testing neighbor points there is no out of bounds checking 
 unsigned int hash_val(double x, double y, double z, param_t *params)
 {
     const double spacing = params->smoothing_radius;
@@ -14,9 +14,6 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
     grid_x = floor(fabs(x)/spacing);
     grid_y = floor(fabs(y)/spacing);
     grid_z = floor(fabs(z)/spacing);
-
-//    if(x < 0.0 || y < 0.0 || z < 0.0)
-//        printf("%f, %f, %f \n",x,y,z);
 
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;
@@ -49,17 +46,19 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
         for (dx=-1; dx<=1; dx++) {
-            x = h_p->x + dx*spacing;
+            x = h_p->x_star + dx*spacing;
             for (dy=-1; dy<=1; dy++) {
-                y = h_p->y + dy*spacing;
+                y = h_p->y_star + dy*spacing;
                 for (dz=-1; dz<=1; dz++) {
-                    z = h_p->z + dz*spacing;
+                    z = h_p->z_star + dz*spacing;
                     // Calculate hash index at neighbor point
                     index = hash_val(x,y,z,params);
                       // Go through each fluid particle in neighbor point bucket
                       for (n=0;n<hash[index].number_fluid;n++) {
                           q = hash[index].fluid_particles[n];
-                          r = sqrt((h_p->x-q->x)*(h_p->x-q->x) + (h_p->y-q->y)*(h_p->y-q->y) + (h_p->z-q->z)*(h_p->z-q->z));
+                          r = sqrt((h_p->x_star-q->x_star)*(h_p->x_star-q->x_star)
+                                 + (h_p->y_star-q->y_star)*(h_p->y_star-q->y_star)
+                                 + (h_p->z_star-q->z_star)*(h_p->z_star-q->z_star));
                           if(r > h)
                               continue;
 
@@ -114,7 +113,7 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
 
             neighbors[i].number_fluid_neighbors = 0;
 
-            index = hash_val(p->x,p->y,p->z,params);
+            index = hash_val(p->x_star, p->y_star, p->z_star, params);
 
             if (hash[index].number_fluid < 200) {
                 hash[index].fluid_particles[hash[index].number_fluid] = p;
@@ -127,9 +126,9 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
         for (i=0; i<n_f; i++) {
            // Calculate hash index of bucket
            p = &fluid_particles[i];
-           px = p->x;
-           py = p->y;
-           pz = p->z;
+           px = p->x_star;
+           py = p->y_star;
+           pz = p->z_star;
 
            index = hash_val(px,py,pz,params);
 
@@ -157,7 +156,9 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
 		   	                        q_neighbor = hash[neighbor_index].fluid_particles[n];
                                  if(q->id == q_neighbor->id)
                                      continue;
-                                r = sqrt((q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y) + (q_neighbor->z-q->z)*(q_neighbor->z-q->z));
+                                r = sqrt((q_neighbor->x_star-q->x_star)*(q_neighbor->x_star-q->x_star)
+                                       + (q_neighbor->y_star-q->y_star)*(q_neighbor->y_star-q->y_star)
+                                       + (q_neighbor->z_star-q->z_star)*(q_neighbor->z_star-q->z_star));
                                 if(r > h)
                                     continue;
 
