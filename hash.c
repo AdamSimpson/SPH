@@ -47,14 +47,13 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
     for(i=n_s; i<n_f; i++)
     {
         h_p = &fluid_particles[i];
-        printf("rank %d: halo[%d]=%f\n", params->rank, i, h_p->x);
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
-        for (dx=-1; dx<=0; dx++) {
+        for (dx=-1; dx<=1; dx++) {
             x = h_p->x + dx*spacing;
-            for (dy=-1; dy<=(dx?1:0); dy++) {
+            for (dy=-1; dy<=1; dy++) {
                 y = h_p->y + dy*spacing;
-                for (dz=-1; dz<=((dx|dy)?1:0); dz++) {
+                for (dz=-1; dz<=1; dz++) {
                     z = h_p->z + dz*spacing;
                     // Calculate hash index at neighbor point
                     index = hash_val(x,y,z,params);
@@ -142,11 +141,11 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
 
             // Check neighbors of current bucket
             // This only checks "forward" neighbors
-            for (dx=0; dx<=1; dx++) {
+            for (dx=-1; dx<=1; dx++) {
                 x = px + dx*spacing;
-                for (dy=(dx?-1:0); dy<=1; dy++) {
+                for (dy=-1; dy<=1; dy++) {
                     y = py + dy*spacing;
-                    for (dz=((dx|dy)?-1:1); dz<=1; dz++) {
+                    for (dz=-1; dz<=1; dz++) {
                         z = pz + dz*spacing;
                         // Calculate hash index at neighbor point
                         neighbor_index = hash_val(x,y,z,params);
@@ -171,18 +170,6 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                    } // end dz
                 } // end dy
              }  // end dx
-
-	    // Process current buckets own particle interactions
-	    // This will only add one neighbor entry per force-pair
-	    for(c=0; c<hash[index].number_fluid; c++) {
-          p = hash[index].fluid_particles[c];
-          ne = &neighbors[p->id];
-	        for(n=c+1; n<hash[index].number_fluid; n++) {
-		          q = hash[index].fluid_particles[n];
-		          // Append q to p's neighbor list
-		          ne->neighbor_indices[ne->number_fluid_neighbors++] = q->id;
-		      }
-      }
 
 	    // This bucket has been hashed and does not need hashed again
 	    hash[index].hashed = true;

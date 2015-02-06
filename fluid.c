@@ -29,12 +29,12 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 500;
+    params.number_steps = 50;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.2;
     params.number_fluid_particles_global = 5000;
-    params.rest_density = 0.1; // water: kg/m^3
+    params.rest_density = 0.1;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -60,6 +60,8 @@ int main(int argc, char *argv[])
 
     // Smoothing radius, h
     params.smoothing_radius = 2.0*params.spacing_particle;
+
+    params.dq = 0.3*params.smoothing_radius;
 
     printf("smoothing radius: %f\n", params.smoothing_radius);
 
@@ -305,7 +307,7 @@ void apply_gravity(fluid_particle_t *fluid_particles, param_t *params)
     float g = -params->g;
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
-        fluid_particles[i].v_y +=g*dt;
+        fluid_particles[i].v_y += g*dt;
     }
 }
 
@@ -427,6 +429,7 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
         fluid_particles[i].dp_x = dp_x/params->rest_density;
         fluid_particles[i].dp_y = dp_y/params->rest_density;
         fluid_particles[i].dp_z = dp_z/params->rest_density;
+
     }
 }
 
@@ -549,14 +552,5 @@ void initParticles(fluid_particle_t *fluid_particles,
         fluid_particles[i].v_x = 0.0;
         fluid_particles[i].v_y = 0.0;
         fluid_particles[i].v_z = 0.0;
-        fluid_particles[i].density = params->rest_density;
     }
-
-    // Send halo particles
-    startHaloExchange(fluid_particles, edges, params);
-
-    //Generate neighbor hash
-    hash_fluid(fluid_particles, neighbors, hash, params);
-    finishHaloExchange(fluid_particles, edges, params);
-    hash_halo(fluid_particles, neighbors, hash, params);
 }
