@@ -29,12 +29,12 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 50;
+    params.number_steps = 500;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.2;
     params.number_fluid_particles_global = 5000;
-    params.rest_density = 0.1;
+    params.rest_density = 0.25;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -319,7 +319,6 @@ void update_dp_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_glo
         fluid_particles[i].x_star += fluid_particles[i].dp_x;
         fluid_particles[i].y_star += fluid_particles[i].dp_y;
         fluid_particles[i].z_star += fluid_particles[i].dp_z;
-
         // Enforce boundary conditions
         boundary_conditions(fluid_particles, i, boundary_global);
     }

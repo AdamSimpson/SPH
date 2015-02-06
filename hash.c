@@ -33,7 +33,6 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
 // it is a waste to check as we hash as well
 void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params)
 {
-    printf("rank %d starting hash halo\n", params->rank);
     int index,i,dx,dy,dz,dupes,n;
     double x,y,z,r;
     bool duped;
@@ -84,7 +83,6 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
             }
         }
     }
-    printf("rank %d finished hash halo\n", params->rank);
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -140,7 +138,6 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                continue;
 
             // Check neighbors of current bucket
-            // This only checks "forward" neighbors
             for (dx=-1; dx<=1; dx++) {
                 x = px + dx*spacing;
                 for (dy=-1; dy<=1; dy++) {
@@ -150,15 +147,16 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                         // Calculate hash index at neighbor point
                         neighbor_index = hash_val(x,y,z,params);
 
-                        // Add neighbor particles to particles in current bucket
+                        // Add neighbor particles to each particle in current bucket
                         for (c=0; c<hash[index].number_fluid; c++) {
-			                      // Particle in currently being worked on buccket
+			                      // Particle in currently being worked on bucket
                             q = hash[index].fluid_particles[c];
                             ne = &neighbors[q->id];
 			                      for(n=0; n<hash[neighbor_index].number_fluid; n++){
                                 // Append neighbor to q's neighbor list
 		   	                        q_neighbor = hash[neighbor_index].fluid_particles[n];
-
+                                 if(q->id == q_neighbor->id)
+                                     continue;
                                 r = sqrt((q_neighbor->x-q->x)*(q_neighbor->x-q->x) + (q_neighbor->y-q->y)*(q_neighbor->y-q->y) + (q_neighbor->z-q->z)*(q_neighbor->z-q->z));
                                 if(r > h)
                                     continue;
@@ -175,7 +173,5 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
 	    hash[index].hashed = true;
 
       } // end main particle loop
-
-      printf("Hashed Fluid\n");
 
 }// end function
