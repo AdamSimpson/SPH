@@ -5,7 +5,7 @@
 #include <string.h>
 
 // Uniform grid hash
-// fabs used as when testing neighbor points there is no out of bounds checking 
+// fabs used as when testing neighbor points there is no out of bounds checking
 unsigned int hash_val(double x, double y, double z, param_t *params)
 {
     const double spacing = params->smoothing_radius;

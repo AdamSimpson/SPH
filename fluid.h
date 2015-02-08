@@ -72,6 +72,7 @@ struct PARAM {
 float W(float r, float h);
 float del_W(float r, float h);
 void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params);
+void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params);
 void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t *params);
 void apply_gravity(fluid_particle_t *fluid_particles, param_t *params);
 void update_dp_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_global, param_t *params);
@@ -84,7 +85,7 @@ void check_velocity(float *v_x, float *v_y, float *v_z);
 void update_velocities(fluid_particle_t *fluid_particles, param_t *params);
 void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB_t *boudnary);
 void initParticles(fluid_particle_t *fluid_particles,
-                neighbor_t *neighbors, bucket_t *hash, AABB_t* water,
+                neighbor_t *neighbors, bucket_t *hash, AABB_t* water, AABB_t* boundary_global,
                 int start_x, int number_particles_x, edge_t *edges, param_t* params);
 
 

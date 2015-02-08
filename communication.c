@@ -57,9 +57,9 @@ void startHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         p = &fluid_particles[i];
-        if (p->x - params->node_start_x <= h)
+        if (p->x_star - params->node_start_x <= h)
             edges->edge_indices_left[edges->number_edge_particles_left++] = i;
-        else if (params->node_end_x - p->x <= h)
+        else if (params->node_end_x - p->x_star <= h)
             edges->edge_indices_right[edges->number_edge_particles_right++] = i;
     }
 
@@ -157,13 +157,13 @@ void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bound
 
         // Set OOB particle indices and update number
         // remove particle from end of array to fill vacancy
-        if (p->x < params->node_start_x && params->rank != 0) {
+        if (p->x_star < params->node_start_x && params->rank != 0) {
             sendl_buffer[i_left++] = *p;
             fluid_particles[i] = fluid_particles[params->number_fluid_particles_local-1];
             fluid_particles[i].id = i;
             params->number_fluid_particles_local--;
         }
-        else if (p->x > params->node_end_x && params->rank != params->nprocs-1) {
+        else if (p->x_star > params->node_end_x && params->rank != params->nprocs-1) {
             sendr_buffer[i_right++] = *p;
             fluid_particles[i] = fluid_particles[params->number_fluid_particles_local-1];
             fluid_particles[i].id = i;

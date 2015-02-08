@@ -34,13 +34,13 @@ int main(int argc, char *argv[])
     params.c = 0.01;
     params.k = 0.2;
     params.number_fluid_particles_global = 5000;
-    params.rest_density = 0.25;
+    params.rest_density = 0.1;
 
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 100.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 40.0;
+    boundary_global.max_y = 80.0;
     boundary_global.min_z = 0.0;
     boundary_global.max_z = 30.0;
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     // Allocate fluid particles array
     bytes = params.max_fluid_particles_local * sizeof(fluid_particle_t);
     total_bytes+=bytes;
-    fluid_particle_t *fluid_particles = malloc(bytes);
+    fluid_particle_t *fluid_particles = calloc(params.max_fluid_particles_local, sizeof(fluid_particle_t));
     if(fluid_particles == NULL)
         printf("Could not allocate fluid_particles\n");
 
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     printf("gigabytes allocated: %lld\n", total_bytes/1073741824);
 
     // Initialize particles
-    initParticles(fluid_particles, neighbors, hash, &water_volume_global, start_x, number_particles_x, &edges, &params);
+    initParticles(fluid_particles, neighbors, hash, &water_volume_global, &boundary_global, start_x, number_particles_x, &edges, &params);
 
     // Print some parameters
     printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
@@ -168,6 +168,8 @@ int main(int argc, char *argv[])
 
         update_velocities(fluid_particles, &params);
 
+        vorticity_confinement(fluid_particles, neighbors, &params);
+
         XSPH_viscosity(fluid_particles, neighbors, &params);
 
         update_positions(fluid_particles, &params);
@@ -221,6 +223,75 @@ float del_W(float r, float h)
 ////////////////////////////////////////////////////////////////////////////
 // Particle attribute computations
 ////////////////////////////////////////////////////////////////////////////
+
+void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params)
+{
+    int i,j;
+    fluid_particle_t *p, *q;
+    neighbor_t *n;
+    float epsilon = 20.01f;
+    float dt = params->time_step;
+    float x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff,
+          r_mag, dw, dw_x, dw_y, dw_z, part_vort_x, part_vort_y, part_vort_z,
+          vort_x, vort_y, vort_z, eta_x, eta_y, eta_z, eta_mag, N_x, N_y, N_z;
+
+    for(i=0; i<params->number_fluid_particles_local; i++)
+    {
+        p = &fluid_particles[i];
+        n = &neighbors[i];
+        vort_x = 0.0;
+        vort_y = 0.0;
+        vort_z = 0.0;
+        eta_x  = 0.0;
+        eta_y  = 0.0;
+        eta_z  = 0.0;
+
+        for(j=0; j<n->number_fluid_neighbors; j++)
+        {
+            q = &fluid_particles[n->neighbor_indices[j]];
+
+            x_diff = p->x_star - q->x_star;
+            y_diff = p->y_star - q->y_star;
+            z_diff = p->z_star - q->z_star;
+
+            vx_diff = q->v_x - p->v_x;
+            vy_diff = q->v_y - p->v_y;
+            vz_diff = q->v_z - p->v_z;
+
+            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
+
+            dw = del_W(r_mag, params->smoothing_radius);
+            dw_x = dw*x_diff;
+            dw_y = dw*y_diff;
+            dw_z = dw*z_diff;
+
+            part_vort_x =  vy_diff*dw_z - vz_diff*dw_y;
+            part_vort_y =  vz_diff*dw_x - vx_diff*dw_z;
+            part_vort_z =  vx_diff*dw_y - vy_diff*dw_x;
+
+            vort_x += part_vort_x;
+            vort_y += part_vort_y;
+            vort_z += part_vort_z;
+
+            if(x_diff<0.0000001 || y_diff<0.0000001 || z_diff<0.0000001)
+                continue;
+
+            eta_x += abs(part_vort_x)/x_diff;
+            eta_y += abs(part_vort_y)/y_diff;
+            eta_z += abs(part_vort_z)/z_diff;
+        }
+        eta_mag = sqrt(eta_x*eta_x + eta_y*eta_y + eta_z*eta_z);
+        if(eta_mag<0.0000001)
+            continue;
+
+        N_x = eta_x / eta_mag;
+        N_y = eta_y / eta_mag;
+        N_z = eta_z / eta_mag;
+        p->v_x += epsilon*dt * ( N_y*vort_z - N_z*vort_y);
+        p->v_y += epsilon*dt * ( N_z*vort_x - N_x*vort_z);
+        p->v_z += epsilon*dt * ( N_x*vort_y - N_y*vort_x);
+    }
+}
 
 void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params)
 {
@@ -443,9 +514,9 @@ void identify_oob_particles(fluid_particle_t *fluid_particles, oob_t *out_of_bou
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         // Set OOB particle indices and update number
-        if (fluid_particles[i].x < params->node_start_x)
+        if (fluid_particles[i].x_star < params->node_start_x)
             out_of_bounds->oob_indices_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (fluid_particles[i].x > params->node_end_x)
+        else if (fluid_particles[i].x_star > params->node_end_x)
             out_of_bounds->oob_indices_right[out_of_bounds->number_oob_particles_right++] = i;
     }
 
@@ -538,7 +609,7 @@ void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB
 
 // Initialize particles
 void initParticles(fluid_particle_t *fluid_particles,
-                neighbor_t *neighbors, bucket_t *hash, AABB_t* water,
+                neighbor_t *neighbors, bucket_t *hash, AABB_t* water, AABB_t* boundary_global,
                 int start_x, int number_particles_x, edge_t *edges, param_t* params)
 {
     int i;
@@ -548,8 +619,13 @@ void initParticles(fluid_particle_t *fluid_particles,
 
     // Initialize particle values
     for(i=0; i<params->number_fluid_particles_local; i++) {
+        fluid_particles[i].x_star = fluid_particles[i].x;
+        fluid_particles[i].y_star = fluid_particles[i].y;
+        fluid_particles[i].z_star = fluid_particles[i].z;
         fluid_particles[i].v_x = 0.0;
         fluid_particles[i].v_y = 0.0;
         fluid_particles[i].v_z = 0.0;
+        fluid_particles[i].lambda = 0.1;
+        fluid_particles[i].density = params->rest_density;
     }
 }
