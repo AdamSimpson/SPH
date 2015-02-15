@@ -33,8 +33,7 @@ int main(int argc, char *argv[])
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.2;
-    params.number_fluid_particles_global = 5000;
-    params.rest_density = 0.1;
+    params.number_fluid_particles_global = 65536;
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -57,6 +56,10 @@ int main(int argc, char *argv[])
 
     // Initial spacing between particles
     params.spacing_particle = pow(volume/params.number_fluid_particles_global,1.0/3.0);
+
+    // Assume mass of each particle is 1
+    params.rest_density = params.number_fluid_particles_global/volume;
+    printf("rest density: %f\n", params.rest_density);
 
     // Smoothing radius, h
     params.smoothing_radius = 2.0*params.spacing_particle;
@@ -168,9 +171,9 @@ int main(int argc, char *argv[])
 
         update_velocities(fluid_particles, &params);
 
-        vorticity_confinement(fluid_particles, neighbors, &params);
-
         XSPH_viscosity(fluid_particles, neighbors, &params);
+
+        vorticity_confinement(fluid_particles, neighbors, &params);
 
         update_positions(fluid_particles, &params);
 
@@ -418,13 +421,18 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
 
         float Ci = fluid_particles[i].density/params->rest_density - 1.0f;
 
-        float sum_C, x_diff, y_diff, z_diff, r_mag, grad, grad_x, grad_y, grad_z;
+        float sum_C, x_diff, y_diff, z_diff, r_mag,
+              grad, grad_x, grad_y, grad_z,
+              sum_grad_x, sum_grad_y, sum_grad_z;
 
         sum_C = 0.0f;
         grad_x = 0.0f;
         grad_y = 0.0f;
         grad_z = 0.0f;
-        // Add k = i contribution
+        sum_grad_x = 0.0f;
+        sum_grad_y = 0.0f;
+        sum_grad_z = 0.0f;
+
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
             q_index = n->neighbor_indices[j];
@@ -434,27 +442,20 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
             grad = del_W(r_mag, params->smoothing_radius);
-            grad_x += grad*x_diff;
-            grad_y += grad*y_diff;
-            grad_z += grad*z_diff;
-           }
-           sum_C += grad_x*grad_x + grad_y*grad_y + grad_z*grad_z;
-
-        // Add k =j contribution
-        for(j=0; j<n->number_fluid_neighbors; j++)
-        {
-            q_index = n->neighbor_indices[j];
-            x_diff = fluid_particles[i].x_star - fluid_particles[q_index].x_star;
-            y_diff = fluid_particles[i].y_star - fluid_particles[q_index].y_star;
-            z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
-
-            r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            grad = del_W(r_mag, params->smoothing_radius);
-            grad_x = grad*x_diff ;
+            grad_x = grad*x_diff;
             grad_y = grad*y_diff;
             grad_z = grad*z_diff;
+            sum_grad_x += grad_x;
+            sum_grad_y += grad_y;
+            sum_grad_z += grad_z;
+            // Add k = j contribution
             sum_C += (grad_x*grad_x + grad_y*grad_y + grad_z*grad_z);
         }
+
+        // k = i contribution
+        sum_C += sum_grad_x*sum_grad_x
+              + sum_grad_y*sum_grad_y
+              + sum_grad_z*sum_grad_z;
 
         sum_C *= (1.0f/(params->rest_density*params->rest_density));
 
