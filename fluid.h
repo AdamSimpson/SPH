@@ -19,20 +19,20 @@ typedef struct PARAM param_t;
 ////////////////////////////////////////////////
 
 struct FLUID_PARTICLE {
-    float x_star;
-    float y_star;
-    float z_star;
-    float x;
-    float y;
-    float z;
-    float v_x;
-    float v_y;
-    float v_z;
-    float dp_x;
-    float dp_y;
-    float dp_z;
-    float density;
-    float lambda;
+    double x_star;
+    double y_star;
+    double z_star;
+    double x;
+    double y;
+    double z;
+    double v_x;
+    double v_y;
+    double v_z;
+    double dp_x;
+    double dp_y;
+    double dp_z;
+    double density;
+    double lambda;
     int id; // Id is 'local' index within the fluid particle pointer array
 };
 
@@ -69,8 +69,8 @@ struct PARAM {
 ////////////////////////////////////////////////
 // Function prototypes
 ////////////////////////////////////////////////
-float W(float r, float h);
-float del_W(float r, float h);
+double W(double r, double h);
+double del_W(double r, double h);
 void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params);
 void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighbors, param_t *params);
 void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t *params);
@@ -81,7 +81,7 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbor_gr
 void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbor_grid, param_t *params);
 void identify_oob_particles(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params);
 void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_global, param_t *params);
-void check_velocity(float *v_x, float *v_y, float *v_z);
+void check_velocity(double *v_x, double *v_y, double *v_z);
 void update_velocities(fluid_particle_t *fluid_particles, param_t *params);
 void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB_t *boudnary);
 void initParticles(fluid_particle_t *fluid_particles,

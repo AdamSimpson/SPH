@@ -90,6 +90,7 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
 // it is a waste to check as we hash as well
 void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t * hash, param_t *params)
 {
+        printf("Hash fluid\n");
         int i,dx,dy,dz,n,c;
         bool duped;
         double x,y,z, px,py,pz;
@@ -161,7 +162,8 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                                        + (q_neighbor->z_star-q->z_star)*(q_neighbor->z_star-q->z_star));
                                 if(r > h)
                                     continue;
-
+                                if(ne->number_fluid_neighbors > 190)
+                                  printf("too many neighbors: %f, %f, %f\n", fluid_particles[i].x_star,fluid_particles[i].y_star,fluid_particles[i].z_star);
                                 ne->neighbor_indices[ne->number_fluid_neighbors++] = q_neighbor->id;
 		                        }
                        }

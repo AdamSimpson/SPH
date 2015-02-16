@@ -32,8 +32,28 @@ int main(int argc, char *argv[])
     params.number_steps = 500;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
-    params.k = 0.2;
-    params.number_fluid_particles_global = 65536;
+    params.k = 0.1;
+    params.number_fluid_particles_global = 65536*2;
+
+/*
+    // Density ~ 1000
+    
+    // Boundary box
+    boundary_global.min_x = 0.0;
+    boundary_global.max_x = 10.0;
+    boundary_global.min_y = 0.0;
+    boundary_global.max_y = 10.0;
+    boundary_global.min_z = 0.0;
+    boundary_global.max_z = 10.0;
+
+    // water volume
+    water_volume_global.min_x = 2.0;
+    water_volume_global.max_x = 7.0;
+    water_volume_global.min_y = 0.5;
+    water_volume_global.max_y = 5.5;
+    water_volume_global.min_z = 2.0;
+    water_volume_global.max_z = 7.0;
+*/
 
     // Boundary box
     boundary_global.min_x = 0.0;
@@ -57,7 +77,7 @@ int main(int argc, char *argv[])
     // Initial spacing between particles
     params.spacing_particle = pow(volume/params.number_fluid_particles_global,1.0/3.0);
 
-    // Assume mass of each particle is 1
+    // Let mass of each particle equal 1
     params.rest_density = params.number_fluid_particles_global/volume;
     printf("rest density: %f\n", params.rest_density);
 
@@ -205,21 +225,24 @@ int main(int argc, char *argv[])
 ///////////////////////////////////////////////////////////////////////////
 
 // (h^2 - r^2)^3 normalized in 3D (poly6)
-float W(float r, float h)
+double W(double r, double h)
 {
     if(r > h)
         return 0.0f;
 
-    double C = 315.0/(64.0*M_PI*pow((double)h,9.0));
-    float W = C*pow((double)(h*h-r*r), 3.0);
+    double C = 315.0/(64.0*M_PI*pow(h, 9.0));
+    double W = C*pow((h*h-r*r), 3.0);
     return W;
 }
 
 // Gradient (h-r)^3 normalized in 3D (Spikey)
-float del_W(float r, float h)
+double del_W(double r, double h)
 {
-    float C = -45.0/(M_PI * pow((double)h, 6.0));
-    float del_W = C*(h-r)*(h-r);
+    if(r > h)
+        return 0.0f;
+
+    double C = -45.0/(M_PI * pow(h, 6.0));
+    double del_W = C*(h-r)*(h-r);
     return del_W;
 }
 
@@ -232,9 +255,8 @@ void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighb
     int i,j;
     fluid_particle_t *p, *q;
     neighbor_t *n;
-    float epsilon = 20.01f;
-    float dt = params->time_step;
-    float x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff,
+    double dt = params->time_step;
+    double x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff,
           r_mag, dw, dw_x, dw_y, dw_z, part_vort_x, part_vort_y, part_vort_z,
           vort_x, vort_y, vort_z, eta_x, eta_y, eta_z, eta_mag, N_x, N_y, N_z;
 
@@ -290,9 +312,9 @@ void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighb
         N_x = eta_x / eta_mag;
         N_y = eta_y / eta_mag;
         N_z = eta_z / eta_mag;
-        p->v_x += epsilon*dt * ( N_y*vort_z - N_z*vort_y);
-        p->v_y += epsilon*dt * ( N_z*vort_x - N_x*vort_z);
-        p->v_z += epsilon*dt * ( N_x*vort_y - N_y*vort_x);
+        p->v_x += dt * ( N_y*vort_z - N_z*vort_y);
+        p->v_y += dt * ( N_z*vort_x - N_x*vort_z);
+        p->v_z += dt * ( N_x*vort_y - N_y*vort_x);
     }
 }
 
@@ -301,17 +323,18 @@ void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, pa
     int i,j;
     unsigned int q_index;
     neighbor_t *n;
-    float c = params->c;
+    double c = params->c;
+    double h = params->smoothing_radius;
 
-    float x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff, r_mag, w;
+    double x_diff, y_diff, z_diff, vx_diff, vy_diff, vz_diff, r_mag, w;
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         n = &neighbors[i];
 
-        float partial_sum_x = 0.0f;
-        float partial_sum_y = 0.0f;
-        float partial_sum_z = 0.0f;
+        double partial_sum_x = 0.0;
+        double partial_sum_y = 0.0;
+        double partial_sum_z = 0.0;
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
             q_index = n->neighbor_indices[j];
@@ -324,11 +347,16 @@ void XSPH_viscosity(fluid_particle_t *fluid_particles, neighbor_t* neighbors, pa
             vz_diff = fluid_particles[q_index].v_z - fluid_particles[i].v_z;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff * z_diff*z_diff);
-            w = W(r_mag, params->smoothing_radius);
-            partial_sum_x += vx_diff * w;
-            partial_sum_y += vy_diff * w;
-            partial_sum_z += vz_diff * w;
+
+            w = W(r_mag, h);
+
+            // http://mmacklin.com/pbf_sig_preprint.pdf is missing 1/sigma contribution
+            // see: http://www.cs.ubc.ca/~rbridson/docs/schechter-siggraph2012-ghostsph.pdf
+            partial_sum_x += vx_diff * w / fluid_particles[q_index].density;
+            partial_sum_y += vy_diff * w / fluid_particles[q_index].density;
+            partial_sum_z += vz_diff * w / fluid_particles[q_index].density;
         }
+
         partial_sum_x *= c;
         partial_sum_y *= c;
         partial_sum_z *= c;
@@ -344,17 +372,17 @@ void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors,
     int i,j;
     unsigned int q_index;
     neighbor_t *n;
-    float h = params->smoothing_radius;
+    double h = params->smoothing_radius;
 
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         n = &neighbors[i];
 
-        float x_diff, y_diff, z_diff, r_mag, density;
-        density = 0.0f;
+        double x_diff, y_diff, z_diff, r_mag, density;
+        density = 0.0;
 
         // Own contribution to density
-        density += W(0.0f, h);
+        density += W(0.0, h);
 
         // Neighbor contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
@@ -377,8 +405,8 @@ void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors,
 void apply_gravity(fluid_particle_t *fluid_particles, param_t *params)
 {
     int i;
-    float dt = params->time_step;
-    float g = -params->g;
+    double dt = params->time_step;
+    double g = -params->g;
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
         fluid_particles[i].v_y += g*dt;
@@ -390,11 +418,14 @@ void update_dp_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_glo
     int i;
 
     for(i=0; i<(params->number_fluid_particles_local); i++) {
+
         fluid_particles[i].x_star += fluid_particles[i].dp_x;
         fluid_particles[i].y_star += fluid_particles[i].dp_y;
         fluid_particles[i].z_star += fluid_particles[i].dp_z;
+
         // Enforce boundary conditions
         boundary_conditions(fluid_particles, i, boundary_global);
+
     }
 }
 
@@ -419,19 +450,19 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
     {
         n = &neighbors[i];
 
-        float Ci = fluid_particles[i].density/params->rest_density - 1.0f;
+        double Ci = fluid_particles[i].density/params->rest_density - 1.0;
 
-        float sum_C, x_diff, y_diff, z_diff, r_mag,
+        double sum_C, x_diff, y_diff, z_diff, r_mag,
               grad, grad_x, grad_y, grad_z,
               sum_grad_x, sum_grad_y, sum_grad_z;
 
-        sum_C = 0.0f;
-        grad_x = 0.0f;
-        grad_y = 0.0f;
-        grad_z = 0.0f;
-        sum_grad_x = 0.0f;
-        sum_grad_y = 0.0f;
-        sum_grad_z = 0.0f;
+        sum_C = 0.0;
+        grad_x = 0.0;
+        grad_y = 0.0;
+        grad_z = 0.0;
+        sum_grad_x = 0.0;
+        sum_grad_y = 0.0;
+        sum_grad_z = 0.0;
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
@@ -441,6 +472,7 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
+
             grad = del_W(r_mag, params->smoothing_radius);
             grad_x = grad*x_diff;
             grad_y = grad*y_diff;
@@ -457,31 +489,33 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
               + sum_grad_y*sum_grad_y
               + sum_grad_z*sum_grad_z;
 
-        sum_C *= (1.0f/(params->rest_density*params->rest_density));
+        sum_C *= (1.0/(params->rest_density*params->rest_density));
 
-        float epsilon = 1.0f;
+        double epsilon = 5.0;
         fluid_particles[i].lambda = -Ci/(sum_C + epsilon);
     }
+
 }
 
 void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t *params)
 {
     unsigned int q_index;
     neighbor_t *n;
-    float x_diff, y_diff, z_diff, dp, r_mag;
+    double x_diff, y_diff, z_diff, dp, r_mag;
+    double h = params->smoothing_radius;
 
     int i,j;
     for(i=0; i<params->number_fluid_particles_local; i++)
     {
         n = &neighbors[i];
 
-        float dp_x = 0.0f;
-        float dp_y = 0.0f;
-        float dp_z = 0.0f;
-        float s_corr;
-        float k = params->k;
-        float dq = params->dq;
-        float Wdq = W(dq, params->smoothing_radius);
+        double dp_x = 0.0;
+        double dp_y = 0.0;
+        double dp_z = 0.0;
+        double s_corr;
+        double k = params->k;
+        double dq = params->dq;
+        double Wdq = W(dq, h);
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
@@ -491,8 +525,8 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            s_corr = -k*(powf(W(r_mag, params->smoothing_radius)/Wdq, 4.0f));
-            dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, params->smoothing_radius);
+            s_corr = -k*(powf(W(r_mag, h)/Wdq, 4.0));
+            dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
             dp_x += dp*x_diff;
             dp_y += dp*y_diff;
             dp_z += dp*z_diff;
@@ -500,7 +534,6 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
         fluid_particles[i].dp_x = dp_x/params->rest_density;
         fluid_particles[i].dp_y = dp_y/params->rest_density;
         fluid_particles[i].dp_z = dp_z/params->rest_density;
-
     }
 }
 
@@ -529,21 +562,22 @@ void identify_oob_particles(fluid_particle_t *fluid_particles, oob_t *out_of_bou
 void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_global, param_t *params)
 {
     int i;
-    float dt = params->time_step;
+    double dt = params->time_step;
 
     for(i=0; i<params->number_fluid_particles_local; i++) {
         fluid_particles[i].x_star = fluid_particles[i].x + (fluid_particles[i].v_x * dt);
         fluid_particles[i].y_star = fluid_particles[i].y + (fluid_particles[i].v_y * dt);
         fluid_particles[i].z_star = fluid_particles[i].z + (fluid_particles[i].v_z * dt);
 
-        // Enforce boundary conditions
+        // Enforce boundary conditions before hash
+        // Otherwise predicted position can blow up hash
 //        boundary_conditions(fluid_particles, i, boundary_global);
     }
 }
 
-void check_velocity(float *v_x, float *v_y, float *v_z)
+void check_velocity(double *v_x, double *v_y, double *v_z)
 {
-    const float v_max = 20.0f;
+    double v_max = 20.0;
 
     if(*v_x > v_max)
         *v_x = v_max;
@@ -564,8 +598,8 @@ void check_velocity(float *v_x, float *v_y, float *v_z)
 void update_velocities(fluid_particle_t *fluid_particles, param_t *params)
 {
     int i;
-    float dt = params->time_step;
-    float v_x, v_y, v_z;
+    double dt = params->time_step;
+    double v_x, v_y, v_z;
 
     // Update local and halo particles, update halo so that XSPH visc. is correct
     for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
@@ -592,19 +626,19 @@ void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB
         fluid_particles[i].x_star = boundary->min_x;
     }
     else if(fluid_particles[i].x_star  > boundary->max_x){
-        fluid_particles[i].x_star = boundary->max_x-0.001f;
+        fluid_particles[i].x_star = boundary->max_x-0.00001;
     }
     if(fluid_particles[i].y_star  <  boundary->min_y) {
         fluid_particles[i].y_star = boundary->min_y;
     }
     else if(fluid_particles[i].y_star  > boundary->max_y){
-        fluid_particles[i].y_star = boundary->max_y-0.001f;
+        fluid_particles[i].y_star = boundary->max_y-0.00001;
     }
     if(fluid_particles[i].z_star  <  boundary->min_z) {
         fluid_particles[i].z_star = boundary->min_z;
     }
     else if(fluid_particles[i].z_star  > boundary->max_z){
-        fluid_particles[i].z_star = boundary->max_z-0.001f;
+        fluid_particles[i].z_star = boundary->max_z-0.00001;
     }
 }
 
@@ -626,7 +660,7 @@ void initParticles(fluid_particle_t *fluid_particles,
         fluid_particles[i].v_x = 0.0;
         fluid_particles[i].v_y = 0.0;
         fluid_particles[i].v_z = 0.0;
-        fluid_particles[i].lambda = 0.1;
+        fluid_particles[i].lambda = 0.0;
         fluid_particles[i].density = params->rest_density;
     }
 }
