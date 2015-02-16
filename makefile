@@ -1,5 +1,5 @@
 CC=mpicc
-CFLAGS=-lm -g
+CFLAGS=-lm -g -O3
 
 all:
 	$(CC) $(CFLAGS) geometry.c hash.c fileio.c communication.c fluid.c -o sph.out
