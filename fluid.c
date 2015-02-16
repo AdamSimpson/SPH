@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 500;
+    params.number_steps = 1000;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.1;
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
 /*
     // Density ~ 1000
-    
+
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 10.0;
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
 double W(double r, double h)
 {
     if(r > h)
-        return 0.0f;
+        return 0.0;
 
     double C = 315.0/(64.0*M_PI*pow(h, 9.0));
     double W = C*pow((h*h-r*r), 3.0);
@@ -239,7 +239,7 @@ double W(double r, double h)
 double del_W(double r, double h)
 {
     if(r > h)
-        return 0.0f;
+        return 0.0;
 
     double C = -45.0/(M_PI * pow(h, 6.0));
     double del_W = C*(h-r)*(h-r);
@@ -503,6 +503,9 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
     neighbor_t *n;
     double x_diff, y_diff, z_diff, dp, r_mag;
     double h = params->smoothing_radius;
+    double k = params->k;
+    double dq = params->dq;
+    double Wdq = W(dq, h);
 
     int i,j;
     for(i=0; i<params->number_fluid_particles_local; i++)
@@ -513,9 +516,6 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
         double dp_y = 0.0;
         double dp_z = 0.0;
         double s_corr;
-        double k = params->k;
-        double dq = params->dq;
-        double Wdq = W(dq, h);
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
@@ -525,7 +525,7 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            s_corr = -k*(powf(W(r_mag, h)/Wdq, 4.0));
+            s_corr = -k*(pow(W(r_mag, h)/Wdq, 4.0));
             dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
             dp_x += dp*x_diff;
             dp_y += dp*y_diff;
