@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 1000;
+    params.number_steps = 100;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.1;
@@ -222,6 +222,7 @@ int main(int argc, char *argv[])
 
 ////////////////////////////////////////////////////////////////////////////
 // Smoothing Kernels
+// Don't use pow as it's POWerfully slow
 ///////////////////////////////////////////////////////////////////////////
 
 // (h^2 - r^2)^3 normalized in 3D (poly6)
@@ -230,8 +231,8 @@ double W(double r, double h)
     if(r > h)
         return 0.0;
 
-    double C = 315.0/(64.0*M_PI*pow(h, 9.0));
-    double W = C*pow((h*h-r*r), 3.0);
+    double C = 315.0/(64.0*M_PI* h*h*h*h*h*h*h*h*h);
+    double W = C*(h*h-r*r)*(h*h-r*r)*(h*h-r*r);
     return W;
 }
 
@@ -241,7 +242,7 @@ double del_W(double r, double h)
     if(r > h)
         return 0.0;
 
-    double C = -45.0/(M_PI * pow(h, 6.0));
+    double C = -45.0/(M_PI * h*h*h*h*h*h);
     double del_W = C*(h-r)*(h-r);
     return del_W;
 }
@@ -516,6 +517,7 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
         double dp_y = 0.0;
         double dp_z = 0.0;
         double s_corr;
+        double WdWdq; // W/Wdq
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
@@ -525,7 +527,8 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            s_corr = -k*(pow(W(r_mag, h)/Wdq, 4.0));
+            WdWdq = W(r_mag, h)/Wdq;
+            s_corr = -k*WdWdq*WdWdq*WdWdq*WdWdq;
             dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
             dp_x += dp*x_diff;
             dp_y += dp*y_diff;
