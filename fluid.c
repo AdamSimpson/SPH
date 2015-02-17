@@ -29,32 +29,30 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 100;
+    params.number_steps = 500;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.1;
     params.number_fluid_particles_global = 65536*2;
 
 /*
-    // Density ~ 1000
-
+   // Density ~ 1000
     // Boundary box
     boundary_global.min_x = 0.0;
-    boundary_global.max_x = 10.0;
+    boundary_global.max_x = 1.0;
     boundary_global.min_y = 0.0;
-    boundary_global.max_y = 10.0;
+    boundary_global.max_y = 1.0;
     boundary_global.min_z = 0.0;
-    boundary_global.max_z = 10.0;
+    boundary_global.max_z = 1.0;
 
     // water volume
-    water_volume_global.min_x = 2.0;
-    water_volume_global.max_x = 7.0;
-    water_volume_global.min_y = 0.5;
-    water_volume_global.max_y = 5.5;
-    water_volume_global.min_z = 2.0;
-    water_volume_global.max_z = 7.0;
+    water_volume_global.min_x = 0.1;
+    water_volume_global.max_x = 0.6;
+    water_volume_global.min_y = 0.1;
+    water_volume_global.max_y = 0.6;
+    water_volume_global.min_z = 0.1;
+    water_volume_global.max_z = 0.6;
 */
-
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 100.0;
@@ -70,6 +68,7 @@ int main(int argc, char *argv[])
     water_volume_global.max_y = boundary_global.max_y - 15.0;
     water_volume_global.min_z = 5.0;
     water_volume_global.max_z = boundary_global.max_z - 5.0;
+
 
     // Cubed volume
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
@@ -145,7 +144,6 @@ int main(int argc, char *argv[])
     writeMPI(fluid_particles, fileNum++, &params);
 
     // Main loop
-    // In the current form the particles with be re-hashed and halos re-sent for step 0
     int n;
     double start_time, end_time;
 
@@ -495,7 +493,6 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
         double epsilon = 5.0;
         fluid_particles[i].lambda = -Ci/(sum_C + epsilon);
     }
-
 }
 
 void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t *params)
@@ -574,7 +571,7 @@ void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_globa
 
         // Enforce boundary conditions before hash
         // Otherwise predicted position can blow up hash
-//        boundary_conditions(fluid_particles, i, boundary_global);
+        boundary_conditions(fluid_particles, i, boundary_global);
     }
 }
 
@@ -663,6 +660,9 @@ void initParticles(fluid_particle_t *fluid_particles,
         fluid_particles[i].v_x = 0.0;
         fluid_particles[i].v_y = 0.0;
         fluid_particles[i].v_z = 0.0;
+        fluid_particles[i].dp_x = 0.0;
+        fluid_particles[i].dp_y = 0.0;
+        fluid_particles[i].dp_z = 0.0;
         fluid_particles[i].lambda = 0.0;
         fluid_particles[i].density = params->rest_density;
     }

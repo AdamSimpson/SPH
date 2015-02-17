@@ -162,7 +162,7 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                                        + (q_neighbor->z_star-q->z_star)*(q_neighbor->z_star-q->z_star));
                                 if(r > h)
                                     continue;
-                                if(ne->number_fluid_neighbors > 190)
+                                if(ne->number_fluid_neighbors > 199)
                                   printf("too many neighbors: %f, %f, %f\n", fluid_particles[i].x_star,fluid_particles[i].y_star,fluid_particles[i].z_star);
                                 ne->neighbor_indices[ne->number_fluid_neighbors++] = q_neighbor->id;
 		                        }
