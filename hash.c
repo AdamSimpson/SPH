@@ -30,6 +30,7 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
 // it is a waste to check as we hash as well
 void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params)
 {
+    printf("Enter hash halo\n");
     int index,i,dx,dy,dz,dupes,n;
     double x,y,z,r;
     bool duped;
@@ -43,6 +44,7 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
     for(i=n_s; i<n_f; i++)
     {
         h_p = &fluid_particles[i];
+
         // This is an ugly mess of for loops...
         // This will only find the "lower left" neighbors as forces are symetric
         for (dx=-1; dx<=1; dx++) {
