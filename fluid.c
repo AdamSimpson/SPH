@@ -35,24 +35,6 @@ int main(int argc, char *argv[])
     params.k = 0.1;
     params.number_fluid_particles_global = 65536*2;
 
-/*
-   // Density ~ 1000
-    // Boundary box
-    boundary_global.min_x = 0.0;
-    boundary_global.max_x = 1.0;
-    boundary_global.min_y = 0.0;
-    boundary_global.max_y = 1.0;
-    boundary_global.min_z = 0.0;
-    boundary_global.max_z = 1.0;
-
-    // water volume
-    water_volume_global.min_x = 0.1;
-    water_volume_global.max_x = 0.6;
-    water_volume_global.min_y = 0.1;
-    water_volume_global.max_y = 0.6;
-    water_volume_global.min_z = 0.1;
-    water_volume_global.max_z = 0.6;
-*/
     // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 100.0;
@@ -62,13 +44,12 @@ int main(int argc, char *argv[])
     boundary_global.max_z = 30.0;
 
     // water volume
-    water_volume_global.min_x = 10.0;
-    water_volume_global.max_x = boundary_global.max_x - 10.0;
-    water_volume_global.min_y = 15.0;
-    water_volume_global.max_y = boundary_global.max_y - 15.0;
-    water_volume_global.min_z = 5.0;
-    water_volume_global.max_z = boundary_global.max_z - 5.0;
-
+    water_volume_global.min_x = 0.1;
+    water_volume_global.max_x = boundary_global.max_x - 20.0;
+    water_volume_global.min_y = 0.1;
+    water_volume_global.max_y = boundary_global.max_y - 30.0;
+    water_volume_global.min_z = 0.1;
+    water_volume_global.max_z = boundary_global.max_z - 10.0;
 
     // Cubed volume
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
@@ -82,8 +63,7 @@ int main(int argc, char *argv[])
 
     // Smoothing radius, h
     params.smoothing_radius = 2.0*params.spacing_particle;
-
-    params.dq = 0.3*params.smoothing_radius;
+    params.dq = 0.1*params.smoothing_radius;
 
     printf("smoothing radius: %f\n", params.smoothing_radius);
 
@@ -168,11 +148,11 @@ int main(int argc, char *argv[])
 
         startHaloExchange(fluid_particles, &edges, &params);
 
-        hash_fluid(fluid_particles, neighbors, hash, &params);
+        hash_fluid(fluid_particles, neighbors, hash, &boundary_global, &params);
 
         finishHaloExchange(fluid_particles, &edges, &params);
 
-        hash_halo(fluid_particles, neighbors, hash, &params);
+        hash_halo(fluid_particles, neighbors, hash, &boundary_global, &params);
 
         int solve_iterations = 4;
         int si;
@@ -189,9 +169,9 @@ int main(int argc, char *argv[])
 
         update_velocities(fluid_particles, &params);
 
-        XSPH_viscosity(fluid_particles, neighbors, &params);
+//        XSPH_viscosity(fluid_particles, neighbors, &params);
 
-        vorticity_confinement(fluid_particles, neighbors, &params);
+//        vorticity_confinement(fluid_particles, neighbors, &params);
 
         update_positions(fluid_particles, &params);
 
@@ -234,7 +214,8 @@ double W(double r, double h)
     return W;
 }
 
-// Gradient (h-r)^3 normalized in 3D (Spikey)
+// Gradient (h-r)^3 normalized in 3D (Spikey) magnitude
+// Need to multiply by r/|r| to use
 double del_W(double r, double h)
 {
     if(r > h)
@@ -285,9 +266,13 @@ void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighb
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
 
             dw = del_W(r_mag, params->smoothing_radius);
-            dw_x = dw*x_diff;
-            dw_y = dw*y_diff;
-            dw_z = dw*z_diff;
+            if(r_mag < 0.0001) {
+              printf("p->x_star: %f\n", p->x_star);
+              r_mag = 0.0001;
+            }
+            dw_x = dw*x_diff/r_mag;
+            dw_y = dw*y_diff/r_mag;
+            dw_z = dw*z_diff/r_mag;
 
             part_vort_x =  vy_diff*dw_z - vz_diff*dw_y;
             part_vort_y =  vz_diff*dw_x - vx_diff*dw_z;
@@ -392,7 +377,7 @@ void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors,
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            if(r_mag <= h)
+            if(r_mag < h)
                 density += W(r_mag, h);
         }
 
@@ -473,9 +458,13 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
 
             grad = del_W(r_mag, params->smoothing_radius);
-            grad_x = grad*x_diff;
-            grad_y = grad*y_diff;
-            grad_z = grad*z_diff;
+            if(r_mag < 0.001) {
+              printf("p->x_star: %f, grad: %f\n", fluid_particles[i].x_star, grad);
+              continue;
+            }
+            grad_x = grad*x_diff/r_mag;
+            grad_y = grad*y_diff/r_mag;
+            grad_z = grad*z_diff/r_mag;
             sum_grad_x += grad_x;
             sum_grad_y += grad_y;
             sum_grad_z += grad_z;
@@ -514,7 +503,7 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
         double dp_y = 0.0;
         double dp_z = 0.0;
         double s_corr;
-        double WdWdq; // W/Wdq
+        double WdWdq; // W()/Wdq()
 
         for(j=0; j<n->number_fluid_neighbors; j++)
         {
@@ -527,9 +516,14 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             WdWdq = W(r_mag, h)/Wdq;
             s_corr = -k*WdWdq*WdWdq*WdWdq*WdWdq;
             dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
-            dp_x += dp*x_diff;
-            dp_y += dp*y_diff;
-            dp_z += dp*z_diff;
+
+            if(r_mag < 0.001) {
+              printf("p->x_star: %f, WdWdq: %f del_W: %f\n", fluid_particles[i].x_star, WdWdq, del_W(r_mag, h));
+              r_mag = 0.001;
+            }
+            dp_x += dp*x_diff/r_mag;
+            dp_y += dp*y_diff/r_mag;
+            dp_z += dp*z_diff/r_mag;
         }
         fluid_particles[i].dp_x = dp_x/params->rest_density;
         fluid_particles[i].dp_y = dp_y/params->rest_density;
@@ -577,7 +571,7 @@ void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_globa
 
 void check_velocity(double *v_x, double *v_y, double *v_z)
 {
-    double v_max = 20.0;
+    double v_max = 30.0;
 
     if(*v_x > v_max)
         *v_x = v_max;
@@ -622,24 +616,18 @@ void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB
     // Make sure object is not outside boundary
     // The particle must not be equal to boundary max or hash potentially won't pick it up
     // as the particle will in the 'next' after last bin
-    if(fluid_particles[i].x_star  < boundary->min_x) {
+    if(fluid_particles[i].x_star  < boundary->min_x)
         fluid_particles[i].x_star = boundary->min_x;
-    }
-    else if(fluid_particles[i].x_star  > boundary->max_x){
+    else if(fluid_particles[i].x_star  > boundary->max_x)
         fluid_particles[i].x_star = boundary->max_x-0.00001;
-    }
-    if(fluid_particles[i].y_star  <  boundary->min_y) {
+    if(fluid_particles[i].y_star  <  boundary->min_y)
         fluid_particles[i].y_star = boundary->min_y;
-    }
-    else if(fluid_particles[i].y_star  > boundary->max_y){
+    else if(fluid_particles[i].y_star  > boundary->max_y)
         fluid_particles[i].y_star = boundary->max_y-0.00001;
-    }
-    if(fluid_particles[i].z_star  <  boundary->min_z) {
+    if(fluid_particles[i].z_star  <  boundary->min_z)
         fluid_particles[i].z_star = boundary->min_z;
-    }
-    else if(fluid_particles[i].z_star  > boundary->max_z){
+    else if(fluid_particles[i].z_star  > boundary->max_z)
         fluid_particles[i].z_star = boundary->max_z-0.00001;
-    }
 }
 
 // Initialize particles

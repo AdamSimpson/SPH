@@ -5,15 +5,15 @@
 #include <string.h>
 
 // Uniform grid hash
-// fabs used as when testing neighbor points there is no out of bounds checking
+// We don't check if the position is out of bounds so x,y,z must be valid
 unsigned int hash_val(double x, double y, double z, param_t *params)
 {
     const double spacing = params->smoothing_radius;
     // Calculate grid coordinates
     unsigned int grid_x,grid_y,grid_z;
-    grid_x = floor(fabs(x)/spacing);
-    grid_y = floor(fabs(y)/spacing);
-    grid_z = floor(fabs(z)/spacing);
+    grid_x = floor(x/spacing);
+    grid_y = floor(y/spacing);
+    grid_z = floor(z/spacing);
 
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;
@@ -28,7 +28,7 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
 // Halo particles are not added to hash, only neighbors list
 // Neighbors may be more than h away...since distance is computed in all smoothing functions
 // it is a waste to check as we hash as well
-void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, param_t *params)
+void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t *hash, AABB_t *boundary, param_t *params)
 {
     printf("Enter hash halo\n");
     int index,i,dx,dy,dz,dupes,n;
@@ -53,6 +53,15 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
                 y = h_p->y_star + dy*spacing;
                 for (dz=-1; dz<=1; dz++) {
                     z = h_p->z_star + dz*spacing;
+
+                    // Make sure that the position is valid
+                    if(x < boundary->min_x || x > boundary->max_x ||
+                       y < boundary->min_y || y > boundary->max_y ||
+                       z < boundary->min_z || z > boundary->max_z)
+                    {
+                      continue;
+                    }
+
                     // Calculate hash index at neighbor point
                     index = hash_val(x,y,z,params);
                       // Go through each fluid particle in neighbor point bucket
@@ -90,7 +99,7 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
 // Fill fluid particles into hash
 // Neighbors may be more than h away...since distance is computed in all smoothing functions
 // it is a waste to check as we hash as well
-void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t * hash, param_t *params)
+void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_t * hash, AABB_t *boundary, param_t *params)
 {
         printf("Hash fluid\n");
         int i,dx,dy,dz,n,c;
@@ -146,6 +155,15 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                     y = py + dy*spacing;
                     for (dz=-1; dz<=1; dz++) {
                         z = pz + dz*spacing;
+
+                        // Make sure that the position is valid
+                        if(x < boundary->min_x || x > boundary->max_x ||
+                           y < boundary->min_y || y > boundary->max_y ||
+                           z < boundary->min_z || z > boundary->max_z)
+                        {
+                          continue;
+                        }
+
                         // Calculate hash index at neighbor point
                         neighbor_index = hash_val(x,y,z,params);
 
