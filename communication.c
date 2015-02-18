@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <string.h>
 
+// HACK
+fluid_particle_t *send_buffer;
+
 void createMpiTypes()
 {
     //Create fluid particle type
@@ -82,7 +85,7 @@ void startHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_
 
     // Allocate send buffers
     int total_send = num_moving_left + num_moving_right;
-    fluid_particle_t *send_buffer = malloc(total_send*sizeof(fluid_particle_t));
+    send_buffer = malloc(total_send*sizeof(fluid_particle_t));
     fluid_particle_t *sendl_buffer = send_buffer;
     fluid_particle_t *sendr_buffer = send_buffer + num_moving_left;
 
@@ -109,11 +112,10 @@ void startHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_
     MPI_Isend(sendl_buffer, num_moving_left, Particletype, proc_to_left, tagr, MPI_COMM_WORLD, &edges->reqs[3]);
 
     // Free allocated arays
-    // Can't free send_buffer!!!!
+    // Can't free send_buffer until finish halo exchange!!!!
     //!!!!
     // MEMORY LEAK HERE WITHOUT FREE, NEED TO FIX
     printf("MEMORY LEAK IN START HALO\n\n");
-//    free(send_buffer);
 }
 
 void finishHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params)
@@ -131,6 +133,8 @@ void finishHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param
     int total_received = num_received_left + num_received_right;
     params->number_halo_particles = total_received;
 
+    free(send_buffer);
+
     printf("rank %d, halo: recv %d from left, %d from right\n", params->rank,num_received_left,num_received_right);
 }
 
@@ -147,8 +151,8 @@ void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bound
 
     // Allocate send buffers
     printf("HACK MAX SEND NUMBER FOR NOW\n");
-    int max_send = 1000;
-    fluid_particle_t *send_buffer = malloc(max_send*sizeof(fluid_particle_t));
+    int max_send = 50000;
+    /*fluid_particle_t **/send_buffer = malloc(max_send*sizeof(fluid_particle_t));
     fluid_particle_t *sendl_buffer = send_buffer;
     fluid_particle_t *sendr_buffer = send_buffer + max_send/2;
 
