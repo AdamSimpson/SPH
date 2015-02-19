@@ -11,9 +11,9 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
     const double spacing = params->smoothing_radius;
     // Calculate grid coordinates
     unsigned int grid_x,grid_y,grid_z;
-    grid_x = floor(fabs(x)/spacing);
-    grid_y = floor(fabs(y)/spacing);
-    grid_z = floor(fabs(z)/spacing);
+    grid_x = floor(x/spacing);
+    grid_y = floor(y/spacing);
+    grid_z = floor(z/spacing);
 
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;
@@ -45,8 +45,7 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
     {
         h_p = &fluid_particles[i];
 
-        // This is an ugly mess of for loops...
-        // This will only find the "lower left" neighbors as forces are symetric
+        // Search bins around current particle
         for (dx=-1; dx<=1; dx++) {
             x = h_p->x_star + dx*spacing;
             for (dy=-1; dy<=1; dy++) {
@@ -55,12 +54,10 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
                     z = h_p->z_star + dz*spacing;
 
                     // Make sure that the position is valid
-                    if(x < boundary->min_x || x > boundary->max_x ||
-                       y < boundary->min_y || y > boundary->max_y ||
-                       z < boundary->min_z || z > boundary->max_z)
-                    {
+                    if( floor(x/spacing) > params->grid_size_x-1 || x < 0 ||
+                        floor(y/spacing) > params->grid_size_y-1 || y < 0 ||
+                        floor(z/spacing) > params->grid_size_z-1 || z < 0)
                       continue;
-                    }
 
                     // Calculate hash index at neighbor point
                     index = hash_val(x,y,z,params);
@@ -157,12 +154,10 @@ void hash_fluid(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket
                         z = pz + dz*spacing;
 
                         // Make sure that the position is valid
-                        if(x < boundary->min_x || x > boundary->max_x ||
-                           y < boundary->min_y || y > boundary->max_y ||
-                           z < boundary->min_z || z > boundary->max_z)
-                        {
+                        if( floor(x/spacing) > params->grid_size_x-1 || x < 0 ||
+                            floor(y/spacing) > params->grid_size_y-1 || y < 0 ||
+                            floor(z/spacing) > params->grid_size_z-1 || z < 0)
                           continue;
-                        }
 
                         // Calculate hash index at neighbor point
                         neighbor_index = hash_val(x,y,z,params);

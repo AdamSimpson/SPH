@@ -9,6 +9,14 @@
 #include "fileio.h"
 #include "communication.h"
 
+// Compiler must support vardiac macros
+#ifdef DEBUG
+# define DEBUG_PRINT(str, args...) printf("DEBUG: %s:%d:%s(): " str, \
+ __FILE__, __LINE__, __func__, ##args)
+#else
+# define DEBUG_PRINT(str, args...) do {} while (0)
+#endif
+
 int main(int argc, char *argv[])
 {
     // Initialize MPI
@@ -169,9 +177,9 @@ int main(int argc, char *argv[])
 
         update_velocities(fluid_particles, &params);
 
-//        XSPH_viscosity(fluid_particles, neighbors, &params);
+        XSPH_viscosity(fluid_particles, neighbors, &params);
 
-//        vorticity_confinement(fluid_particles, neighbors, &params);
+        vorticity_confinement(fluid_particles, neighbors, &params);
 
         update_positions(fluid_particles, &params);
 
@@ -215,7 +223,7 @@ double W(double r, double h)
 }
 
 // Gradient (h-r)^3 normalized in 3D (Spikey) magnitude
-// Need to multiply by r/|r| to use
+// Need to multiply by r/|r|
 double del_W(double r, double h)
 {
     if(r > h)
@@ -363,10 +371,9 @@ void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors,
         n = &neighbors[i];
 
         double x_diff, y_diff, z_diff, r_mag, density;
-        density = 0.0;
 
         // Own contribution to density
-        density += W(0.0, h);
+        density = W(0.0, h);
 
         // Neighbor contribution
         for(j=0; j<n->number_fluid_neighbors; j++)
@@ -377,8 +384,7 @@ void compute_densities(fluid_particle_t *fluid_particles, neighbor_t *neighbors,
             z_diff = fluid_particles[i].z_star - fluid_particles[q_index].z_star;
 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
-            if(r_mag < h)
-                density += W(r_mag, h);
+            density += W(r_mag, h);
         }
 
         // Update particle density
@@ -460,7 +466,7 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
             grad = del_W(r_mag, params->smoothing_radius);
             if(r_mag < 0.0001) {
               r_mag = 0.0001;
-              printf("p->x_star: %f, grad: %f\n", fluid_particles[i].x_star, grad);
+              printf("pstar: %f, %f, %f grad: %f\n", fluid_particles[i].x_star, fluid_particles[i].y_star,fluid_particles[i].z_star, grad);
             }
             grad_x = grad*x_diff/r_mag;
             grad_y = grad*y_diff/r_mag;
@@ -518,7 +524,7 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
 
             if(r_mag < 0.0001) {
-              printf("p->x_star: %f, WdWdq: %f del_W: %f\n", fluid_particles[i].x_star, WdWdq, del_W(r_mag, h));
+              printf("pstar: %f, %f, %f grad: %f\n", fluid_particles[i].x_star, fluid_particles[i].y_star,fluid_particles[i].z_star, WdWdq);
               r_mag = 0.0001;
             }
             dp_x += dp*x_diff/r_mag;
@@ -565,7 +571,7 @@ void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_globa
 
         // Enforce boundary conditions before hash
         // Otherwise predicted position can blow up hash
-//        boundary_conditions(fluid_particles, i, boundary_global);
+        boundary_conditions(fluid_particles, i, boundary_global);
     }
 }
 

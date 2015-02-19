@@ -39,7 +39,6 @@ void constructFluidVolume(fluid_particle_t *fluid_particles, AABB_t* fluid,
         }
     }
     params->number_fluid_particles_local = i;
-
     printf("rank %d max fluid x: %f\n", params->rank,fluid->min_x + (start_x + nx-1)*spacing);
 }
 
