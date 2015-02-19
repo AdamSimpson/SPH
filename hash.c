@@ -11,9 +11,9 @@ unsigned int hash_val(double x, double y, double z, param_t *params)
     const double spacing = params->smoothing_radius;
     // Calculate grid coordinates
     unsigned int grid_x,grid_y,grid_z;
-    grid_x = floor(x/spacing);
-    grid_y = floor(y/spacing);
-    grid_z = floor(z/spacing);
+    grid_x = floor(fabs(x)/spacing);
+    grid_y = floor(fabs(y)/spacing);
+    grid_z = floor(fabs(z)/spacing);
 
     // If using glboal boundary size this can be static
     int num_x = params->grid_size_x;

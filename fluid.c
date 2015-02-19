@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     params.nprocs = nprocs;
 
     params.g = 9.8;
-    params.number_steps = 500;
+    params.number_steps = 2000;
     params.time_step = 1.0/60.0;
     params.c = 0.01;
     params.k = 0.1;
@@ -285,9 +285,9 @@ void vorticity_confinement(fluid_particle_t *fluid_particles, neighbor_t* neighb
             if(x_diff<0.0000001 || y_diff<0.0000001 || z_diff<0.0000001)
                 continue;
 
-            eta_x += abs(part_vort_x)/x_diff;
-            eta_y += abs(part_vort_y)/y_diff;
-            eta_z += abs(part_vort_z)/z_diff;
+            eta_x += fabs(part_vort_x)/x_diff;
+            eta_y += fabs(part_vort_y)/y_diff;
+            eta_z += fabs(part_vort_z)/z_diff;
         }
         eta_mag = sqrt(eta_x*eta_x + eta_y*eta_y + eta_z*eta_z);
         if(eta_mag<0.0000001)
@@ -458,9 +458,9 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
             r_mag = sqrt(x_diff*x_diff + y_diff*y_diff + z_diff*z_diff);
 
             grad = del_W(r_mag, params->smoothing_radius);
-            if(r_mag < 0.001) {
+            if(r_mag < 0.0001) {
+              r_mag = 0.0001;
               printf("p->x_star: %f, grad: %f\n", fluid_particles[i].x_star, grad);
-              continue;
             }
             grad_x = grad*x_diff/r_mag;
             grad_y = grad*y_diff/r_mag;
@@ -479,7 +479,7 @@ void calculate_lambda(fluid_particle_t *fluid_particles, neighbor_t *neighbors, 
 
         sum_C *= (1.0/(params->rest_density*params->rest_density));
 
-        double epsilon = 5.0;
+        double epsilon = 1.0;
         fluid_particles[i].lambda = -Ci/(sum_C + epsilon);
     }
 }
@@ -517,9 +517,9 @@ void update_dp(fluid_particle_t *fluid_particles, neighbor_t *neighbors, param_t
             s_corr = -k*WdWdq*WdWdq*WdWdq*WdWdq;
             dp = (fluid_particles[i].lambda + fluid_particles[q_index].lambda + s_corr)*del_W(r_mag, h);
 
-            if(r_mag < 0.001) {
+            if(r_mag < 0.0001) {
               printf("p->x_star: %f, WdWdq: %f del_W: %f\n", fluid_particles[i].x_star, WdWdq, del_W(r_mag, h));
-              r_mag = 0.001;
+              r_mag = 0.0001;
             }
             dp_x += dp*x_diff/r_mag;
             dp_y += dp*y_diff/r_mag;
@@ -565,7 +565,7 @@ void predict_positions(fluid_particle_t *fluid_particles, AABB_t *boundary_globa
 
         // Enforce boundary conditions before hash
         // Otherwise predicted position can blow up hash
-        boundary_conditions(fluid_particles, i, boundary_global);
+//        boundary_conditions(fluid_particles, i, boundary_global);
     }
 }
 
@@ -620,10 +620,12 @@ void boundary_conditions(fluid_particle_t *fluid_particles, unsigned int i, AABB
         fluid_particles[i].x_star = boundary->min_x;
     else if(fluid_particles[i].x_star  > boundary->max_x)
         fluid_particles[i].x_star = boundary->max_x-0.00001;
+
     if(fluid_particles[i].y_star  <  boundary->min_y)
         fluid_particles[i].y_star = boundary->min_y;
     else if(fluid_particles[i].y_star  > boundary->max_y)
         fluid_particles[i].y_star = boundary->max_y-0.00001;
+
     if(fluid_particles[i].z_star  <  boundary->min_z)
         fluid_particles[i].z_star = boundary->min_z;
     else if(fluid_particles[i].z_star  > boundary->max_z)
