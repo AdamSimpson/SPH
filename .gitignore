@@ -1,2 +1,4 @@
 output/*
 bin/*
+*.o
+.DS_Store
