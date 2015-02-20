@@ -36,7 +36,7 @@ void hash_halo(fluid_particle_t *fluid_particles, neighbor_t *neighbors, bucket_
     bool duped;
     fluid_particle_t *h_p, *q;
     int n_s = params->number_fluid_particles_local;
-    int n_f = n_s + params->number_halo_particles;
+    int n_f = n_s + params->number_halo_particles_left + params->number_halo_particles_right;
     double spacing = params->smoothing_radius;
     double h = params->smoothing_radius;
     neighbor_t *ne;

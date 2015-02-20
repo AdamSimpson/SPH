@@ -131,7 +131,8 @@ void finishHaloExchange(fluid_particle_t *fluid_particles,  edge_t *edges, param
     MPI_Get_count(&statuses[1], Particletype, &num_received_right);
 
     int total_received = num_received_left + num_received_right;
-    params->number_halo_particles = total_received;
+    params->number_halo_particles_left  = num_received_left;
+    params->number_halo_particles_right = num_received_right;
 
     free(send_buffer);
 
@@ -233,4 +234,150 @@ void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bound
     printf("rank %d OOB: sent left %d, right: %d recv left:%d, right: %d\n", rank, num_moving_left, num_moving_right, num_received_left, num_received_right);
 
     free(send_buffer);
+}
+
+void update_halo_lambdas(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params)
+{
+    int i;
+    fluid_particle_t *p;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    int num_moving_left = edges->number_edge_particles_left;
+    int num_moving_right = edges->number_edge_particles_right;
+
+    int num_from_left = params->number_halo_particles_left;
+    int num_from_right = params->number_halo_particles_right;
+
+    // Allocate send/recv buffers
+    // Could combine left/right into single malloc...
+    double *send_lambdas_left = malloc(sizeof(double)*num_moving_left);
+    double *send_lambdas_right = malloc(sizeof(double)*num_moving_right);
+
+    double *recv_lambdas_left = malloc(sizeof(double)*num_from_left);
+    double *recv_lambdas_right = malloc(sizeof(double)*num_from_right);
+
+    // Pack local halo lambdas
+    for(i=0; i<num_moving_left; i++) {
+        p = &fluid_particles[edges->edge_indices_left[i]];
+        send_lambdas_left[i] = p->lambda;
+    }
+    for(i=0; i<num_moving_right; i++) {
+        p = &fluid_particles[edges->edge_indices_right[i]];
+        send_lambdas_right[i] = p->lambda;
+    }
+
+    // Setup nodes to left and right of self
+    int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
+    int proc_to_right = (rank == nprocs-1 ? MPI_PROC_NULL : rank+1);
+
+    // Could do async to perhaps increase performance
+    // Send lambdas to right and receive from left
+    int tag = 784;
+    MPI_Sendrecv(send_lambdas_right, num_moving_right, MPI_DOUBLE, proc_to_right, tag,
+                 recv_lambdas_left, num_from_left, MPI_DOUBLE, proc_to_left, tag,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // Send lambdas to left and receive from right
+    tag = 456;
+    MPI_Sendrecv(send_lambdas_left, num_moving_left, MPI_DOUBLE, proc_to_left, tag,
+                 recv_lambdas_right, num_from_right, MPI_DOUBLE, proc_to_right,tag,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // Unpack halo particle lambdas
+    for(i=0; i<num_from_left; i++) {
+        p = &fluid_particles[params->number_fluid_particles_local + i];;
+        p->lambda = recv_lambdas_left[i];
+    }
+    for(i=0; i<num_from_right; i++) {
+        p = &fluid_particles[ params->number_fluid_particles_local + num_from_left + i];
+        p->lambda = recv_lambdas_right[i];
+    }
+
+    // Cleanup memory
+    free(send_lambdas_left);
+    free(send_lambdas_right);
+    free(recv_lambdas_left);
+    free(recv_lambdas_right);
+}
+
+void update_halo_positions(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params)
+{
+    int i;
+    fluid_particle_t *p;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int nprocs;
+    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+
+    // x,y,z components required
+    int num_components = 3;
+    int num_moving_left = num_components*edges->number_edge_particles_left;
+    int num_moving_right = num_components*edges->number_edge_particles_right;
+
+    int num_from_left = num_components*params->number_halo_particles_left;
+    int num_from_right = num_components*params->number_halo_particles_right;
+
+    // Allocate send/recv buffers
+    // Could combine left/right into single malloc...
+    double *send_positions_left = malloc(sizeof(double)*num_moving_left);
+    double *send_positions_right = malloc(sizeof(double)*num_moving_right);
+
+    double *recv_positions_left = malloc(sizeof(double)*num_from_left);
+    double *recv_positions_right = malloc(sizeof(double)*num_from_right);
+
+    // Pack local edge positions
+    for(i=0; i<num_moving_left; i+=3) {
+        p = &fluid_particles[edges->edge_indices_left[i/3]];
+        send_positions_left[i]   = p->x_star;
+        send_positions_left[i+1] = p->y_star;
+        send_positions_left[i+2] = p->z_star;
+    }
+    for(i=0; i<num_moving_right; i+=3) {
+        p = &fluid_particles[edges->edge_indices_right[i/3]];
+        send_positions_right[i]   = p->x_star;
+        send_positions_right[i+1] = p->y_star;
+        send_positions_right[i+2] = p->z_star;
+    }
+
+    // Setup nodes to left and right of self
+    int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
+    int proc_to_right = (rank == nprocs-1 ? MPI_PROC_NULL : rank+1);
+
+    // Could do async to perhaps increase performance
+    // Send positions to right and receive from left
+    int tag = 874;
+    MPI_Sendrecv(send_positions_right, num_moving_right, MPI_DOUBLE, proc_to_right, tag,
+                 recv_positions_left, num_from_left, MPI_DOUBLE, proc_to_left, tag,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // Send positions to left and receive from right
+    tag = 546;
+    MPI_Sendrecv(send_positions_left, num_moving_left, MPI_DOUBLE, proc_to_left, tag,
+                 recv_positions_right, num_from_right, MPI_DOUBLE, proc_to_right,tag,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    // Unpack halo particle positions
+    for(i=0; i<num_from_left; i+=3) {
+        p = &fluid_particles[params->number_fluid_particles_local + i/3];;
+        p->x_star = recv_positions_left[i];
+        p->y_star = recv_positions_left[i+1];
+        p->z_star = recv_positions_left[i+2];
+    }
+    for(i=0; i<num_from_right; i+=3) {
+        p = &fluid_particles[ params->number_fluid_particles_local + num_from_left/3 + i/3];
+        p->x_star = recv_positions_right[i];
+        p->y_star = recv_positions_right[i+1];
+        p->z_star = recv_positions_right[i+2];
+    }
+
+    // Cleanup memory
+    free(send_positions_left);
+    free(send_positions_right);
+    free(recv_positions_left);
+    free(recv_positions_right);
 }

@@ -170,9 +170,13 @@ int main(int argc, char *argv[])
 
             calculate_lambda(fluid_particles, neighbors, &params);
 
+            update_halo_lambdas(fluid_particles, &edges, &params);
+
             update_dp(fluid_particles, neighbors, &params);
 
             update_dp_positions(fluid_particles, &boundary_global, &params);
+
+            update_halo_positions(fluid_particles, &edges, &params);
         }
 
         update_velocities(fluid_particles, &params);
@@ -602,7 +606,7 @@ void update_velocities(fluid_particle_t *fluid_particles, param_t *params)
     double v_x, v_y, v_z;
 
     // Update local and halo particles, update halo so that XSPH visc. is correct
-    for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles; i++) {
+    for(i=0; i<params->number_fluid_particles_local + params->number_halo_particles_left + params->number_halo_particles_right; i++) {
         v_x = (fluid_particles[i].x_star - fluid_particles[i].x)/dt;
         v_y = (fluid_particles[i].y_star - fluid_particles[i].y)/dt;
         v_z = (fluid_particles[i].z_star - fluid_particles[i].z)/dt;

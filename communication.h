@@ -34,5 +34,7 @@ void transferHalos(fluid_particle_t *fluid_particles, edge_t *edges, param_t *pa
 void transferOOBParticles(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, param_t *params);
 void startHaloExchange(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);
 void finishHaloExchange(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);
+void update_halo_lambdas(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params);
+void update_halo_positions(fluid_particle_t *fluid_particles,  edge_t *edges, param_t *params);
 
 #endif
