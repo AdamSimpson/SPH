@@ -66,8 +66,6 @@ void setParticleNumbers(AABB_t *boundary_global, AABB_t *fluid_global, edge_t *e
     printf("initial number of particles %d\n", num_initial);
     int num_extra = num_initial/5;
 
-    params->max_node_difference = num_extra/2;
-
     // Add initial space, extra space for particle transfers, and left/right out of boudns/halo particles
     params->max_fluid_particles_local = num_initial + num_extra + 2*out_of_bounds->max_oob_particles + 2*edges->max_edge_particles;
     printf("Max fluid particles local: %d\n", params->max_fluid_particles_local);
@@ -134,7 +132,6 @@ void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, par
 
     int i;
     fluid_particle_t *p;
-    int max_diff = params->max_node_difference;
     int num_rank = params->number_fluid_particles_local;
     int rank = params->rank;
     int nprocs = params->nprocs;
@@ -146,9 +143,9 @@ void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, par
 
     // Get number of particles and partition length  from right and left
     double length = params->node_end_x - params->node_start_x;
-    double node[2] = {(double)num_rank, length};
-    double left[2];
-    double right[2];
+    double node[2]  = {(double)num_rank, length};
+    double left[2]  = {0.0, 0.0};
+    double right[2] = {0.0, 0.0};
     int tag = 627;
     // Send number of particles to  right and receive from left
     MPI_Sendrecv(node, 2, MPI_DOUBLE, proc_to_right, tag, left,2,MPI_DOUBLE,proc_to_left,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
@@ -164,47 +161,34 @@ void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, par
     double length_left = left[1];
     double length_right = right[1];
 
-    // Difference in particle numbers of left/right ranks
-    int diff_left = num_rank-num_left;
-    int diff_right = num_rank-num_right;
+    int even_particles = params->number_fluid_particles_global/(double)params->nprocs;
+    int max_diff = even_particles/10.0f;
 
-    // Adjust left boundary
-    // Ensure partition length is atleast 4*h
-    if (rank != 0) // Dont move left most boundary
-    {
-        if( diff_left > max_diff && length > 4*h)
-            params->node_start_x += h;
-        else if (diff_left < -max_diff && length_left > 4*h)
-            params->node_start_x -= h;
-    }
-    // Adjust right boundary
-    if (rank != (nprocs-1))
-    {
-        if( diff_right > max_diff && length > 4*h)
-            params->node_end_x -= h;
-        else if (diff_right < -max_diff && length_right > 4*h)
-            params->node_end_x += h;
-    }
+    // Difference in particle numbers from an even distribution
+    int diff_left  = num_left  - even_particles;
+    int diff_right = num_right - even_particles;
+    int diff_self  = num_rank  - even_particles;
 
-//    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
+    // Look at "bins" formed by node start/ends from right to left
+    // Only modify node start based upon bin to the left
+    // Node end may be modified by node to the rights start
+    // Particles per proc if evenly divided
 
-    // Reset out of bound numbers
-    out_of_bounds->number_oob_particles_left = 0;
-    out_of_bounds->number_oob_particles_right = 0;
+    // current rank has too many particles
+    if( diff_self > max_diff && length > 4*h && rank != 0)
+        params->node_start_x += h;
+    // current rank has too few particles
+    else if (diff_self < -max_diff && length_left > 4*h && rank != 0)
+        params->node_start_x -= h;
 
-    // Identifiy out of boundary particles
-    for(i=0; i<params->number_fluid_particles_local; i++) {
-        p = &fluid_particles[i];
+    // Rank to right has too many particles and with move its start to left
+    if( diff_right > max_diff && length_right > 4*h && rank != nprocs-1)
+        params->node_end_x += h;
+    // Rank to right has too few particles and will move its start to right
+    else if (diff_right < -max_diff && length > 4*h && rank != nprocs-1)
+        params->node_end_x -= h;
 
-        // Set OOB particle indicies and update number
-        {
-        if (p->x < params->node_start_x)
-            out_of_bounds->oob_indices_left[out_of_bounds->number_oob_particles_left++] = i;
-        else if (p->x > params->node_end_x)
-            out_of_bounds->oob_indices_right[out_of_bounds->number_oob_particles_right++] = i;
-       }
-    }
-
+    printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);
 }
 
 ////////////////////////////////////////////////

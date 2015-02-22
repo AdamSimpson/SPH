@@ -59,8 +59,7 @@ struct PARAM {
     int number_fluid_particles_local;  // Number of non vacant particles
     int max_fluid_particles_local;     // Maximum number for max_fluid_particle_index + halo particles
     int number_halo_particles_left;    // Starting at max_fluid_particle_index
-    int number_halo_particles_right; 
-    int max_node_difference;
+    int number_halo_particles_right;
     int number_steps;
     int length_hash;
     int rank;
