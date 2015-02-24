@@ -1,4 +1,5 @@
 output/*
 bin/*
 *.o
+build
 .DS_Store
