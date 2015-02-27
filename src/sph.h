@@ -3,12 +3,6 @@
 
 typedef struct PARAM param_t;
 
-#include "fluid.h"
-#include "hash.h"
-#include "geometry.h"
-#include "fileio.h"
-#include "communication.h"
-
 struct PARAM {
     double rest_density;
     double smoothing_radius;

@@ -29,6 +29,9 @@ struct OOB {
     int number_oob_particles_right;
 };
 
+void init_communication(int argc, char *argv[]);
+int get_rank();
+int get_num_procs();
 void createMpiTypes();
 void freeMpiTypes();
 void transferHalos(fluid_particle_t *fluid_particles, edge_t *edges, param_t *params);

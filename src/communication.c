@@ -6,6 +6,26 @@
 // HACK
 fluid_particle_t *send_buffer;
 
+void init_communication(int argc, char *argv[])
+{
+    MPI_Init(&argc, &argv);
+    createMpiTypes();
+}
+
+int get_rank()
+{
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    return rank;
+}
+
+int get_num_procs()
+{
+  int nprocs;
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  return nprocs;
+}
+
 void createMpiTypes()
 {
     //Create fluid particle type

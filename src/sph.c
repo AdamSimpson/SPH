@@ -1,19 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "mpi.h"
-
+#include "communication.h"
+#include "fluid.h"
+#include "geometry.h"
+#include "fileio.h"
 #include "sph.h"
 
 int main(int argc, char *argv[])
 {
-    // Initialize MPI
-    MPI_Init(&argc, &argv);
-    int rank, nprocs;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-
-    createMpiTypes();
+    init_communication(argc, argv);
 
     param_t params;
     AABB_t water_volume_global;
@@ -21,9 +17,8 @@ int main(int argc, char *argv[])
     edge_t edges;
     oob_t out_of_bounds;
 
-    params.rank = rank;
-    params.nprocs = nprocs;
-
+    params.rank = get_rank();
+    params.nprocs = get_num_procs(0);
     params.g = 9.8;
     params.number_steps = 2000;
     params.time_step = 1.0/60.0;
@@ -31,7 +26,6 @@ int main(int argc, char *argv[])
     params.k = 0.1;
     params.number_fluid_particles_global = 65536*2;
 
-    // Boundary box
     boundary_global.min_x = 0.0;
     boundary_global.max_x = 100.0;
     boundary_global.min_y = 0.0;
@@ -39,7 +33,6 @@ int main(int argc, char *argv[])
     boundary_global.min_z = 0.0;
     boundary_global.max_z = 30.0;
 
-    // water volume
     water_volume_global.min_x = 0.1;
     water_volume_global.max_x = boundary_global.max_x - 20.0;
     water_volume_global.min_y = 0.1;
@@ -51,14 +44,14 @@ int main(int argc, char *argv[])
     double volume = (water_volume_global.max_x - water_volume_global.min_x) * (water_volume_global.max_y - water_volume_global.min_y) * (water_volume_global.max_z - water_volume_global.min_z);
 
     // Initial spacing between particles
-    params.spacing_particle = pow(volume/params.number_fluid_particles_global,1.0/3.0);
+    float spacing_particle = pow(volume/params.number_fluid_particles_global,1.0/3.0);
 
     // Let mass of each particle equal 1
     params.rest_density = params.number_fluid_particles_global/volume;
     printf("rest density: %f\n", params.rest_density);
 
     // Smoothing radius, h
-    params.smoothing_radius = 2.0*params.spacing_particle;
+    params.smoothing_radius = 2.0*spacing_particle;
     params.dq = 0.1*params.smoothing_radius;
 
     printf("smoothing radius: %f\n", params.smoothing_radius);
@@ -113,7 +106,7 @@ int main(int argc, char *argv[])
     initParticles(fluid_particles, neighbors, hash, &water_volume_global, &boundary_global, start_x, number_particles_x, &edges, &params);
 
     // Print some parameters
-    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", rank, params.number_fluid_particles_local, params.smoothing_radius);
+    printf("Rank: %d, fluid_particles: %d, smoothing radius: %f \n", params.rank, params.number_fluid_particles_local, params.smoothing_radius);
 
     // Initial configuration
     int fileNum=0;
@@ -128,7 +121,7 @@ int main(int argc, char *argv[])
     start_time = MPI_Wtime();
     for(n=0; n<params.number_steps; n++) {
 
-        printf("Rank %d Entering fluid step %d with %d particles\n",rank, n, params.number_fluid_particles_local);
+        printf("Rank %d Entering fluid step %d with %d particles\n",params.rank, n, params.number_fluid_particles_local);
 
         apply_gravity(fluid_particles, &params);
 
@@ -180,7 +173,7 @@ int main(int argc, char *argv[])
 
     }
     end_time = MPI_Wtime();
-    printf("Rank %d Elapsed seconds: %f, num particles: %d\n", rank, end_time-start_time, params.number_fluid_particles_local);
+    printf("Rank %d Elapsed seconds: %f, num particles: %d\n", params.rank, end_time-start_time, params.number_fluid_particles_local);
 
     // Release memory
     free(fluid_particles);
