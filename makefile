@@ -13,4 +13,5 @@ all: sph
 	$(CC) -c $(CFLAGS) -o $@ $^
 
 sph: $(OBJ_FILES)
+	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) $(LDLIBS) -o $(BIN_DIR)/$@ $^
