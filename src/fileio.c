@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include "fileio.h"
-#include "fluid.h"
 
 // Write boundary in MPI
 void writeMPI(fluid_particle_t *particles, int fileNum, param_t *params)

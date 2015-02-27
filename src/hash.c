@@ -1,8 +1,7 @@
-#include "hash.h"
-#include "fluid.h"
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include "hash.h"
 
 // Uniform grid hash
 // We don't check if the position is out of bounds so x,y,z must be valid

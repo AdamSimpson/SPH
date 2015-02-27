@@ -6,6 +6,7 @@ typedef struct BUCKET bucket_t;
 #include <stdbool.h>
 #include "fluid.h"
 #include "geometry.h"
+#include "sph.h"
 
 struct BUCKET {
     fluid_particle_t *fluid_particles[201];

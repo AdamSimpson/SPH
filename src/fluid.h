@@ -3,7 +3,6 @@
 
 typedef struct FLUID_PARTICLE fluid_particle_t;
 typedef struct NEIGHBOR neighbor_t;
-typedef struct PARAM param_t;
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -13,6 +12,7 @@ typedef struct PARAM param_t;
 #include "fileio.h"
 #include "geometry.h"
 #include "communication.h"
+#include "sph.h"
 
 ////////////////////////////////////////////////
 // Structures
@@ -40,31 +40,6 @@ struct NEIGHBOR {
     unsigned int neighbor_indices[201];
     int number_fluid_neighbors;
 };
-
-struct PARAM {
-    double rest_density;
-    double spacing_particle;
-    double smoothing_radius;
-    double g;
-    double time_step;
-    double k;
-    double dq;
-    double c;
-    double node_start_x; // left x position of node partition
-    double node_end_x;   // right x position of node partition
-    int grid_size_x;
-    int grid_size_y;
-    int grid_size_z;
-    int number_fluid_particles_global;
-    int number_fluid_particles_local;  // Number of non vacant particles
-    int max_fluid_particles_local;     // Maximum number for max_fluid_particle_index + halo particles
-    int number_halo_particles_left;    // Starting at max_fluid_particle_index
-    int number_halo_particles_right;
-    int number_steps;
-    int length_hash;
-    int rank;
-    int nprocs;
-}; // Simulation paramaters
 
 ////////////////////////////////////////////////
 // Function prototypes

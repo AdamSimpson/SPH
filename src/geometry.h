@@ -5,6 +5,7 @@ typedef struct AABB AABB_t;
 
 #include "fluid.h"
 #include "communication.h"
+#include "sph.h"
 
 struct AABB {
     double min_x;

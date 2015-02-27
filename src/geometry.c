@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "geometry.h"
-#include "fluid.h"
 
 void constructFluidVolume(fluid_particle_t *fluid_particles, AABB_t* fluid,
                           int start_x, int number_particles_x, edge_t *edges, param_t *params)
@@ -9,7 +8,7 @@ void constructFluidVolume(fluid_particle_t *fluid_particles, AABB_t* fluid,
     int num_y;
     int num_z;
 
-    spacing = params->spacing_particle;
+    spacing = params->smoothing_radius/2.0;
     // Number of particles in y,z, number in x is passed in
     num_y = floor((fluid->max_y - fluid->min_y ) / spacing);
     num_z = floor((fluid->max_z - fluid->min_z ) / spacing);
@@ -50,7 +49,7 @@ void setParticleNumbers(AABB_t *boundary_global, AABB_t *fluid_global, edge_t *e
     int num_y;
     int num_z;
 
-    double spacing = params->spacing_particle;
+    double spacing = params->smoothing_radius/2.0;
 
     // Set fluid local
     num_x = number_particles_x;
@@ -78,7 +77,7 @@ void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_star
     int i;
     int nprocs = params->nprocs;
     int rank = params->rank;
-    double spacing = params->spacing_particle;
+    double spacing = params->smoothing_radius/2.0;
 
     // number of fluid particles in x direction
     // +1 added for zeroth particle
@@ -122,7 +121,7 @@ void partitionProblem(AABB_t *boundary_global, AABB_t *fluid_global, int *x_star
 
     free(particle_length_x);
 
-    printf("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, params->spacing_particle, *x_start, *length_x, params->node_start_x, params->node_end_x);
+    printf("rank %d, h %f, x_start %d, num_x %d, start_x %f, end_x: %f\n", rank, spacing, *x_start, *length_x, params->node_start_x, params->node_end_x);
 
 }
 
@@ -135,7 +134,7 @@ void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, par
     int num_rank = params->number_fluid_particles_local;
     int rank = params->rank;
     int nprocs = params->nprocs;
-    double h = params->spacing_particle;
+    double h = params->smoothing_radius;
 
     // Setup nodes to left and right of self
     int proc_to_left =  (rank == 0 ? MPI_PROC_NULL : rank-1);
@@ -175,17 +174,17 @@ void checkPartition(fluid_particle_t *fluid_particles, oob_t *out_of_bounds, par
     // Particles per proc if evenly divided
 
     // current rank has too many particles
-    if( diff_self > max_diff && length > 4*h && rank != 0)
+    if( diff_self > max_diff && length > 2*h && rank != 0)
         params->node_start_x += h;
     // current rank has too few particles
-    else if (diff_self < -max_diff && length_left > 4*h && rank != 0)
+    else if (diff_self < -max_diff && length_left > 2*h && rank != 0)
         params->node_start_x -= h;
 
     // Rank to right has too many particles and with move its start to left
-    if( diff_right > max_diff && length_right > 4*h && rank != nprocs-1)
+    if( diff_right > max_diff && length_right > 2*h && rank != nprocs-1)
         params->node_end_x += h;
     // Rank to right has too few particles and will move its start to right
-    else if (diff_right < -max_diff && length > 4*h && rank != nprocs-1)
+    else if (diff_right < -max_diff && length > 2*h && rank != nprocs-1)
         params->node_end_x -= h;
 
     printf("rank %d node_start %f node_end %f \n", rank, params->node_start_x, params->node_end_x);

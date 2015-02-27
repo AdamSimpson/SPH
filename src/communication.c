@@ -1,9 +1,7 @@
 #include <stdio.h>
-#include "mpi.h"
-#include "communication.h"
-#include "fluid.h"
 #include <stddef.h>
 #include <string.h>
+#include "communication.h"
 
 // HACK
 fluid_particle_t *send_buffer;

@@ -6,6 +6,7 @@ typedef struct OOB oob_t;
 
 #include "fluid.h"
 #include "mpi.h"
+#include "sph.h"
 
 MPI_Datatype Particletype;
 
