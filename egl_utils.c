@@ -214,9 +214,11 @@ void exit_ogl(gl_t *state)
    close(state->controller_2_fd);
    close(state->controller_1_fd);
 
+   #ifdef LEAP_MOTION_ENABLED
    curl_easy_cleanup(curl_handle);
    free(curl_chunk.memory);
    curl_global_cleanup();
+   #endif
 
    printf("close\n");
 }
@@ -377,6 +379,7 @@ void process_controller_events(gl_t *state, int controller_fd)
     }
 }
 
+#ifdef LEAP_MOTION_ENABLED
 static size_t curl_callback(void *contents, size_t size, size_t count, void *user_p) {
   size_t total_size = size * count;
   curl_mem_t *mem = user_p;
@@ -409,6 +412,7 @@ void process_leap_events(gl_t *state) {
   }
   
 }
+#endif
 
 // Poll /dev/input for any input event
 // https://www.kernel.org/doc/Documentation/input/input.txt
