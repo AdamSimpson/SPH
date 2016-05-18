@@ -59,6 +59,22 @@ typedef struct {
     char dy;
 } MOUSE_INPUT;
 
+#ifdef LEAP_MOTION_ENABLED
+  #include <curl/curl.h>
+
+  typedef struct curl_mem_t {
+    char *memory;
+    size_t size;
+  } curl_mem_t;
+
+  CURL *curl_handle;
+  CURLcode curl_res;
+  curl_mem_t curl-chunk;
+
+  static size_t curl_callback(void *contents, size_t size, size_t count, void *user_p);
+#endif
+
+
 void init_ogl(gl_t *state, render_t *render_state);
 void process_controller_events(gl_t *state, int controller_fd);
 void exit_ogl(gl_t *state);
