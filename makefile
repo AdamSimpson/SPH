@@ -16,8 +16,11 @@ blink:
 	mkdir -p bin
 	cd blink1 && make
 	mkdir -p bin        
-	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -DBLINK1 -L./blink1 -lblink1 ogl_utils.c egl_utils.c rgb_light.c dividers_gl.c liquid_gl.c exit_menu_gl.c image_gl.c cursor_gl.c rectangle_gl.c lodepng.c background_gl.c font_gl.c particles_gl.c mover_gl.c controls.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
+	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -DBLINK1 -L./blink1 -lblink1 ogl_utils.c egl_utils.c blink1_light.c dividers_gl.c liquid_gl.c exit_menu_gl.c image_gl.c cursor_gl.c rectangle_gl.c lodepng.c background_gl.c font_gl.c particles_gl.c mover_gl.c controls.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 
+leap:
+	mkdir -p bin
+	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -DBLINK1 -DLEAP_MOTION_ENABLED1 -L./blink1 -lblink1 -lcurl ogl_utils.c egl_utils.c blink1_light.c dividers_gl.c liquid_gl.c exit_menu_gl.c image_gl.c cursor_gl.c rectangle_gl.c lodepng.c background_gl.c font_gl.c particles_gl.c mover_gl.c controls.c renderer.c geometry.c hash.c communication.c fluid.c -o bin/sph.out
 
 clean:
 	rm -f ./bin/sph.out
@@ -37,6 +40,3 @@ copy:
 	scp ./bin/sph.out pi7:~/
 	scp ./bin/sph.out pi8:~/
 	scp ./bin/sph.out pi9:~/
-	scp ./bin/sph.out pi10:~/
-	scp ./bin/sph.out pi11:~/
-	scp ./bin/sph.out pi12:~/

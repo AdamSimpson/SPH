@@ -60,6 +60,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "controls.h"
 #include "exit_menu_gl.h"
 
+#ifdef LEAP_MOTION_ENABLED
+#include <curl/curl.h>
+#endif
+
 bool window_should_close(gl_t *state)
 {
     if(state->window_should_close)
@@ -173,6 +177,21 @@ void init_ogl(gl_t *state, render_t *render_state)
     // Open input event
     state->controller_1_fd = open("/dev/input/event0",O_RDONLY|O_NONBLOCK);
     state->controller_2_fd = open("/dev/input/event1",O_RDONLY|O_NONBLOCK);
+
+    #ifdef LEAP_MOTION_ENABLED
+      curl_chunk.memory = malloc(1);
+      curl_chunk.size = 0;
+      curl_global_init(CURL_GLOBAL_ALL);
+ 
+      curl_handle = curl_easy_init();
+
+      const char leap_address[] = "192.168.1.1:8888";
+      curl_easy_setopt(curl_handle, CURLOPT_URL, leap_address);
+      printf("Polling %s for leap motion events\n", leap_address);
+ 
+      curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_callback);
+      curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
+    #endif
 }
 
 void swap_ogl(gl_t *state)
@@ -194,6 +213,12 @@ void exit_ogl(gl_t *state)
 
    close(state->controller_2_fd);
    close(state->controller_1_fd);
+
+   #ifdef LEAP_MOTION_ENABLED
+   curl_easy_cleanup(curl_handle);
+   free(curl_chunk.memory);
+   curl_global_cleanup();
+   #endif
 
    printf("close\n");
 }
@@ -354,6 +379,41 @@ void process_controller_events(gl_t *state, int controller_fd)
     }
 }
 
+#ifdef LEAP_MOTION_ENABLED
+static size_t curl_callback(void *contents, size_t size, size_t count, void *user_p) {
+  size_t total_size = size * count;
+  curl_mem_t *mem = user_p;
+
+  mem->memory = realloc(mem->memory, mem->size + total_size + 1);
+  
+  memcpy(&(mem->memory[mem->size]), contents, total_size);
+  mem->size += total_size;
+  mem->memory[mem->size] = 0;
+
+  return total_size;
+}
+
+// Poll webservice for leap motion coordinates
+// Coordinates are expected to be in gl coordinates, center origin
+void process_leap_events(gl_t *state) {
+  curl_response = curl_easy_perform(curl_handle);
+  if(curl_response != CURLE_OK)
+    printf("curl leapmotion response failed!\n");
+  else {
+    float leap_x, leap_y, leap_z;
+    const int num_params = sscanf(curl_chunk.memory, "[%s,%s,%s]", &x, &y, &z);
+    if(num_params == EOF)
+      printf("curl leapmotion response incorrect length\n");
+    else {
+      render_t *render_state = (render_t*)state->user_pointer;
+      set_mover_gl_center(render_state, leap_x, leap_y);
+      curl_chunk.size = 0;
+    }
+  }
+  
+}
+#endif
+
 // Poll /dev/input for any input event
 // https://www.kernel.org/doc/Documentation/input/input.txt
 void check_user_input(gl_t *state)
@@ -363,6 +423,10 @@ void check_user_input(gl_t *state)
         process_controller_events(state, state->controller_1_fd);
     if(state->controller_2_fd > 0)
         process_controller_events(state, state->controller_2_fd);
+
+    #ifdef LEAP_MOTION_ENABLED
+      process_leap_events(state);
+    #endif
 }
 
 // Convert pixel coordinates, lower left origin, to gl coordinates, center origin
