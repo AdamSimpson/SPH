@@ -59,7 +59,7 @@ The input controls are set in `GLFW_utils.c` and `EGL_utils.c` for GLFW and Rasp
 
 Although subject to change generally keys should operate as follows:
 
-* The `esc` key toggles the exit menu, hover the oak leaf over the `terminal` image and press `a` to exit.
+* The `esc` key exists the simulation under macOS. On other platform `esc` toggles the exit menu, hover the oak leaf over the `terminal` image and press `a` to exit.
 
 * Arrow keys should change the paramaters in the top left of the screen
 
