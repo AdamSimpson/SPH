@@ -67,7 +67,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         switch(key)
         { 
             case GLFW_KEY_ESCAPE:
-                toggle_quit_mode(render_state);              
+                #ifdef EXIT_SIMPLE
+                exit_now(render_state, window);
+                #else
+                toggle_quit_mode(render_state);
+                #endif        
 	        break;
             case GLFW_KEY_RIGHT:
                 increase_parameter(render_state);
@@ -264,3 +268,8 @@ void exit_with_selected_program(render_t *render_state, GLFWwindow* window)
     }
 }
 
+// Exit without using program selector
+void exit_now(render_t *render_state, GLFWwindow* window) {
+  glfwSetWindowShouldClose(window, GL_TRUE);
+  render_state->return_value = 0;
+}

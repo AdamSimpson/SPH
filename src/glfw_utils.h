@@ -48,5 +48,6 @@ void swap_ogl(gl_t *state);
 bool window_should_close(gl_t *state);
 void pixel_to_gl(gl_t *state, int pixel_x, int pixel_y, float *gl_x, float *gl_y);
 void exit_with_selected_program(render_t *render_state, GLFWwindow* window);
+void exit_now(render_t *render_state, GLFWwindow* window);
 
 #endif
